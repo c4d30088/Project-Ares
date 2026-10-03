@@ -80,6 +80,8 @@ describe("perfect sensor picture", () => {
   });
 
   it("reports burning vs coasting from thrust", () => {
+    world.ships.find((s) => s.id === "red-cr1")!.thrust = 14.7;
+    const picture = buildPerfectPicture(world, "blue");
     const byId = Object.fromEntries(picture.tracks.map((t) => [t.id, t]));
     expect(byId["red-cr1"].burning).toBe(true);
     expect(byId["red-cap1"].burning).toBe(false);

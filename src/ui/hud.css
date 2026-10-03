@@ -111,3 +111,30 @@
   white-space: nowrap;
   will-change: transform;
 }
+
+/* --- Buttons --- */
+.hud-btn {
+  --cut: 6px;
+  font-family: "Oxanium", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: color-mix(in srgb, var(--chrome) 14%, transparent);
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chrome) 55%, transparent);
+}
+.hud-btn.mono { font-family: "Share Tech Mono", monospace; letter-spacing: 0.04em; font-size: 11px; }
+.hud-btn:hover { background: color-mix(in srgb, var(--chrome) 28%, transparent); }
+.hud-btn.active { background: color-mix(in srgb, var(--chrome) 45%, transparent); color: #fff; }
+.hud-btn.active.warn { background: color-mix(in srgb, var(--uncertain) 30%, transparent); color: var(--uncertain); }
+.hud-btn:disabled { opacity: 0.35; cursor: default; }
+.btn-group { display: flex; gap: 2px; }
+
+.time-controls { display: flex; align-items: center; gap: 10px; }
+.clock { color: var(--text); font-size: 13px; margin-left: 4px; }
+.hud-btn.mono { text-transform: none; }

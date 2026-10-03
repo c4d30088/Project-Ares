@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gridLevels, gridStrength, niceStep, ringStrength } from "../src/render/scale";
-import { formatDistance } from "../src/ui/format";
+import { formatClock, formatCountdown, formatDistance } from "../src/ui/format";
 
 describe("grid levels", () => {
   it("picks a power-of-ten base spacing", () => {
@@ -45,5 +45,15 @@ describe("formatDistance", () => {
     expect(formatDistance(10_000)).toBe("10 KM");
     expect(formatDistance(1_000_000)).toBe("1,000 KM");
     expect(formatDistance(1e9)).toBe("1,000,000 KM");
+  });
+});
+
+describe("clock formatting", () => {
+  it("formats the mission clock and countdowns", () => {
+    expect(formatClock(0)).toBe("T+00:00:00");
+    expect(formatClock(3725.9)).toBe("T+01:02:05");
+    expect(formatCountdown(134)).toBe("02:14");
+    expect(formatCountdown(0.2)).toBe("00:01");
+    expect(formatCountdown(3 * 3600 + 61)).toBe("3:01:01");
   });
 });

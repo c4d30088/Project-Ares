@@ -14,7 +14,13 @@ export interface TableCamera {
   /** Current focus in sim coordinates. Read every frame by the renderer. */
   readonly focus: Vec3;
   readonly distance: number;
+  /** Moves the focus to p. With animate, glides there from the current focus. */
   setFocus(p: Vec3, animate?: boolean): void;
+  /** Moves the focus anchor without restarting any glide in progress (for following a
+   *  moving object every frame). */
+  setAnchor(p: Vec3): void;
+  /** Called when the player pans, so the game can stop following an object. */
+  onPan: (() => void) | null;
   toggleTopDown(): void;
   setView(v: { yawDeg?: number; pitchDeg?: number; distance?: number }, animate?: boolean): void;
   update(dt: number): void;
@@ -26,8 +32,11 @@ export function createTableCamera(dom: HTMLElement): TableCamera {
   const camera = new THREE.PerspectiveCamera(T.fovDeg, 1, 0.5, 1e13);
 
   // Current and target state. Distance is damped in log space so zoom feels even at every scale.
+  // Focus = anchor + offset. The anchor can follow a moving ship exactly; the offset glides
+  // to zero after a focus change, so the camera never lags behind a fast ship.
   const focus: Vec3 = { x: 0, y: 0, z: 0 };
-  const focusTarget: Vec3 = { x: 0, y: 0, z: 0 };
+  const anchor: Vec3 = { x: 0, y: 0, z: 0 };
+  const offset: Vec3 = { x: 0, y: 0, z: 0 };
   let yaw = T.startYawDeg * DEG, yawTarget = yaw;
   let pitch = T.startPitchDeg * DEG, pitchTarget = pitch;
   let logDist = Math.log(T.startDistance), logDistTarget = logDist;
@@ -86,8 +95,9 @@ export function createTableCamera(dom: HTMLElement): TableCamera {
     // When looking nearly straight down, screen up maps fully to forward; at low angles
     // the plane is foreshortened, so stretch forward motion to keep the grid under the cursor.
     const fwdScale = 1 / Math.max(0.2, Math.sin(Math.abs(pitch)));
-    focusTarget.x += (-dx * rightX + dy * fwdX * fwdScale) * metersPerPx;
-    focusTarget.y += (-dx * rightY + dy * fwdY * fwdScale) * metersPerPx;
+    anchor.x += (-dx * rightX + dy * fwdX * fwdScale) * metersPerPx;
+    anchor.y += (-dx * rightY + dy * fwdY * fwdScale) * metersPerPx;
+    api.onPan?.();
   }
 
   const api: TableCamera = {
@@ -97,11 +107,29 @@ export function createTableCamera(dom: HTMLElement): TableCamera {
       return Math.exp(logDist);
     },
     onClick: null,
+    onPan: null,
     setFocus(p, animate = true) {
-      focusTarget.x = p.x;
-      focusTarget.y = p.y;
-      focusTarget.z = p.z;
-      if (!animate) Object.assign(focus, focusTarget);
+      if (animate) {
+        offset.x = focus.x - p.x;
+        offset.y = focus.y - p.y;
+        offset.z = focus.z - p.z;
+      } else {
+        offset.x = offset.y = offset.z = 0;
+      }
+      anchor.x = p.x;
+      anchor.y = p.y;
+      anchor.z = p.z;
+      focus.x = anchor.x + offset.x;
+      focus.y = anchor.y + offset.y;
+      focus.z = anchor.z + offset.z;
+    },
+    setAnchor(p) {
+      anchor.x = p.x;
+      anchor.y = p.y;
+      anchor.z = p.z;
+      focus.x = anchor.x + offset.x;
+      focus.y = anchor.y + offset.y;
+      focus.z = anchor.z + offset.z;
     },
     toggleTopDown() {
       if (pitchBeforeTopDown === null) {
@@ -127,9 +155,12 @@ export function createTableCamera(dom: HTMLElement): TableCamera {
       yaw += (yawTarget - yaw) * k;
       pitch += (pitchTarget - pitch) * k;
       logDist += (logDistTarget - logDist) * k;
-      focus.x += (focusTarget.x - focus.x) * k;
-      focus.y += (focusTarget.y - focus.y) * k;
-      focus.z += (focusTarget.z - focus.z) * k;
+      offset.x -= offset.x * k;
+      offset.y -= offset.y * k;
+      offset.z -= offset.z * k;
+      focus.x = anchor.x + offset.x;
+      focus.y = anchor.y + offset.y;
+      focus.z = anchor.z + offset.z;
 
       // Camera position around the origin. Sim yaw is measured in the X/Y plane;
       // three.js axes are (x, z_up, -y).

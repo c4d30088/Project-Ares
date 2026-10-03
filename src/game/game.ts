@@ -1,27 +1,123 @@
-// Game state outside the sim: the world, the player's sensor picture, and selection.
+// Game state outside the sim: the world, time control, the player's sensor picture
+// (interpolated for smooth rendering), selection, and the player's command channel.
 
+import { timeTuning } from "../data/time";
+import type { Command, SimEvent } from "../sim/commands";
 import { loadScenario, type Scenario } from "../sim/scenario";
 import { buildPerfectPicture, type SensorPicture } from "../sim/sensors/picture";
-import type { World } from "../sim/world";
+import { DT, step, submit, TICK_RATE } from "../sim/sim";
 import type { Vec3 } from "../sim/vec3";
+import type { World } from "../sim/world";
+
+/** Never run more than this many ticks in one frame, whatever the compression. */
+const MAX_TICKS_PER_FRAME = 4000;
+/** Frames in a row over the sim budget before compression steps down. */
+const OVERLOAD_FRAMES = 3;
+const NOTICE_SECONDS = 4;
 
 export interface Game {
   world: World;
   playerFaction: string;
+  /** The player's picture, with positions interpolated between the last two ticks. */
   picture: SensorPicture;
   selectedId: string | null;
-  /** Position of any object in the player's picture (own ship, track or body). */
+  paused: boolean;
+  compressionIndex: number;
+  /** Short message explaining an automatic time change, or null. */
+  notice: string | null;
+  readonly simTime: number;
+  readonly compression: number;
   positionOf(id: string): Vec3 | null;
+  /** Submits a command as the player's faction. */
+  issue(command: Command): void;
+  setCompression(index: number): void;
+  togglePause(): void;
+  /** Advances the sim by real seconds (scaled by compression) and rebuilds the picture. */
+  update(realDt: number): void;
 }
 
 export function createGame(scenario: Scenario): Game {
   const world = loadScenario(scenario);
-  const picture = buildPerfectPicture(world, scenario.playerFaction);
+  const faction = scenario.playerFaction;
+
+  // Positions before the most recent tick, for interpolation.
+  const prev = new Map<string, Vec3>();
+  const snapshotPrev = () => {
+    for (const list of [world.ships, world.torpedoes, world.stations]) {
+      for (const e of list) {
+        const p = prev.get(e.id);
+        if (p) {
+          p.x = e.position.x;
+          p.y = e.position.y;
+          p.z = e.position.z;
+        } else prev.set(e.id, { ...e.position });
+      }
+    }
+  };
+  snapshotPrev();
+
+  let accumulator = 0; // fractional ticks
+  let overloadFrames = 0;
+  let noticeUntil = 0;
+  let realClock = 0;
+
+  const isOwn = (shipId: string) => world.ships.some((s) => s.id === shipId && s.faction === faction);
+  const shipName = (shipId: string) => world.ships.find((s) => s.id === shipId)?.name ?? shipId;
+
+  function setNotice(text: string) {
+    game.notice = text;
+    noticeUntil = realClock + NOTICE_SECONDS;
+  }
+
+  /** Auto-slowdown (DESIGN.md section 5). Returns true if time was slowed. */
+  function checkSlowdown(events: SimEvent[]): boolean {
+    for (const e of events) {
+      if (e.type === "flipStart" && timeTuning.slowOnFlip && isOwn(e.ship)) {
+        if (game.compressionIndex > 0) {
+          game.compressionIndex = 0;
+          setNotice(`1x: ${shipName(e.ship)} FLIP`);
+          return true;
+        }
+      }
+      if (e.type === "orderComplete" && timeTuning.slowOnOrderComplete && isOwn(e.ship)) {
+        if (game.compressionIndex > 0) {
+          game.compressionIndex = 0;
+          setNotice(`1x: ${shipName(e.ship)} ORDER COMPLETE`);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function rebuildPicture(alpha: number) {
+    const pic = buildPerfectPicture(world, faction);
+    const lerp = (id: string, p: Vec3) => {
+      const a = prev.get(id);
+      if (!a) return;
+      p.x = a.x + (p.x - a.x) * alpha;
+      p.y = a.y + (p.y - a.y) * alpha;
+      p.z = a.z + (p.z - a.z) * alpha;
+    };
+    for (const s of pic.ownShips) lerp(s.id, s.position);
+    for (const t of pic.tracks) lerp(t.id, t.position);
+    game.picture = pic;
+  }
+
   const game: Game = {
     world,
-    playerFaction: scenario.playerFaction,
-    picture,
-    selectedId: picture.ownShips[0]?.id ?? null,
+    playerFaction: faction,
+    picture: buildPerfectPicture(world, faction),
+    selectedId: world.ships.find((s) => s.faction === faction)?.id ?? null,
+    paused: false,
+    compressionIndex: 0,
+    notice: null,
+    get simTime() {
+      return world.tick * DT;
+    },
+    get compression() {
+      return timeTuning.compressionSteps[game.compressionIndex];
+    },
     positionOf(id) {
       const p = game.picture;
       return (
@@ -30,6 +126,49 @@ export function createGame(scenario: Scenario): Game {
         p.bodies.find((b) => b.id === id)?.position ??
         null
       );
+    },
+    issue(command) {
+      submit(world, faction, command);
+    },
+    setCompression(index) {
+      game.compressionIndex = Math.max(0, Math.min(timeTuning.compressionSteps.length - 1, index));
+    },
+    togglePause() {
+      game.paused = !game.paused;
+    },
+    update(realDt) {
+      realClock += realDt;
+      if (game.notice && realClock > noticeUntil) game.notice = null;
+
+      if (!game.paused) {
+        accumulator += realDt * TICK_RATE * game.compression;
+        let ticks = Math.floor(accumulator);
+        accumulator -= ticks;
+        if (ticks > MAX_TICKS_PER_FRAME) ticks = MAX_TICKS_PER_FRAME;
+
+        const start = performance.now();
+        let overloaded = false;
+        for (let i = 0; i < ticks; i++) {
+          snapshotPrev();
+          step(world);
+          if (checkSlowdown(world.events)) {
+            accumulator = 0;
+            break;
+          }
+          if (performance.now() - start > timeTuning.maxSimMsPerFrame) {
+            overloaded = true;
+            accumulator = 0;
+            break;
+          }
+        }
+        overloadFrames = overloaded ? overloadFrames + 1 : 0;
+        if (overloadFrames >= OVERLOAD_FRAMES && game.compressionIndex > 0) {
+          game.compressionIndex--;
+          overloadFrames = 0;
+          setNotice(`TIME COMPRESSION LIMITED: SIM LOAD (${game.compression}x)`);
+        }
+      }
+      rebuildPicture(accumulator);
     },
   };
   return game;

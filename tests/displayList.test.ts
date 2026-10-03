@@ -5,6 +5,10 @@ import { buildPerfectPicture } from "../src/sim/sensors/picture";
 import holotableTest from "../src/data/scenarios/holotable-test.json";
 
 const world = loadScenario(holotableTest as Scenario);
+// Drive state comes from the sim; set it directly so the display mapping can be checked.
+const setThrust = (id: string, a: number) => (world.ships.find((s) => s.id === id)!.thrust = a);
+setThrust("blue-ff1", 19.6);
+setThrust("red-cr1", 14.7);
 const list = buildDisplayList(buildPerfectPicture(world, "blue"));
 const byId = Object.fromEntries(list.symbols.map((s) => [s.id, s]));
 

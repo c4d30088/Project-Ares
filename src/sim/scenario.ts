@@ -3,7 +3,8 @@
 
 import { Rng } from "./rng";
 import { add, normalize, scale, vec3, type Vec3 } from "./vec3";
-import type { Body, Faction, Ship, Station, Torpedo, World } from "./world";
+import { freshNavState, type Command } from "./commands";
+import type { Body, Faction, GSetting, Ship, Station, Torpedo, World } from "./world";
 
 export interface SalvoSpec {
   idPrefix: string;
@@ -19,8 +20,19 @@ export interface SalvoSpec {
   thrust: number;
 }
 
-/** Heading is optional in scenario files; it defaults to the direction of travel. */
-export type ScenarioShip = Omit<Ship, "heading"> & { heading?: Vec3 };
+/** A ship as written in a scenario file. Heading defaults to the direction of travel;
+ *  G setting defaults to cruise. Orders are given with `commands`. */
+export interface ScenarioShip {
+  id: string;
+  name: string;
+  faction: string;
+  shipClass: Ship["shipClass"];
+  position: Vec3;
+  velocity: Vec3;
+  heading?: Vec3;
+  g?: GSetting;
+  testShowAsUnknown?: boolean;
+}
 
 export interface Scenario {
   name: string;
@@ -32,6 +44,8 @@ export interface Scenario {
   bodies?: Body[];
   torpedoes?: Torpedo[];
   salvos?: SalvoSpec[];
+  /** Orders in effect at the start, applied on the first tick. */
+  commands?: { faction: string; command: Command }[];
 }
 
 function checkVec(v: Vec3, what: string): void {
@@ -57,8 +71,20 @@ export function loadScenario(scenario: Scenario): World {
     checkFaction(s.faction, s.id);
     checkVec(s.position, `${s.id}.position`);
     checkVec(s.velocity, `${s.id}.velocity`);
-    const heading = normalize(s.heading ?? s.velocity);
-    return { ...s, position: { ...s.position }, velocity: { ...s.velocity }, heading };
+    return {
+      id: s.id,
+      name: s.name,
+      faction: s.faction,
+      shipClass: s.shipClass,
+      position: { ...s.position },
+      velocity: { ...s.velocity },
+      heading: normalize(s.heading ?? s.velocity),
+      thrust: 0,
+      g: s.g ?? "cruise",
+      order: null,
+      nav: freshNavState(),
+      ...(s.testShowAsUnknown ? { testShowAsUnknown: true } : {}),
+    };
   });
 
   const stations: Station[] = (scenario.stations ?? []).map((s) => {
@@ -101,7 +127,17 @@ export function loadScenario(scenario: Scenario): World {
     }
   }
 
-  return { tick: 0, factions: scenario.factions.map((f) => ({ ...f })), ships, stations, bodies, torpedoes };
+  const pending = (scenario.commands ?? []).map((c) => ({ tick: 0, faction: c.faction, command: structuredClone(c.command) }));
+  return {
+    tick: 0,
+    pending,
+    events: [],
+    factions: scenario.factions.map((f) => ({ ...f })),
+    ships,
+    stations,
+    bodies,
+    torpedoes,
+  };
 }
 
 function randomInSphere(rng: Rng, radius: number): Vec3 {

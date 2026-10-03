@@ -1,6 +1,9 @@
 import type { Vec3 } from "./vec3";
+import type { NavOrder, NavState, QueuedCommand, SimEvent } from "./commands";
 
 export type ShipClass = "corvette" | "frigate" | "destroyer" | "cruiser" | "capital";
+/** Acceleration setting for movement orders (DESIGN.md section 6). */
+export type GSetting = "cruise" | "combat" | "max";
 export type FactionId = string;
 
 export interface Faction {
@@ -18,8 +21,12 @@ export interface Ship {
   velocity: Vec3;
   /** Unit vector along the bow. The main drive pushes along this. */
   heading: Vec3;
-  /** Current drive acceleration in m/s². 0 means coasting. */
+  /** Drive acceleration applied during the last tick, m/s². 0 means coasting. */
   thrust: number;
+  g: GSetting;
+  /** Current nav order. null means coast. */
+  order: NavOrder | null;
+  nav: NavState;
   /** Test aid until real sensors exist (M4): show this ship as an unknown contact. */
   testShowAsUnknown?: boolean;
 }
@@ -53,6 +60,10 @@ export interface Body {
 
 export interface World {
   tick: number;
+  /** Commands waiting to be applied, in submission order. */
+  pending: QueuedCommand[];
+  /** Events raised during the most recent tick. */
+  events: SimEvent[];
   factions: Faction[];
   ships: Ship[];
   torpedoes: Torpedo[];
