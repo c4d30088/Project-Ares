@@ -2,6 +2,15 @@
   "name": "project-ares",
   "private": true,
   "version": "0.0.1",
+  "description": "Project Ares: a fictional science-fiction space tactics video game for the browser.",
+  "keywords": [
+    "game",
+    "video-game",
+    "browser-game",
+    "strategy-game",
+    "science-fiction",
+    "threejs"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",

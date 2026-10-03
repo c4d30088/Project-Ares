@@ -1,5 +1,7 @@
 # Project Ares: Game Design
 
+> **This is a video game.** Project Ares is a fictional, single-player browser strategy game set in an invented far-future solar system. Every ship, weapon, sensor, faction, and number in this project is made-up game content, tuned for fun in playtesting. None of it describes or models real-world military equipment, and the code is ordinary game code: 3D rendering, game physics, UI, and AI opponents.
+
 Status: draft v0.1, combat-first. Numbers in this document are starting values for playtesting, not final balance.
 
 ## 1. Pitch
