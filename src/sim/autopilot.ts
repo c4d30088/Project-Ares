@@ -12,7 +12,7 @@ import { driveFactor } from "./damage";
 import { resolveTarget } from "./target";
 import { add, cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { Target } from "./target";
-import type { Ship, World } from "./world";
+import type { Body, Ship, World } from "./world";
 
 export interface NavOutput {
   /** Wanted bow direction (unit vector). */
@@ -216,6 +216,7 @@ function routeRadius(b: MassiveBody, from: Vec3, goal: Vec3, accel: number): num
  * first tangent). The side is the shorter way round, unless the ship is already moving
  * fast the other way (velocity, relative to the body): reversing that costs more.
  * pathLength is the remaining distance along the route (used to plan braking).
+ * `skip` names a body the route may fly into (a torpedo aimed at it).
  */
 export function routeAim(
   world: World,
@@ -223,9 +224,11 @@ export function routeAim(
   goal: Vec3,
   accel: number,
   velocity?: Vec3,
+  skip?: string,
 ): { aim: Vec3; pathLength: number; detour: boolean } {
   let block: { c: Vec3; R: number; t: number } | null = null;
   for (const b of world.bodies) {
+    if (b.id === skip) continue;
     const R = routeRadius(b, from, goal, accel);
     const s = segmentDistance(from, goal, b.position);
     if (s.dist < R && (!block || s.t < block.t)) block = { c: b.position, R, t: s.t };
@@ -351,17 +354,42 @@ function pathClearance(r: Vec3, v: Vec3, acc: Vec3, tTurn: number, T: number): n
 function avoidBodies(world: World, ship: Ship): NavOutput | null {
   const a = maxAccel(ship);
   if (a <= MIN_THRUST) return null;
-  const v = ship.velocity;
+  const extra = shipClasses[ship.shipClass].flipTimeS + N.avoidLookaheadExtraS;
+  const dir = swerveDirection(world.bodies, ship.position, ship.velocity, ship.heading, a, turnRate(ship), extra, ship.nav.avoiding);
+  ship.nav.avoiding = !!dir;
+  if (!dir) return null;
+  return { heading: dir, thrust: a, phase: "avoid", cancel: gravityAt(world.bodies, ship.position) };
+}
+
+/**
+ * The swerve shared by ships and torpedoes: null while the order's own guidance may keep
+ * flying, else the full-thrust direction that best clears the body about to be hit.
+ * Looks ahead the time to stop plus `extraS`. `widen` (already swerving) holds on until
+ * clear by twice the margin. `skip` names a body the mover is meant to fly into.
+ */
+export function swerveDirection(
+  bodies: readonly Body[],
+  position: Vec3,
+  velocity: Vec3,
+  heading: Vec3,
+  a: number,
+  turnRatePerS: number,
+  extraS: number,
+  widen: boolean,
+  skip?: string,
+): Vec3 | null {
+  const v = velocity;
   const speed = length(v);
-  const T = speed / a + shipClasses[ship.shipClass].flipTimeS + N.avoidLookaheadExtraS;
+  const T = speed / a + extraS;
   let take: { dir: Vec3; clearance: number; keep: number } | null = null;
-  for (const b of world.bodies) {
-    const r = sub(ship.position, b.position);
+  for (const b of bodies) {
+    if (b.id === skip) continue;
+    const r = sub(position, b.position);
     const d = length(r);
     const H = hardRadius(b);
     if (d < H) continue; // already inside (only if ordered there): the route leads out
     // Take over inside the margin; once taken over, hold on until clear by twice it.
-    const keep = H + avoidMargin(H) * (ship.nav.avoiding ? 2 : 1);
+    const keep = H + avoidMargin(H) * (widen ? 2 : 1);
     if (d - keep > speed * T) continue;
     const tStar = speed > 1e-9 ? Math.max(0, Math.min(T, -dot(r, v) / (speed * speed))) : 0;
     const pca = add(r, scale(v, tStar));
@@ -377,7 +405,7 @@ function avoidBodies(world: World, ship: Ship): NavOutput | null {
     const dirs = [out1, lat, scale(vHat, -1), normalize(sub(lat, vHat))];
     let best: { dir: Vec3; clearance: number } | null = null;
     for (const dir of dirs) {
-      const tTurn = angleBetween(ship.heading, dir) / turnRate(ship);
+      const tTurn = angleBetween(heading, dir) / turnRatePerS;
       const clearance = pathClearance(r, v, scale(dir, a), tTurn, T);
       if (!best || clearance > best.clearance) best = { dir, clearance };
     }
@@ -385,9 +413,7 @@ function avoidBodies(world: World, ship: Ship): NavOutput | null {
       take = { ...best, keep };
     }
   }
-  ship.nav.avoiding = !!take;
-  if (!take) return null;
-  return { heading: take.dir, thrust: a, phase: "avoid", cancel: gravityAt(world.bodies, ship.position) };
+  return take ? take.dir : null;
 }
 
 function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {

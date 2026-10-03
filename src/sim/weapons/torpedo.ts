@@ -5,7 +5,8 @@
 import { combatTuning as C, loadouts } from "../../data/combat";
 import { torpedoTuning as TT } from "../../data/weapons";
 import { G0 } from "../../data/ships";
-import { interceptTime } from "../autopilot";
+import { interceptTime, routeAim, swerveDirection } from "../autopilot";
+import { navTuning as N } from "../../data/nav";
 import { closestApproach } from "../collide";
 import { gravityAt } from "../gravity";
 import type { SimEvent } from "../commands";
@@ -159,12 +160,34 @@ function terminalReach(fuel: number, a: number): number {
   return 0.5 * a * burn * (2 * TT.terminalPhaseS - burn) * 0.5;
 }
 
-/** Velocity field to stop at a point: cruise at what the fuel allows, brake in time. */
-function toPoint(t: Torpedo, point: Vec3, a: number, dt: number): Vec3 {
-  const r = sub(point, t.position);
+/**
+ * Boost around a body: fly toward the corner of the route, but only as fast as still
+ * leaves the fuel to turn at the corner onto the leg to the target. Turning a speed v by
+ * an angle θ costs about 2·v·sin(θ/2), so the first leg gets 1 / (1 + 2·sin(θ/2)) of
+ * what the boost can still give.
+ */
+function aroundBody(t: Torpedo, corner: Vec3, meet: Vec3, boostLeft: number, a: number, dt: number): Vec3 {
+  const leg1 = normalize(sub(corner, t.position));
+  const leg2 = normalize(sub(meet, corner));
+  const turn = Math.acos(Math.max(-1, Math.min(1, dot(leg1, leg2))));
+  const vCap = (length(t.velocity) + boostLeft) / (1 + 2 * Math.sin(turn / 2));
+  // Steer onto the leg; add speed only up to the cap, never brake (that would waste it).
+  const vAlong = dot(t.velocity, leg1);
+  const vLat = sub(t.velocity, scale(leg1, vAlong));
+  const dv = sub(scale(leg1, Math.max(0, vCap - vAlong)), vLat);
+  const m = length(dv);
+  if (m < 1) return { x: 0, y: 0, z: 0 };
+  return scale(dv, Math.min(a, m / dt) / m);
+}
+
+/** Velocity field to stop at a point: cruise at what the fuel allows, brake in time.
+ *  Routed around bodies in the way (braking planned over the whole route). */
+function toPoint(world: World, t: Torpedo, point: Vec3, a: number, dt: number): Vec3 {
+  const route = routeAim(world, t.position, point, a, t.velocity);
+  const r = sub(route.aim, t.position);
   const d = length(r);
   const cruise = (TT.deltaV - TT.terminalReserve) / 2;
-  const vWant = Math.min(cruise, Math.sqrt(2 * a * POINT_BRAKE_MARGIN * d));
+  const vWant = Math.min(cruise, Math.sqrt(2 * a * POINT_BRAKE_MARGIN * route.pathLength));
   const want = d > 1e-9 ? scale(r, vWant / d) : { x: 0, y: 0, z: 0 };
   const dv = sub(want, t.velocity);
   const m = length(dv);
@@ -182,6 +205,8 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
   // The reserve is for final homing (and for settling as a mine); the boost and the
   // flight to a point leave it alone.
   let useReserve = false;
+  // A torpedo aimed at a body may fly into it; every other body is in the way.
+  const skip = g.target.kind === "object" ? g.target.id : undefined;
 
   if (g.stage === "cold") {
     // Coast dark; light the drive inside ignition range, or once the range starts opening.
@@ -211,13 +236,13 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
       destroy(world, t, "timeout");
       return;
     } else if (g.target.kind === "point") {
-      cmd = toPoint(t, g.target.position, a, dt); // settle at the point as a mine
+      cmd = toPoint(world, t, g.target.position, a, dt); // settle at the point as a mine
       useReserve = true;
     }
   }
 
   if (g.stage === "flight" && tgt) {
-    if (g.target.kind === "point") cmd = toPoint(t, tgt.position, a, dt);
+    if (g.target.kind === "point") cmd = toPoint(world, t, tgt.position, a, dt);
     else {
       const r = sub(tgt.position, t.position);
       const v = sub(t.velocity, tgt.velocity);
@@ -229,8 +254,17 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
       // collision course that final homing could not fix it: then correct now, which
       // costs far less than correcting late.
       const zem = vc > 0 ? length(zeroEffortMiss(r, v, aT, tgo)) : 0;
-      if (boosting) cmd = homing(r, v, aT, a, true, g.fuel - g.reserve);
-      else if (tgo < TT.terminalPhaseS) {
+      if (boosting) {
+        // A body between the torpedo and where it will meet the target: boost around its
+        // edge first (the route the nav computer uses), then home.
+        const boostLeft = g.fuel - g.reserve;
+        const meet = add(tgt.position, scale(tgt.velocity, timeToGo(length(r), Math.max(0, vc), a, boostLeft)));
+        const route = routeAim(world, t.position, meet, a, t.velocity, skip);
+        cmd = route.detour ? aroundBody(t, route.aim, meet, boostLeft, a, dt) : homing(r, v, aT, a, true, boostLeft);
+      } else if (vc > 0 && routeAim(world, t.position, add(tgt.position, scale(tgt.velocity, tgo)), a, t.velocity, skip).detour) {
+        // Still going round a body: hold the course (the swerve guards the edge) and correct
+        // once the way to the target is clear.
+      } else if (tgo < TT.terminalPhaseS) {
         cmd = homing(r, v, aT, a, false);
         useReserve = true;
       } else if (vc > 0 && zem > terminalReach(g.fuel, a)) {
@@ -243,6 +277,17 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
         destroy(world, t, "spent");
         return;
       }
+    }
+  }
+
+  // Last line of defence: if the flight is about to end in a body it was not aimed at,
+  // swerve at full thrust, reserve and all. A cold torpedo lights its drive to do it.
+  if (g.stage !== "search" || g.target.kind === "point") {
+    const dir = swerveDirection(world.bodies, t.position, t.velocity, t.heading, a, Infinity, N.avoidLookaheadExtraS, false, skip);
+    if (dir) {
+      if (g.stage === "cold") g.stage = "flight";
+      cmd = scale(dir, a);
+      useReserve = true;
     }
   }
 

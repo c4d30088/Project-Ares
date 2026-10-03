@@ -98,3 +98,4 @@ Features for later. Not for the current milestone.
 
 - Orbit: choose the altitude by dragging; fuel-efficient transfers instead of stop-then-spin-up.
 - Gravity: moving bodies (moons on their own orbits) and slingshot planning.
+- Destructible asteroids: asteroids take damage from railgun slugs and torpedoes and break into fragments. Fragments become new objects (debris) that drift, block shots and routes, and can be cleared by PDCs (DESIGN.md already lists debris as a target). Moons and planets stay intact. Best after M3, once railguns exist; it changes cover, so look at it alongside M4 sensors and line of sight.
