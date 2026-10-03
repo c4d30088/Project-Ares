@@ -39,6 +39,8 @@ export interface NavState {
   complete: boolean;
   /** Fast pass: closest approach seen so far, to detect when it is behind the ship. */
   closestApproach: number;
+  /** Station-keep: the ship has left the hold box and is travelling back to station. */
+  travelling: boolean;
 }
 
 export const freshNavState = (): NavState => ({
@@ -46,6 +48,7 @@ export const freshNavState = (): NavState => ({
   braking: false,
   complete: false,
   closestApproach: Infinity,
+  travelling: false,
 });
 
 export type SimEvent =

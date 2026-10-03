@@ -133,6 +133,7 @@ function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   game.update(dt);
+  orders.update();
   if (followId) {
     const p = game.positionOf(followId);
     if (p) view.cam.setAnchor(p);
@@ -183,7 +184,7 @@ function frame(now: number) {
     view.cam.distance,
     dt,
   );
-  bodies.update(list.bodies, view.cam.focus, view.cam.camera);
+  bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);
   view.render([[icons.scene, icons.camera]]);

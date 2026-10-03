@@ -4,6 +4,7 @@ import { holotableTuning } from "../data/holotable";
 import { symbolTuning } from "../data/symbols";
 import { effectsTuning } from "../data/effects";
 import { navTuning } from "../data/nav";
+import { bodyTuning } from "../data/bodies";
 import { timeTuning } from "../data/time";
 import { scenarios } from "../data/scenarios";
 
@@ -72,6 +73,15 @@ export function createDebugPanel(currentScenario: string): GUI {
   sym.add(symbolTuning, "labelOpacity", 0, 1, 0.01);
   sym.close();
 
+  const bodies = gui.addFolder("Bodies");
+  bodies.add(bodyTuning, "contourCount", 2, 40, 1);
+  bodies.add(bodyTuning, "contourOpacity", 0, 1.5, 0.01);
+  bodies.add(bodyTuning, "rimOpacity", 0, 1.5, 0.01);
+  bodies.add(bodyTuning, "moonRoughness", 0, 0.2, 0.005);
+  bodies.add(bodyTuning, "asteroidRoughness", 0, 0.6, 0.01);
+  bodies.add(bodyTuning, "noiseFrequency", 0.3, 5, 0.1);
+  bodies.close();
+
   const fx = gui.addFolder("Effects");
   fx.add(effectsTuning, "enabled");
   fx.add(effectsTuning, "bloomStrength", 0, 3, 0.01);
@@ -86,7 +96,7 @@ export function createDebugPanel(currentScenario: string): GUI {
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },

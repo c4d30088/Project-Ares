@@ -96,32 +96,50 @@ export function createGame(scenario: Scenario): Game {
     return false;
   }
 
-  // Predictions: one running predictor per ship, restarted when the order changes or the
+  // Predictions: one running predictor per ship, restarted when the order changes (including
+  // a command still waiting for the next tick, so routes appear even while paused) or the
   // refresh interval passes. The last finished result stays on screen meanwhile.
-  const predicted = new Set(["burnTo", "intercept", "matchVelocity"]);
-  const runs = new Map<string, { predictor: Predictor; orderKey: string; startedAt: number }>();
+  const movementOrders = new Set(["burnTo", "intercept", "matchVelocity", "stationKeep"]);
+  const movementCommands = new Set(["burnTo", "intercept", "matchVelocity", "stationKeep"]);
+  const runs = new Map<string, { predictor: Predictor; orderKey: string; startedAt: number; fresh: boolean }>();
   function updatePredictions() {
-    const wanted = world.ships.filter((s) => s.faction === faction && s.order && predicted.has(s.order.type));
+    const wanted = new Map<string, string>(); // ship id -> order key
+    for (const s of world.ships) {
+      if (s.faction !== faction) continue;
+      const pending = world.pending.filter((q) => q.command.ship === s.id);
+      const last = pending[pending.length - 1]?.command;
+      const moving = last && last.type !== "setG" ? movementCommands.has(last.type) : !!s.order && movementOrders.has(s.order.type);
+      if (moving) wanted.set(s.id, JSON.stringify(s.order) + s.g + JSON.stringify(pending.map((q) => q.command)));
+    }
     for (const id of [...runs.keys()]) {
-      if (!wanted.some((s) => s.id === id)) {
+      if (!wanted.has(id)) {
         runs.delete(id);
         game.predictions.delete(id);
       }
     }
-    for (const s of wanted) {
-      const key = JSON.stringify(s.order) + s.g;
-      const run = runs.get(s.id);
-      const stale = !run || run.orderKey !== key || (run.predictor.result.done && realClock - run.startedAt > pathTuning.refreshS);
+    for (const [id, key] of wanted) {
+      const run = runs.get(id);
+      const changed = !run || run.orderKey !== key;
+      const stale = changed || (run.predictor.result.done && realClock - run.startedAt > pathTuning.refreshS);
       if (stale) {
-        if (run && run.orderKey !== key) game.predictions.delete(s.id);
-        runs.set(s.id, { predictor: new Predictor(world, s.id, pathTuning.maxPredictS), orderKey: key, startedAt: realClock });
+        if (changed) game.predictions.delete(id);
+        runs.set(id, { predictor: new Predictor(world, id, pathTuning.maxPredictS), orderKey: key, startedAt: realClock, fresh: changed });
       }
     }
     const start = performance.now();
     for (const [id, run] of runs) {
-      while (!run.predictor.result.done && performance.now() - start < pathTuning.budgetMs) run.predictor.run(400);
+      // A brand-new order gets a bigger budget so its route appears quickly.
+      const budget = run.fresh ? pathTuning.freshBudgetMs : pathTuning.budgetMs;
+      while (!run.predictor.result.done && performance.now() - start < budget) run.predictor.run(400);
+      const r = run.predictor.result;
+      if (r.done) run.fresh = false;
+      // Already there (station-keep holding): nothing to draw.
+      if (r.done && r.arrival && r.arrival.t <= 2 * DT) {
+        game.predictions.delete(id);
+        continue;
+      }
       // Show a finished prediction, or the first one while it is still being computed.
-      if (run.predictor.result.done || !game.predictions.has(id)) game.predictions.set(id, run.predictor.result);
+      if (r.done || !game.predictions.has(id)) game.predictions.set(id, r);
     }
   }
 

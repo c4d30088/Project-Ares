@@ -109,3 +109,39 @@ describe("burn to point", () => {
     expect(ship.order?.type).toBe("stationKeep");
   });
 });
+
+describe("station-keep", () => {
+  it("travels to a distant point, completes once on reaching station, and is predicted", async () => {
+    const { Predictor } = await import("../src/sim/predict");
+    const ship = makeShip({ id: "ff" });
+    const world = makeWorld([ship]);
+    const point = v3(800_000, -300_000, 200_000);
+    submit(world, "blue", { type: "stationKeep", ship: "ff", target: { kind: "point", position: point } });
+    step(world);
+    const p = new Predictor(world, "ff", 3600);
+    while (!p.run(5000));
+    expect(p.result.arrival).not.toBeNull();
+
+    const start = world.tick;
+    const res = runUntilArrived(world, ship, 3600);
+    expect(res.arrivedTick).not.toBeNull();
+    expect(length(sub(ship.position, point))).toBeLessThan(1000);
+    // The predicted arrival is the same moment.
+    expect((res.arrivedTick! - start) * DT).toBeCloseTo(p.result.arrival!.t, 6);
+    // No further completions while holding.
+    for (let i = 0; i < 600 / DT; i++) {
+      step(world);
+      expect(world.events.some((e) => e.type === "orderComplete")).toBe(false);
+    }
+  });
+
+  it("starting inside the hold box does not raise a completion", () => {
+    const ship = makeShip({ id: "ff" });
+    const world = makeWorld([ship]);
+    submit(world, "blue", { type: "stationKeep", ship: "ff", target: { kind: "point", position: v3(100, 0, 0) } });
+    for (let i = 0; i < 100; i++) {
+      step(world);
+      expect(world.events.some((e) => e.type === "orderComplete")).toBe(false);
+    }
+  });
+});

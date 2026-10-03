@@ -39,6 +39,11 @@ export interface PlacementPreview {
   label: string;
 }
 
+/** A placed point stays on the table until its route is drawn, or this many seconds. */
+const PLACED_TIMEOUT_S = 10;
+/** Orders without a route (orient) show the placed point this long. */
+const PLACED_BRIEF_S = 1.5;
+
 export interface OrderInput {
   readonly mode: OrderKind | null;
   readonly hint: string | null;
@@ -46,6 +51,8 @@ export interface OrderInput {
   start(kind: OrderKind): void;
   cancel(): void;
   setG(g: GSetting): void;
+  /** Call once per frame: clears the placed point once its route has appeared. */
+  update(): void;
 }
 
 export function createOrderInput(game: Game, view: TableView, pick: (x: number, y: number) => string | null): OrderInput {
@@ -59,6 +66,8 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
   let height = 0; // meters above (+) or below (-) the plane
   let dragging = false;
   let lastY = 0;
+  // The last placed point, kept visible until the route for it is ready.
+  let placed: { preview: PlacementPreview; ship: string; kind: OrderKind; at: number } | null = null;
 
   const local = (e: PointerEvent) => {
     const r = dom.getBoundingClientRect();
@@ -78,6 +87,8 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
   function issuePoint(point: Vec3) {
     const ship = game.activeShipId;
     if (!ship || !mode) return;
+    const preview = currentPreview();
+    if (preview) placed = { preview: { ...preview, position: point }, ship, kind: mode, at: performance.now() };
     if (mode === "burnTo") game.issue({ type: "burnTo", ship, point });
     if (mode === "stationKeep") game.issue({ type: "stationKeep", ship, target: { kind: "point", position: point } });
     if (mode === "orient") game.issue({ type: "orient", ship, target: { kind: "point", position: point } });
@@ -111,6 +122,15 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
         break;
     }
     finish();
+  }
+
+  function currentPreview(): PlacementPreview | null {
+    if (!mode || !ground || NEEDS[mode] === "target") return null;
+    const position = { x: ground.x, y: ground.y, z: ground.z + height };
+    const shipPos = game.activeShipId ? game.positionOf(game.activeShipId) : null;
+    const range = shipPos ? Math.hypot(position.x - shipPos.x, position.y - shipPos.y, position.z - shipPos.z) : 0;
+    const h = Math.abs(height) < 1 ? "ON PLANE" : `${height > 0 ? "+" : "\u2212"}${formatDistance(Math.abs(height))}`;
+    return { position, label: `${formatDistance(range)} · ${h}` };
   }
 
   function finish() {
@@ -167,16 +187,27 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
       return mode && NEEDS[mode] !== "none" ? HINTS[NEEDS[mode] as keyof typeof HINTS] : null;
     },
     get preview() {
-      if (!mode || !ground || NEEDS[mode] === "target") return null;
-      const position = { x: ground.x, y: ground.y, z: ground.z + height };
-      const shipPos = game.activeShipId ? game.positionOf(game.activeShipId) : null;
-      const range = shipPos ? Math.hypot(position.x - shipPos.x, position.y - shipPos.y, position.z - shipPos.z) : 0;
-      const h = Math.abs(height) < 1 ? "ON PLANE" : `${height > 0 ? "+" : "−"}${formatDistance(Math.abs(height))}`;
-      return { position, label: `${formatDistance(range)} · ${h}` };
+      return currentPreview() ?? placed?.preview ?? null;
+    },
+    update() {
+      if (!placed) return;
+      const age = (performance.now() - placed.at) / 1000;
+      if (age > PLACED_TIMEOUT_S || (placed.kind === "orient" && age > PLACED_BRIEF_S)) {
+        placed = null;
+        return;
+      }
+      // The route is ready once a finished prediction ends near the placed point.
+      const p = game.predictions.get(placed.ship);
+      if (p?.done && p.arrival) {
+        const a = p.arrival.position, b = placed.preview.position;
+        const off = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+        if (off < 5000) placed = null;
+      }
     },
     start(kind) {
       const ship = game.activeShipId;
       if (!ship) return;
+      placed = null;
       if (kind === "coast") {
         game.issue({ type: "coast", ship });
         finish();

@@ -155,8 +155,18 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       const r = sub(goal, ship.position);
       const v = sub(ship.velocity, t.velocity);
       // Drift freely inside the hold box; correct only when outside it.
-      if (!ship.nav.braking && length(r) < N.stationHoldRadius && length(v) < N.stationHoldSpeed) return hold(ship);
-      const { out, arrived } = arrive(ship, r, v, N.arriveDistance, N.arriveSpeed, events, false);
+      if (!ship.nav.braking && length(r) < N.stationHoldRadius && length(v) < N.stationHoldSpeed) {
+        // Reaching station after travelling completes the order (once). Starting inside the
+        // box, or drifting back in later, does not.
+        if (!ship.nav.complete && ship.nav.travelling) complete(ship, events);
+        ship.nav.complete = true;
+        ship.nav.travelling = false;
+        return hold(ship);
+      }
+      ship.nav.travelling = true;
+      // The first trip to station announces its flip like any trip; later small corrections
+      // stay quiet so they never trigger auto-slowdown.
+      const { out, arrived } = arrive(ship, r, v, N.arriveDistance, N.arriveSpeed, events, !ship.nav.complete);
       if (arrived) ship.nav.braking = false;
       return out;
     }

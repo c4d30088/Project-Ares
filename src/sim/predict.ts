@@ -81,6 +81,14 @@ export class Predictor {
     };
   }
 
+  /** Ship speed relative to the target (if it is a moving entity), else absolute. */
+  private relativeSpeed(ship: World["ships"][number]): number {
+    const w = this.world;
+    const id = this.targetId;
+    const tgt = id ? w.ships.find((s) => s.id === id) ?? w.torpedoes.find((s) => s.id === id) ?? w.stations.find((s) => s.id === id) : undefined;
+    return length(tgt ? sub(ship.velocity, tgt.velocity) : ship.velocity);
+  }
+
   /** Runs up to `ticks` more ticks. Returns true when the prediction is complete. */
   run(ticks: number): boolean {
     const r = this.result;
@@ -100,13 +108,19 @@ export class Predictor {
       for (const e of w.events) {
         if (e.type === "flipStart" && e.ship === r.shipId && !r.flip) r.flip = { t, position: clone(ship.position) };
         if (e.type === "orderComplete" && e.ship === r.shipId) {
-          const tgt = this.targetId ? w.ships.find((s) => s.id === this.targetId) ?? w.torpedoes.find((s) => s.id === this.targetId) ?? w.stations.find((s) => s.id === this.targetId) : undefined;
-          const rel = tgt ? sub(ship.velocity, tgt.velocity) : ship.velocity;
-          r.arrival = { t, position: clone(ship.position), speed: length(rel), relative: !!tgt };
+          r.arrival = { t, position: clone(ship.position), speed: this.relativeSpeed(ship), relative: !!this.targetId };
           r.points.push({ t, position: clone(ship.position), burning: false });
           r.done = true;
           return true;
         }
+      }
+      // Station-keep never ends; the trip ends when the ship settles into its hold box. The
+      // first time, that raises orderComplete (handled above); after that it is silent.
+      if (ship.order?.type === "stationKeep" && ship.nav.complete && ship.nav.phase === "hold" && !r.arrival) {
+        r.arrival = { t, position: clone(ship.position), speed: this.relativeSpeed(ship), relative: !!this.targetId };
+        r.points.push({ t, position: clone(ship.position), burning: false });
+        r.done = true;
+        return true;
       }
       if (!ship.order || elapsedTicks >= this.maxTicks) {
         r.points.push({ t, position: clone(ship.position), burning });
