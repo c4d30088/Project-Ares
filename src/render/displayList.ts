@@ -3,6 +3,7 @@
 
 import type { Allegiance, SensorPicture } from "../sim/sensors/picture";
 import type { Prediction } from "../sim/predict";
+import type { TorpedoPath } from "../sim/weapons/torpedoPredict";
 import { formatCountdown, formatSpeed } from "../ui/format";
 import type { BodyKind } from "../sim/world";
 import { length, type Vec3 } from "../sim/vec3";
@@ -86,25 +87,37 @@ export function pathMarkers(predictions: Iterable<Prediction>, simTick: number, 
   return out;
 }
 
-/** A thin line from a torpedo to its predicted impact point. */
+/** A torpedo's predicted path, from where it is now to its impact (or its point). */
 export interface InterceptLine {
-  from: Vec3;
-  to: Vec3;
+  points: Vec3[];
   hostile: boolean;
 }
 
 /**
- * Intercept lines and impact X marks for torpedoes in flight (DESIGN.md section 7): a line
- * from each torpedo to where it will strike, and one X per target at the soonest impact,
- * with a countdown and how many torpedoes are inbound to it.
+ * Intercept lines and impact X marks for torpedoes in flight (DESIGN.md section 7): the
+ * path each torpedo will fly, bends and all (from its ghost run, or a straight line until
+ * that is ready), and one X per target at the soonest impact, with a countdown and how
+ * many torpedoes are inbound to it.
  */
-export function torpedoOverlays(picture: SensorPicture): { lines: InterceptLine[]; markers: PathMarker[] } {
+export function torpedoOverlays(
+  picture: SensorPicture,
+  paths: ReadonlyMap<string, TorpedoPath> = new Map(),
+  simTick = 0,
+  dt = 0,
+): { lines: InterceptLine[]; markers: PathMarker[] } {
   const lines: InterceptLine[] = [];
   const groups = new Map<string, { position: Vec3; t: number; count: number; allegiance: Allegiance }>();
   for (const tr of picture.tracks) {
-    if (tr.kind !== "torpedo" || !tr.impact) continue;
+    if (tr.kind !== "torpedo") continue;
     const hostile = tr.allegiance === "hostile";
-    lines.push({ from: tr.position, to: tr.impact.position, hostile });
+    const path = paths.get(tr.id);
+    if (path) {
+      const elapsed = (simTick - path.startTick) * dt;
+      lines.push({ points: [tr.position, ...path.points.filter((p) => p.t > elapsed).map((p) => p.position)], hostile });
+    } else if (tr.impact) {
+      lines.push({ points: [tr.position, tr.impact.position], hostile });
+    }
+    if (!tr.impact) continue;
     // One X per target (per point for point-targeted torpedoes), per side.
     const key = `${tr.allegiance}:${tr.impact.targetId ?? tr.id}`;
     const g = groups.get(key);

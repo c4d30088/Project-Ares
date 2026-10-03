@@ -225,7 +225,7 @@ export function routeAim(
   accel: number,
   velocity?: Vec3,
   skip?: string,
-): { aim: Vec3; pathLength: number; detour: boolean } {
+): { aim: Vec3; pathLength: number; detour: boolean; center?: Vec3; radius?: number } {
   let block: { c: Vec3; R: number; t: number } | null = null;
   for (const b of world.bodies) {
     if (b.id === skip) continue;
@@ -282,7 +282,7 @@ export function routeAim(
   const ang = best.dir * (alphaF + arc / 2);
   const dist = Rr / Math.cos(arc / 2);
   const aim = add(c, add(scale(e1, dist * Math.cos(ang)), scale(e2, dist * Math.sin(ang))));
-  return { aim, pathLength: best.pathLength, detour: true };
+  return { aim, pathLength: best.pathLength, detour: true, center: c, radius: Rr };
 }
 
 /**
@@ -366,6 +366,9 @@ function avoidBodies(world: World, ship: Ship): NavOutput | null {
  * flying, else the full-thrust direction that best clears the body about to be hit.
  * Looks ahead the time to stop plus `extraS`. `widen` (already swerving) holds on until
  * clear by twice the margin. `skip` names a body the mover is meant to fly into.
+ * `agile` (torpedoes, far more agile than ships) guards only the body's surface envelope:
+ * no margin outside the hard limit and none of the ships' clearance within it, so no ship
+ * parked against a body is out of their reach.
  */
 export function swerveDirection(
   bodies: readonly Body[],
@@ -377,6 +380,7 @@ export function swerveDirection(
   extraS: number,
   widen: boolean,
   skip?: string,
+  agile = false,
 ): Vec3 | null {
   const v = velocity;
   const speed = length(v);
@@ -386,10 +390,10 @@ export function swerveDirection(
     if (b.id === skip) continue;
     const r = sub(position, b.position);
     const d = length(r);
-    const H = hardRadius(b);
+    const H = agile ? hardRadius(b) - N.bodyHardMarginMeters : hardRadius(b);
     if (d < H) continue; // already inside (only if ordered there): the route leads out
     // Take over inside the margin; once taken over, hold on until clear by twice it.
-    const keep = H + avoidMargin(H) * (widen ? 2 : 1);
+    const keep = agile ? H : H + avoidMargin(H) * (widen ? 2 : 1);
     if (d - keep > speed * T) continue;
     const tStar = speed > 1e-9 ? Math.max(0, Math.min(T, -dot(r, v) / (speed * speed))) : 0;
     const pca = add(r, scale(v, tStar));

@@ -185,7 +185,7 @@ function frame(now: number) {
   view.cam.update(dt);
   holotable.update(view.cam.focus, view.cam.distance, dt, view.cam.camera);
   const preview = orders.preview;
-  const torps = torpedoOverlays(game.picture);
+  const torps = torpedoOverlays(game.picture, game.torpedoPaths, game.world.tick, DT);
   const list = buildDisplayList(
     game.picture,
     [...pathMarkers(game.predictions.values(), game.world.tick, DT), ...torps.markers],
@@ -201,7 +201,7 @@ function frame(now: number) {
     dt,
     game.picture.ownShips.flatMap((s) => (s.orbit ? [{ id: s.id, ...s.orbit }] : [])),
   );
-  intercepts.update(torps.lines, view.cam.focus);
+  intercepts.update(torps.lines, view.cam.focus, view.cam.distance);
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);

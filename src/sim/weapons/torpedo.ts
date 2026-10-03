@@ -26,6 +26,8 @@ const MIN_CORRECTION = 0.05;
 const BOOST_LATERAL_S = 1;
 /** During the boost, sideways correction may use at most this fraction of thrust. */
 const BOOST_LATERAL_SHARE = 0.6;
+/** Turns at a route corner smaller than this (radians) are ignored for bend speed. */
+const MIN_BEND = (5 * Math.PI) / 180;
 /** A point-targeted torpedo flies at this fraction of what it can afford, so it can stop. */
 const POINT_BRAKE_MARGIN = 0.8;
 
@@ -164,17 +166,29 @@ function terminalReach(fuel: number, a: number): number {
  * Boost around a body: fly toward the corner of the route, but only as fast as still
  * leaves the fuel to turn at the corner onto the leg to the target. Turning a speed v by
  * an angle θ costs about 2·v·sin(θ/2), so the first leg gets 1 / (1 + 2·sin(θ/2)) of
- * what the boost can still give.
+ * what the boost can still give. Curving round the body follows its route circle, so it
+ * needs a speed the drive can hold on that curve (v² / radius within half the thrust),
+ * whatever the angle: round a small rock that is slow. The torpedo brakes for it in time,
+ * like braking for a bend.
  */
-function aroundBody(t: Torpedo, corner: Vec3, meet: Vec3, boostLeft: number, a: number, dt: number): Vec3 {
-  const leg1 = normalize(sub(corner, t.position));
+function aroundBody(t: Torpedo, route: { aim: Vec3; center?: Vec3; radius?: number }, meet: Vec3, boostLeft: number, a: number, dt: number): Vec3 {
+  const corner = route.aim;
+  const toCorner = sub(corner, t.position);
+  const leg1 = normalize(toCorner);
   const leg2 = normalize(sub(meet, corner));
   const turn = Math.acos(Math.max(-1, Math.min(1, dot(leg1, leg2))));
   const vCap = (length(t.velocity) + boostLeft) / (1 + 2 * Math.sin(turn / 2));
-  // Steer onto the leg; add speed only up to the cap, never brake (that would waste it).
+  // The bend starts where the path first touches the circle round the body.
+  const R = route.radius ?? Infinity;
+  const dc = route.center ? length(sub(t.position, route.center)) : Infinity;
+  const toBend = Math.sqrt(Math.max(0, dc * dc - R * R));
+  const vBend = turn > MIN_BEND ? Math.sqrt(0.5 * a * R + 2 * a * POINT_BRAKE_MARGIN * toBend) : Infinity;
+  // Steer onto the leg. Add speed only up to the fuel cap (braking for that would waste
+  // it); brake only for a bend.
   const vAlong = dot(t.velocity, leg1);
   const vLat = sub(t.velocity, scale(leg1, vAlong));
-  const dv = sub(scale(leg1, Math.max(0, vCap - vAlong)), vLat);
+  const along = vAlong > vBend ? vBend - vAlong : Math.max(0, Math.min(vCap, vBend) - vAlong);
+  const dv = sub(scale(leg1, along), vLat);
   const m = length(dv);
   if (m < 1) return { x: 0, y: 0, z: 0 };
   return scale(dv, Math.min(a, m / dt) / m);
@@ -260,7 +274,11 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
         const boostLeft = g.fuel - g.reserve;
         const meet = add(tgt.position, scale(tgt.velocity, timeToGo(length(r), Math.max(0, vc), a, boostLeft)));
         const route = routeAim(world, t.position, meet, a, t.velocity, skip);
-        cmd = route.detour ? aroundBody(t, route.aim, meet, boostLeft, a, dt) : homing(r, v, aT, a, true, boostLeft);
+        if (route.detour) cmd = aroundBody(t, route, meet, boostLeft, a, dt);
+        // Close in (a short shot, or just round a body): final homing, with the whole
+        // thrust free for the correction, still pushing with what the boost has left.
+        else if (vc > 0 && tgo < TT.terminalPhaseS) cmd = homing(r, v, aT, a, true);
+        else cmd = homing(r, v, aT, a, true, boostLeft);
       } else if (vc > 0 && routeAim(world, t.position, add(tgt.position, scale(tgt.velocity, tgo)), a, t.velocity, skip).detour) {
         // Still going round a body: hold the course (the swerve guards the edge) and correct
         // once the way to the target is clear.
@@ -283,7 +301,7 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
   // Last line of defence: if the flight is about to end in a body it was not aimed at,
   // swerve at full thrust, reserve and all. A cold torpedo lights its drive to do it.
   if (g.stage !== "search" || g.target.kind === "point") {
-    const dir = swerveDirection(world.bodies, t.position, t.velocity, t.heading, a, Infinity, N.avoidLookaheadExtraS, false, skip);
+    const dir = swerveDirection(world.bodies, t.position, t.velocity, t.heading, a, Infinity, N.avoidLookaheadExtraS, false, skip, true);
     if (dir) {
       if (g.stage === "cold") g.stage = "flight";
       cmd = scale(dir, a);

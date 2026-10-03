@@ -11,6 +11,7 @@ import { DT, step, submit, TICK_RATE } from "../sim/sim";
 import type { Vec3 } from "../sim/vec3";
 import { areHostile, type World } from "../sim/world";
 import { predictImpact } from "../sim/weapons/torpedo";
+import { TorpedoPredictor, type TorpedoPath } from "../sim/weapons/torpedoPredict";
 
 /** Never run more than this many ticks in one frame, whatever the compression. */
 const MAX_TICKS_PER_FRAME = 4000;
@@ -32,6 +33,8 @@ export interface Game {
   notice: string | null;
   /** Latest predicted path for each of the player's ships with a movement order. */
   predictions: Map<string, Prediction>;
+  /** Ghost-run path of each torpedo in flight (both sides), for the intercept lines. */
+  torpedoPaths: Map<string, TorpedoPath>;
   /** Alerts for the top strip, from the player's picture. impactIn: seconds until the
    *  soonest hostile torpedo reaches one of our ships. */
   alerts: { launchDetected: boolean; impactIn: number | null };
@@ -171,6 +174,40 @@ export function createGame(scenario: Scenario): Game {
     }
   }
 
+  // Torpedo paths: one ghost run per torpedo in flight, re-run every second so they follow
+  // targets that change course. The last finished path stays on screen meanwhile.
+  const torpedoRuns = new Map<string, { predictor: TorpedoPredictor; startedAt: number }>();
+  function updateTorpedoPaths() {
+    const flying = new Set(world.torpedoes.filter((t) => t.guidance && t.guidance.stage !== "search").map((t) => t.id));
+    for (const id of [...torpedoRuns.keys()]) {
+      if (!flying.has(id)) {
+        torpedoRuns.delete(id);
+        game.torpedoPaths.delete(id);
+      }
+    }
+    for (const id of flying) {
+      const run = torpedoRuns.get(id);
+      if (!run || (run.predictor.result.done && realClock - run.startedAt > pathTuning.torpedoRefreshS)) {
+        torpedoRuns.set(id, { predictor: new TorpedoPredictor(world, id, pathTuning.torpedoMaxPredictS), startedAt: realClock });
+      }
+    }
+    const start = performance.now();
+    for (const [id, run] of torpedoRuns) {
+      while (!run.predictor.result.done && performance.now() - start < pathTuning.torpedoBudgetMs) run.predictor.run(400);
+      if (run.predictor.result.done) game.torpedoPaths.set(id, run.predictor.result);
+    }
+  }
+
+  /** Where a ghost run is finished, its end is the impact the table shows. */
+  function applyTorpedoPaths() {
+    for (const tr of game.picture.tracks) {
+      const path = tr.kind === "torpedo" ? game.torpedoPaths.get(tr.id) : undefined;
+      if (!path?.end) continue;
+      const elapsed = (world.tick - path.startTick) * DT;
+      tr.impact = path.end.kind === "miss" ? undefined : { position: path.end.position, t: Math.max(0, path.end.t - elapsed), targetId: tr.impact?.targetId ?? null };
+    }
+  }
+
   // Alerts read the player's picture (CLAUDE.md rule 6): a hostile torpedo track not seen
   // before is a detected launch.
   const knownHostileTorpedoes = new Set<string>();
@@ -217,6 +254,7 @@ export function createGame(scenario: Scenario): Game {
     notice: null,
     predictions: new Map(),
     alerts: { launchDetected: false, impactIn: null },
+    torpedoPaths: new Map(),
     get simTime() {
       return world.tick * DT;
     },
@@ -274,7 +312,9 @@ export function createGame(scenario: Scenario): Game {
         }
       }
       updatePredictions();
+      updateTorpedoPaths();
       rebuildPicture(accumulator);
+      applyTorpedoPaths();
       updateAlerts();
     },
   };

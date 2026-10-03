@@ -18,4 +18,11 @@ export const pathTuning = {
   /** Torpedo intercept lines: thin, so a salvo reads as converging threads. */
   interceptWidthPx: 1,
   interceptOpacity: 0.1,
+  /** Dot length of the intercept lines, as a fraction of camera distance (gap is 1.5x). */
+  interceptDotScale: 0.003,
+  /** Torpedo paths: re-run this often (real seconds), within this time budget per frame
+   *  (milliseconds), at most this far ahead (sim seconds). */
+  torpedoRefreshS: 1,
+  torpedoBudgetMs: 3,
+  torpedoMaxPredictS: 1800,
 };

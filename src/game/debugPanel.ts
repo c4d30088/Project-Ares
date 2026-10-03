@@ -119,6 +119,7 @@ export function createDebugPanel(currentScenario: string): GUI {
   torp.add(torpedoTuning, "tubeReloadS", 1, 60, 0.5).name("tube reload (s)");
   torp.add(pathTuning, "interceptWidthPx", 0.5, 4, 0.1).name("intercept line (px)");
   torp.add(pathTuning, "interceptOpacity", 0, 1, 0.05).name("intercept line opacity");
+  torp.add(pathTuning, "interceptDotScale", 0.0005, 0.02, 0.0005).name("intercept dot size");
   torp.close();
 
   // Copies all current values as JSON, to paste back into the src/data files.

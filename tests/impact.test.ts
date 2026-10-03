@@ -70,3 +70,31 @@ describe("torpedo impact prediction", () => {
     expect(Math.abs(preds[0].t - hit!.t)).toBeLessThan(0.05 * hit!.t);
   });
 });
+
+describe("torpedo path ghost run", () => {
+  it("ends at the real impact, at the same moment, and bends around a body in the way", async () => {
+    const { TorpedoPredictor } = await import("../src/sim/weapons/torpedoPredict");
+    const { cruiseAccel, hardRadius, safetyRadius } = await import("../src/sim/autopilot");
+    const world = makeWorld([makeShip({ id: "ff" }), makeShip({ id: "tgt", faction: "red", position: v3(1_500_000, 50_000, 0), velocity: v3(0, 200, 0) })]);
+    const rock = { id: "rock", name: "ROCK", kind: "asteroid" as const, position: v3(0, 0, 0), radius: 11_000 };
+    world.bodies.push(rock);
+    world.ships[0].position = v3(-safetyRadius(rock, cruiseAccel(world.ships[0])) * 1.001, 0, 0);
+    submit(world, "blue", { type: "launchTorpedoes", ship: "ff", target: { kind: "track", id: "tgt" }, count: 1, mode: "hot" });
+    step(world);
+    const ghost = new TorpedoPredictor(world, world.torpedoes[0].id, 1800);
+    while (!ghost.run(2000));
+    const start = world.tick;
+    let hitAt: number | null = null;
+    for (let i = 0; i < 1800 / DT && hitAt === null; i++) {
+      step(world);
+      if (world.events.some((e) => e.type === "torpedoDetonated")) hitAt = (world.tick - start) * DT;
+    }
+    expect(ghost.result.end?.kind).toBe("impact");
+    expect(ghost.result.end!.t).toBeCloseTo(hitAt!, 6);
+    // The drawn path stays outside the rock.
+    for (const p of ghost.result.points) expect(length(sub(p.position, rock.position))).toBeGreaterThan(hardRadius(rock));
+    // ... and is not a straight line: it passes well off the line through the rock.
+    const maxOff = Math.max(...ghost.result.points.map((p) => Math.abs(p.position.y)));
+    expect(maxOff).toBeGreaterThan(hardRadius(rock));
+  });
+});
