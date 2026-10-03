@@ -23,16 +23,18 @@ export const navTuning = {
   stationHoldSpeed: 1,
   /** Match velocity is complete below this relative speed. */
   matchSpeedTolerance: 0.5,
-  /** Safety zone around bodies that routes go around: a fraction of the body's radius
-   *  plus a fixed distance. */
-  bodyMarginFraction: 0.2,
-  bodyMarginMeters: 20_000,
-  /** Inner limit routes never cross, even when a ship or target is inside the safety zone.
-   *  Asteroids are lumpy, so their limit covers the bumpiest drawn surface; moons and
-   *  planets are nearly round. Never larger than the safety zone. */
+  /** Safety zone around bodies: the larger of the body's hard limit (its surface plus a
+   *  little) and its gravity point of no return, where the pull reaches 1/noReturnMargin
+   *  of the ship's Cruise acceleration. Low-gravity asteroids can be approached closely;
+   *  heavy bodies push the zone out. */
+  noReturnMargin: 2,
+  /** Hard limit: surface plus this fraction of radius plus bodyHardMarginMeters. Asteroids
+   *  are lumpy, so theirs covers the bumpiest drawn surface; moons are nearly round. */
   asteroidHardMarginFraction: 0.3,
   roundBodyHardMarginFraction: 0.05,
   bodyHardMarginMeters: 1000,
+  /** Holding ships burn to hover against gravity only if it is stronger than this, m/s². */
+  hoverMinAccel: 0.01,
   /** Fast pass is complete once closest approach is behind the ship. */
   fastPassMaxTimeS: 6 * 3600,
 };

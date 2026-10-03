@@ -2,11 +2,11 @@
 // Time compression runs more ticks, never bigger ones.
 
 import { navTuning } from "../data/nav";
-import { clampOutsideBodies, navigate, maxAccel, turnRate } from "./autopilot";
+import { clampOutsideBodies, cruiseAccel, navigate, maxAccel, turnRate } from "./autopilot";
 import { freshNavState, type Command, type QueuedCommand, type SimEvent } from "./commands";
-import { angleBetween, integrate, slerpToward } from "./physics";
+import { angleBetween, integrate, integrateWithGravity, slerpToward } from "./physics";
 import { resolveTarget } from "./target";
-import { scale, sub } from "./vec3";
+import { length, scale, sub } from "./vec3";
 import type { World } from "./world";
 
 export const TICK_RATE = 20;
@@ -36,7 +36,7 @@ function applyCommand(world: World, q: QueuedCommand): void {
       break;
     case "burnTo":
       // No destinations inside a body's safety zone: move them to the zone's edge.
-      ship.order = { type: "burnTo", point: clampOutsideBodies(world.bodies, c.point).point };
+      ship.order = { type: "burnTo", point: clampOutsideBodies(world.bodies, c.point, cruiseAccel(ship)).point };
       break;
     case "intercept":
       if (!resolveTarget(world, c.target)) return reject(world, q, "unknown target");
@@ -51,7 +51,7 @@ function applyCommand(world: World, q: QueuedCommand): void {
       if (!t) return reject(world, q, "unknown target");
       // Hold the current offset from a ship or object; hold exactly at a point.
       const offset = c.target.kind === "point" ? { x: 0, y: 0, z: 0 } : sub(ship.position, t.position);
-      const target = c.target.kind === "point" ? { kind: "point" as const, position: clampOutsideBodies(world.bodies, c.target.position).point } : c.target;
+      const target = c.target.kind === "point" ? { kind: "point" as const, position: clampOutsideBodies(world.bodies, c.target.position, cruiseAccel(ship)).point } : c.target;
       ship.order = { type: "stationKeep", target, offset };
       break;
     }
@@ -78,15 +78,28 @@ export function step(world: World): void {
   const alignTol = (navTuning.alignToleranceDeg * Math.PI) / 180;
   for (const ship of world.ships) {
     const out = navigate(world, ship, events);
-    ship.heading = slerpToward(ship.heading, out.heading, turnRate(ship) * DT);
-    const aligned = angleBetween(ship.heading, out.heading) <= alignTol;
-    const thrust = aligned ? Math.min(out.thrust, maxAccel(ship)) : 0;
+    // Wanted thrust vector: the guidance's thrust minus any gravity it asks to cancel. A
+    // holding ship hovers only if the pull is noticeable.
+    let wantHeading = out.heading;
+    let wantThrust = out.thrust;
+    if (out.cancel) {
+      const v = sub(scale(out.heading, out.thrust), out.cancel);
+      const mag = length(v);
+      if (out.thrust > 0 || mag >= navTuning.hoverMinAccel) {
+        wantThrust = mag;
+        if (mag > 1e-9) wantHeading = scale(v, 1 / mag);
+      }
+    }
+    ship.heading = slerpToward(ship.heading, wantHeading, turnRate(ship) * DT);
+    const aligned = angleBetween(ship.heading, wantHeading) <= alignTol;
+    const thrust = aligned ? Math.min(wantThrust, maxAccel(ship)) : 0;
     ship.thrust = thrust;
     ship.nav.phase = out.phase;
-    integrate(ship.position, ship.velocity, scale(ship.heading, thrust), DT);
+    integrateWithGravity(ship.position, ship.velocity, scale(ship.heading, thrust), world.bodies, DT);
   }
 
-  for (const t of world.torpedoes) integrate(t.position, t.velocity, scale(t.heading, t.thrust), DT);
+  for (const t of world.torpedoes) integrateWithGravity(t.position, t.velocity, scale(t.heading, t.thrust), world.bodies, DT);
+  // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 
   world.tick++;

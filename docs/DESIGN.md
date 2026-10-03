@@ -63,7 +63,8 @@ The camera zoom is logarithmic so the same table works from 100 m to a billion m
 - True inertia. Velocity persists until changed by thrust.
 - Ships have a main drive (thrust only along the bow) and slow attitude thrusters for turning.
 - Turning takes real time. A frigate needs about 12 s to flip 180 degrees, and the main drive is off during the flip.
-- Celestial bodies are on fixed paths during a battle. They are obstacles and sensor occluders from the start. Gravity is off in the first milestones and is an open question (section 14).
+- Celestial bodies are on fixed positions during a battle. They are obstacles and sensor occluders, and they have gravity: everything that moves is pulled by every body (decided during M2; see open question 3). Coasting paths curve near moons and planets; guided burns cancel the pull, and a ship holding station near a body hovers on its drive.
+- Each body has a safety zone that routes go around and destinations cannot be inside: the larger of its surface (with a small clearance) and its gravity point of no return, where the pull reaches half the ship's Cruise acceleration. Low-gravity asteroids can be approached within about a kilometer; heavy planets push the zone far out, more so for ships with weaker drives.
 
 ### Nav computer orders
 
@@ -386,7 +387,7 @@ Decide these when the relevant milestone arrives. None of them block the combat 
 
 1. **Setting and factions.** Original names, history, and the reason these sides are fighting. Needed before the career layer.
 2. **Captain death.** In the career, what happens when the player's own ship is destroyed? Options: escape pod and demotion, or career ends.
-3. **Gravity in battle.** Off at first. Turning it on makes slingshots and orbits matter, and makes the nav computer harder to build.
+3. **Gravity in battle.** Decided in M2: on. Bodies stay on fixed positions but pull on everything that moves. Still open: moving bodies (moons on their own orbits) and slingshot planning.
 4. **Power management.** Should the player route reactor power between drive, weapons, sensors, and jamming? Adds depth and complexity.
 5. **Audio direction.** Alarms, PDC fire, drive rumble, comms chatter.
 6. **Datalink model.** Line-of-sight laser links with relay (current assumption) or simple range-based links.

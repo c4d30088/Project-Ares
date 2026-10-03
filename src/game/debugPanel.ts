@@ -5,6 +5,7 @@ import { symbolTuning } from "../data/symbols";
 import { effectsTuning } from "../data/effects";
 import { navTuning } from "../data/nav";
 import { bodyTuning } from "../data/bodies";
+import { physicsTuning } from "../data/physics";
 import { timeTuning } from "../data/time";
 import { scenarios } from "../data/scenarios";
 
@@ -22,6 +23,8 @@ export function createDebugPanel(currentScenario: string): GUI {
     location.href = url.toString();
   });
 
+  gui.add(physicsTuning, "gravityEnabled").name("gravity");
+
   const time = gui.addFolder("Time");
   time.add(timeTuning, "slowOnFlip").name("slow to 1x on flip");
   time.add(timeTuning, "slowOnOrderComplete").name("slow to 1x on arrival");
@@ -36,8 +39,9 @@ export function createDebugPanel(currentScenario: string): GUI {
   nav.add(navTuning, "lateralShare", 0, 1, 0.05);
   nav.add(navTuning, "rendezvousStandoff", 0, 50000, 500);
   nav.add(navTuning, "stationHoldRadius", 100, 20000, 100);
-  nav.add(navTuning, "bodyMarginFraction", 0, 1, 0.01).name("body margin (x radius)");
-  nav.add(navTuning, "bodyMarginMeters", 0, 500000, 1000).name("body margin (m)");
+  nav.add(navTuning, "noReturnMargin", 1, 10, 0.1).name("gravity safety factor");
+  nav.add(navTuning, "bodyHardMarginMeters", 0, 50000, 100).name("surface clearance (m)");
+  nav.add(navTuning, "hoverMinAccel", 0, 0.5, 0.005).name("hover above (m/s²)");
   nav.add(navTuning, "asteroidHardMarginFraction", 0, 1, 0.01).name("asteroid hard limit (x r)");
   nav.add(navTuning, "roundBodyHardMarginFraction", 0, 0.5, 0.01).name("moon hard limit (x r)");
   nav.close();
@@ -100,7 +104,7 @@ export function createDebugPanel(currentScenario: string): GUI {
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },

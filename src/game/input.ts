@@ -13,6 +13,7 @@ import type { GSetting } from "../sim/world";
 import { formatDistance } from "../ui/format";
 import { fromRender } from "../render/frame";
 import { clampOutsideBodies } from "../sim/autopilot";
+import { G0, shipClasses } from "../data/ships";
 import type { TableView } from "../render/scene";
 import type { Game } from "./game";
 
@@ -130,11 +131,17 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     finish();
   }
 
+  /** Sustained (Cruise) acceleration of the active ship, for safety zones. */
+  function activeCruiseAccel(): number {
+    const own = game.picture.ownShips.find((s) => s.id === game.activeShipId);
+    return own ? shipClasses[own.shipClass].cruiseG * G0 : G0;
+  }
+
   function currentPreview(): PlacementPreview | null {
     if (!mode || !ground || NEEDS[mode] === "target") return null;
     const raw = { x: ground.x, y: ground.y, z: ground.z + height };
     // Destinations cannot be inside a body's safety zone (orient only aims, so it may).
-    const { point: position, clamped } = mode === "orient" ? { point: raw, clamped: false } : clampOutsideBodies(game.picture.bodies, raw);
+    const { point: position, clamped } = mode === "orient" ? { point: raw, clamped: false } : clampOutsideBodies(game.picture.bodies, raw, activeCruiseAccel());
     const shipPos = game.activeShipId ? game.positionOf(game.activeShipId) : null;
     const range = shipPos ? Math.hypot(position.x - shipPos.x, position.y - shipPos.y, position.z - shipPos.z) : 0;
     const h = Math.abs(height) < 1 ? "ON PLANE" : `${height > 0 ? "+" : "\u2212"}${formatDistance(Math.abs(height))}`;

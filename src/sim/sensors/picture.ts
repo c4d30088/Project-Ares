@@ -5,6 +5,7 @@
 // The shape of the picture is already the final one, so the renderer will not change.
 
 import { clone, type Vec3 } from "../vec3";
+import { bodyMu } from "../gravity";
 import type { NavOrder, NavPhase } from "../commands";
 import { areHostile, type BodyKind, type FactionId, type GSetting, type ShipClass, type World } from "../world";
 
@@ -52,6 +53,8 @@ export interface ChartedBody {
   kind: BodyKind;
   position: Vec3;
   radius: number;
+  /** G·M in m³/s² (charted, so known to everyone). */
+  gm: number;
 }
 
 export interface SensorPicture {
@@ -137,6 +140,6 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       phase: s.nav.phase,
     })),
     tracks,
-    bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position) })),
+    bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position), gm: bodyMu(b) })),
   };
 }

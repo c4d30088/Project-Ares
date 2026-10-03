@@ -18,3 +18,4 @@ export function normalize(a: Vec3): Vec3 {
   const len = length(a);
   return len > 0 ? scale(a, 1 / len) : vec3(1, 0, 0);
 }
+export const cross = (a: Vec3, b: Vec3): Vec3 => ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });

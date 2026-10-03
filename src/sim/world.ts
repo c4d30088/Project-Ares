@@ -56,6 +56,8 @@ export interface Body {
   kind: BodyKind;
   position: Vec3;
   radius: number;
+  /** G·M in m³/s². If absent, derived from radius and a default density for the kind. */
+  gm?: number;
 }
 
 export interface World {

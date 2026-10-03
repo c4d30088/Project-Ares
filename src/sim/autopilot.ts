@@ -7,9 +7,11 @@ import { G0, shipClasses } from "../data/ships";
 import type { NavPhase, SimEvent } from "./commands";
 import { freshNavState } from "./commands";
 import { angleBetween } from "./physics";
+import { bodyMu, gravityAt, type MassiveBody } from "./gravity";
 import { resolveTarget } from "./target";
 import { add, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
-import type { BodyKind, Ship, World } from "./world";
+import type { Target } from "./target";
+import type { Ship, World } from "./world";
 
 export interface NavOutput {
   /** Wanted bow direction (unit vector). */
@@ -17,6 +19,9 @@ export interface NavOutput {
   /** Wanted drive acceleration, m/s². */
   thrust: number;
   phase: NavPhase;
+  /** Gravity to cancel on top of the wanted thrust (the sim subtracts it). Guided burns
+   *  cancel the pull on the ship (minus the pull on a moving target); coasting does not. */
+  cancel?: Vec3;
 }
 
 /** Fraction of full acceleration the braking plan assumes, leaving margin to correct. */
@@ -123,15 +128,26 @@ function arrive(
   return { out: { heading, thrust: Math.min(a, mag), phase: burnPhase(ship, heading, nav.braking) }, arrived: false };
 }
 
-/** Safety radius around a body that routes keep out of. */
-export function safetyRadius(radius: number): number {
-  return radius * (1 + N.bodyMarginFraction) + N.bodyMarginMeters;
+/** Acceleration the ship can sustain crew-safe (its Cruise setting), m/s². */
+export function cruiseAccel(ship: Ship): number {
+  return shipClasses[ship.shipClass].cruiseG * G0;
 }
 
-/** Inner radius a route never crosses, even inside the safety zone. */
-export function hardRadius(radius: number, kind: BodyKind = "moon"): number {
-  const f = kind === "asteroid" ? N.asteroidHardMarginFraction : N.roundBodyHardMarginFraction;
-  return Math.min(radius * (1 + f) + N.bodyHardMarginMeters, safetyRadius(radius) * 0.98);
+/** Inner radius a route never crosses: the surface (with bumps) plus a little. */
+export function hardRadius(b: MassiveBody): number {
+  const f = b.kind === "asteroid" ? N.asteroidHardMarginFraction : N.roundBodyHardMarginFraction;
+  return b.radius * (1 + f) + N.bodyHardMarginMeters;
+}
+
+/** Distance at which the body's pull equals a, m. */
+export function noReturnRadius(b: MassiveBody, accel: number): number {
+  return Math.sqrt(bodyMu(b) / accel);
+}
+
+/** Safety zone a route keeps out of: the hard limit, or the gravity point of no return
+ *  for a ship with this sustained acceleration (with margin), whichever is larger. */
+export function safetyRadius(b: MassiveBody, accel: number): number {
+  return Math.max(hardRadius(b), noReturnRadius(b, accel / N.noReturnMargin));
 }
 
 /**
@@ -139,15 +155,16 @@ export function hardRadius(radius: number, kind: BodyKind = "moon"): number {
  * edge. Used for burn-to and station-keep points (sim) and for the placement preview (UI).
  */
 export function clampOutsideBodies(
-  bodies: readonly { position: Vec3; radius: number }[],
+  bodies: readonly MassiveBody[],
   point: Vec3,
+  accel: number,
 ): { point: Vec3; clamped: boolean } {
   let p = { ...point };
   let clamped = false;
   for (let pass = 0; pass < 3; pass++) {
     let moved = false;
     for (const b of bodies) {
-      const R = safetyRadius(b.radius);
+      const R = safetyRadius(b, accel);
       const off = sub(p, b.position);
       const d = length(off);
       if (d >= R) continue;
@@ -177,14 +194,14 @@ function segmentDistance(a: Vec3, b: Vec3, c: Vec3): { dist: number; t: number; 
  * With the ship or goal inside a safety zone, the route still keeps out of the body's
  * inner hard limit.
  */
-export function routeAim(world: World, from: Vec3, goal: Vec3): { aim: Vec3; pathLength: number; detour: boolean } {
+export function routeAim(world: World, from: Vec3, goal: Vec3, accel: number): { aim: Vec3; pathLength: number; detour: boolean } {
   let block: { c: Vec3; R: number; t: number; point: Vec3 } | null = null;
   for (const b of world.bodies) {
     // Normally keep out of the whole safety zone. If the ship or the goal is already inside
     // it (a target drifting close to a body, a ship that started there), still never cross
     // the body itself: fall back to the inner hard limit.
-    let R = safetyRadius(b.radius);
-    if (length(sub(goal, b.position)) < R || length(sub(from, b.position)) < R) R = hardRadius(b.radius, b.kind);
+    let R = safetyRadius(b, accel);
+    if (length(sub(goal, b.position)) < R || length(sub(from, b.position)) < R) R = hardRadius(b);
     if (length(sub(goal, b.position)) < R || length(sub(from, b.position)) < R) continue;
     const s = segmentDistance(from, goal, b.position);
     if (s.dist < R && (!block || s.t < block.t)) block = { c: b.position, R, t: s.t, point: s.point };
@@ -228,6 +245,16 @@ function pushToward(ship: Ship, aim: Vec3): NavOutput {
   return { heading, thrust: a, phase: burnPhase(ship, heading, false) };
 }
 
+/** Gravity on a target: zero for points and bodies (they do not fall) and for stations
+ *  (they hold position); the local pull for anything else that moves. */
+function targetGravity(world: World, target: Target): Vec3 {
+  if (target.kind === "point") return { x: 0, y: 0, z: 0 };
+  const moving = world.ships.find((s) => s.id === target.id) ?? world.torpedoes.find((t) => t.id === target.id);
+  return moving ? gravityAt(world.bodies, moving.position) : { x: 0, y: 0, z: 0 };
+}
+
+const withCancel = (out: NavOutput, cancel: Vec3): NavOutput => ({ ...out, cancel });
+
 function complete(ship: Ship, events: SimEvent[]) {
   if (!ship.order) return;
   events.push({ type: "orderComplete", ship: ship.id, order: ship.order.type });
@@ -236,6 +263,8 @@ function complete(ship: Ship, events: SimEvent[]) {
 export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutput {
   const order = ship.order;
   if (!order) return coast(ship);
+  // Guided burns cancel gravity, so the guidance below can plan as if space were flat.
+  const gShip = gravityAt(world.bodies, ship.position);
 
   switch (order.type) {
     case "orient": {
@@ -246,7 +275,7 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
     }
 
     case "burnTo": {
-      const route = routeAim(world, ship.position, order.point);
+      const route = routeAim(world, ship.position, order.point, cruiseAccel(ship));
       const r = sub(route.aim, ship.position);
       const { out, arrived } = arrive(ship, r, ship.velocity, N.arriveDistance, N.arriveSpeed, events, true, route.pathLength);
       if (arrived) {
@@ -255,7 +284,7 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
         ship.order = { type: "stationKeep", target: { kind: "point", position: order.point }, offset: { x: 0, y: 0, z: 0 } };
         ship.nav = { ...freshNavState(), complete: true };
       }
-      return out;
+      return withCancel(out, gShip);
     }
 
     case "stationKeep": {
@@ -264,7 +293,10 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       const goal = add(t.position, order.offset);
       const r = sub(goal, ship.position);
       const v = sub(ship.velocity, t.velocity);
-      const route = routeAim(world, ship.position, goal);
+      const route = routeAim(world, ship.position, goal, cruiseAccel(ship));
+      // Holding near a body means hovering against its pull (relative to a moving target,
+      // only the difference in pull).
+      const cancel = sub(gShip, targetGravity(world, order.target));
       // Drift freely inside the hold box; correct only when outside it.
       if (!ship.nav.braking && length(r) < N.stationHoldRadius && length(v) < N.stationHoldSpeed) {
         // Reaching station after travelling completes the order (once). Starting inside the
@@ -272,14 +304,14 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
         if (!ship.nav.complete && ship.nav.travelling) complete(ship, events);
         ship.nav.complete = true;
         ship.nav.travelling = false;
-        return hold(ship);
+        return withCancel(hold(ship), cancel);
       }
       ship.nav.travelling = true;
       // The first trip to station announces its flip like any trip; later small corrections
       // stay quiet so they never trigger auto-slowdown.
       const { out, arrived } = arrive(ship, sub(route.aim, ship.position), v, N.arriveDistance, N.arriveSpeed, events, !ship.nav.complete, route.pathLength);
       if (arrived) ship.nav.braking = false;
-      return out;
+      return withCancel(out, cancel);
     }
 
     case "intercept": {
@@ -287,8 +319,9 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       if (!t) return coast(ship);
       const r = sub(t.position, ship.position);
       const v = sub(ship.velocity, t.velocity);
-      if (order.mode === "rendezvous") return rendezvous(world, ship, r, v, events);
-      return fastPass(world, ship, r, v, events);
+      const cancel = sub(gShip, targetGravity(world, order.target));
+      if (order.mode === "rendezvous") return withCancel(rendezvous(world, ship, r, v, events), cancel);
+      return withCancel(fastPass(world, ship, r, v, events), cancel);
     }
 
     case "matchVelocity": {
@@ -304,7 +337,8 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
         return hold(ship);
       }
       const heading = scale(dv, 1 / speed);
-      return { heading, thrust: Math.min(maxAccel(ship), speed / DT_NAV), phase: burnPhase(ship, heading, false) };
+      const out = { heading, thrust: Math.min(maxAccel(ship), speed / DT_NAV), phase: burnPhase(ship, heading, false) };
+      return withCancel(out, sub(gShip, targetGravity(world, order.target)));
     }
   }
 }
@@ -316,7 +350,7 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
 function rendezvous(world: World, ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
   const d = length(r);
   const standoff = d > N.rendezvousStandoff ? sub(r, scale(r, N.rendezvousStandoff / d)) : { x: 0, y: 0, z: 0 };
-  const route = routeAim(world, ship.position, add(ship.position, standoff));
+  const route = routeAim(world, ship.position, add(ship.position, standoff), cruiseAccel(ship));
   const aim = sub(route.aim, ship.position);
   const { out, arrived } = arrive(ship, aim, v, N.rendezvousArriveDistance, N.rendezvousArriveSpeed, events, true, route.pathLength);
   if (arrived && ship.order && "target" in ship.order) {
@@ -369,7 +403,7 @@ function fastPass(world: World, ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]
   }
 
   // A body in the way: go around it first, then home on the target.
-  const route = routeAim(world, ship.position, add(ship.position, r));
+  const route = routeAim(world, ship.position, add(ship.position, r), cruiseAccel(ship));
   if (route.detour) return pushToward(ship, route.aim);
 
   const a = maxAccel(ship);

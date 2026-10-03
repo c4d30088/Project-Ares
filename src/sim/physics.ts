@@ -1,5 +1,6 @@
 // Integration and attitude. SI units throughout.
 
+import { gravityAt, type MassiveBody } from "./gravity";
 import { clamp } from "./math";
 import { dot, length, normalize, type Vec3 } from "./vec3";
 
@@ -14,6 +15,29 @@ export function integrate(position: Vec3, velocity: Vec3, accel: Vec3, dt: numbe
   velocity.x += accel.x * dt;
   velocity.y += accel.y * dt;
   velocity.z += accel.z * dt;
+}
+
+/**
+ * Advances position and velocity for dt under constant thrust plus gravity (velocity
+ * Verlet: gravity sampled at the start and end of the step). With no bodies or gravity off
+ * this is exactly the constant-acceleration step above. Orbits stay stable for hours.
+ */
+export function integrateWithGravity(
+  position: Vec3,
+  velocity: Vec3,
+  thrust: Vec3,
+  bodies: readonly MassiveBody[],
+  dt: number,
+): void {
+  const g0 = gravityAt(bodies, position);
+  const ax = thrust.x + g0.x, ay = thrust.y + g0.y, az = thrust.z + g0.z;
+  position.x += velocity.x * dt + 0.5 * ax * dt * dt;
+  position.y += velocity.y * dt + 0.5 * ay * dt * dt;
+  position.z += velocity.z * dt + 0.5 * az * dt * dt;
+  const g1 = gravityAt(bodies, position);
+  velocity.x += (ax + thrust.x + g1.x) * 0.5 * dt;
+  velocity.y += (ay + thrust.y + g1.y) * 0.5 * dt;
+  velocity.z += (az + thrust.z + g1.z) * 0.5 * dt;
 }
 
 /** Angle between two unit vectors, radians. */
