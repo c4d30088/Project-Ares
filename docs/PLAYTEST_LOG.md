@@ -15,6 +15,25 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-03, milestone M3 (in progress): second session handoff
+Done and committed:
+- Routing bug fixed (commit 2aa91d1). Routes leaving an orbit or a parked spot go around moons and asteroids. Detours follow the body's edge and take the side the ship is already moving toward. A last-moment safety layer swerves the ship at full thrust if its real motion would carry it into a body; the nav readout shows AVOID while that happens. Tests: `tests/routingDeparture.test.ts`.
+- M3 step 2, torpedoes in the sim (`src/sim/weapons/torpedo.ts`, `tests/torpedo.test.ts`): launch order and tubes firing in waves, hot and cold launch, guidance (boost onto a collision course leading the target's acceleration, dark coast, firm mid-course corrections only when needed, final homing on the reserve), seeker, mines at a point, proximity fuse (never on friendlies), hit direction. Torpedo numbers are in the debug panel under "Torpedoes".
+- Hit-or-miss table, one torpedo against a ship burning flat out across the line of fire for the whole flight (the hardest dodge):
+
+  | Range | Cruise 2 g | Combat 4 g | Max 6 g |
+  |---|---|---|---|
+  | 500 to 2,000 km | hit | hit | hit |
+  | 3,000 km | hit | hit | escapes |
+  | 5,000 km | hit | escapes | escapes |
+
+  Escaping means burning hard for 5 minutes or more, which G-strain (step 6) will make costly.
+- Torpedoes cannot be fired from the game yet; that is step 3.
+Auto mode blocked commands partway through both sessions today. If it happens again, switch to the default permission mode.
+Next session: step 3 (torpedo targeting UI, intercept lines with impact X and countdown, launch alert).
+
+---
+
 ## 2026-10-03, milestone M3 (in progress): session handoff
 Played: Flight test after M2 sign-off; leaving an orbit and parked positions for intercepts and other routes.
 Felt wrong:

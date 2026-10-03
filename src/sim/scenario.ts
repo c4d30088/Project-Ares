@@ -5,6 +5,7 @@ import { Rng } from "./rng";
 import { add, normalize, scale, vec3, type Vec3 } from "./vec3";
 import { freshNavState, type Command } from "./commands";
 import { initHealth } from "./damage";
+import { initWeapons } from "./weapons/torpedo";
 import type { Body, Faction, GSetting, Ship, Station, Torpedo, World } from "./world";
 
 export interface SalvoSpec {
@@ -85,6 +86,7 @@ export function loadScenario(scenario: Scenario): World {
       order: null,
       nav: freshNavState(),
       health: initHealth(s.shipClass),
+      weapons: initWeapons(s.shipClass),
       ...(s.testShowAsUnknown ? { testShowAsUnknown: true } : {}),
     };
   });

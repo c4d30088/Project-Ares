@@ -3,7 +3,7 @@
 
 import type { Target } from "./target";
 import type { Vec3 } from "./vec3";
-import type { GSetting } from "./world";
+import type { GSetting, LaunchMode } from "./world";
 
 export type Command =
   | { type: "burnTo"; ship: string; point: Vec3; g?: GSetting }
@@ -13,7 +13,10 @@ export type Command =
   | { type: "coast"; ship: string }
   | { type: "orient"; ship: string; target: Target }
   | { type: "orbit"; ship: string; target: Target; g?: GSetting }
-  | { type: "setG"; ship: string; g: GSetting };
+  | { type: "setG"; ship: string; g: GSetting }
+  /** Queues `count` torpedoes at a target. Tubes fire as they are ready, so big salvos
+   *  leave in waves. Never automatic (CLAUDE.md rule 10). */
+  | { type: "launchTorpedoes"; ship: string; target: Target; count: number; mode: LaunchMode };
 
 export interface QueuedCommand {
   tick: number;
@@ -68,4 +71,8 @@ export type SimEvent =
   | { type: "commandRejected"; faction: string; command: Command; reason: string }
   | { type: "damage"; ship: string; subsystem: string; side: string; cause: string }
   | { type: "subsystemDestroyed"; ship: string; subsystem: string }
-  | { type: "destroyed"; id: string; cause: string };
+  | { type: "destroyed"; id: string; cause: string }
+  | { type: "torpedoLaunched"; ship: string; torpedo: string; faction: string; mode: LaunchMode }
+  | { type: "torpedoDetonated"; torpedo: string; faction: string; hit: string }
+  /** A torpedo removed without hitting anything: spent after a miss, or a mine timing out. */
+  | { type: "torpedoExpired"; torpedo: string; reason: "spent" | "timeout" };

@@ -2,6 +2,7 @@
 
 import { freshNavState } from "../src/sim/commands";
 import { initHealth } from "../src/sim/damage";
+import { initWeapons } from "../src/sim/weapons/torpedo";
 import type { Ship, ShipClass, World } from "../src/sim/world";
 import type { Vec3 } from "../src/sim/vec3";
 
@@ -18,6 +19,7 @@ export function makeShip(over: Partial<Ship> & { id: string; shipClass?: ShipCla
     order: null,
     nav: freshNavState(),
     health: initHealth(over.shipClass ?? "frigate"),
+    weapons: initWeapons(over.shipClass ?? "frigate"),
     ...over,
   };
 }

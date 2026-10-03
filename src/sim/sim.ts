@@ -8,6 +8,7 @@ import { angleBetween, integrate, integrateWithGravity, slerpToward } from "./ph
 import { resolveTarget } from "./target";
 import { segmentHitsSphere } from "./collide";
 import { destroy } from "./damage";
+import { fuseTorpedoes, guideTorpedo, queueLaunch, runLaunchers } from "./weapons/torpedo";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -36,6 +37,12 @@ function applyCommand(world: World, q: QueuedCommand): void {
   switch (c.type) {
     case "setG":
       return;
+    case "launchTorpedoes": {
+      // Weapons never change the nav order.
+      const why = queueLaunch(world, ship, c.target, c.count, c.mode);
+      if (why) reject(world, q, why);
+      return;
+    }
     case "coast":
       ship.order = null;
       break;
@@ -110,8 +117,15 @@ export function step(world: World): void {
     for (const q of due) applyCommand(world, q);
   }
 
+  runLaunchers(world, DT, events);
+  // Torpedoes steer on everyone's positions at the start of the tick, before anything
+  // moves. (Steering after the ships moved would aim a tick's travel off the target.)
+  for (const t of world.torpedoes) guideTorpedo(world, t, DT, events);
+
+  const shipsBefore = new Map<string, Vec3>();
   const alignTol = (navTuning.alignToleranceDeg * Math.PI) / 180;
   for (const ship of world.ships) {
+    shipsBefore.set(ship.id, { ...ship.position });
     const out = navigate(world, ship, events);
     // Wanted thrust vector: the guidance's thrust minus any gravity it asks to cancel. A
     // holding ship hovers only if the pull is noticeable.
@@ -135,11 +149,15 @@ export function step(world: World): void {
     hitBodies(world, ship, before);
   }
 
+  const torpedoesBefore = new Map<string, Vec3>();
   for (const t of world.torpedoes) {
+    if (t.destroyed) continue;
     const before = { ...t.position };
+    torpedoesBefore.set(t.id, before);
     integrateWithGravity(t.position, t.velocity, scale(t.heading, t.thrust), world.bodies, DT);
     hitBodies(world, t, before);
   }
+  fuseTorpedoes(world, torpedoesBefore, shipsBefore, events);
   // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 

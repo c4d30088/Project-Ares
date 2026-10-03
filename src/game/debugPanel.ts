@@ -7,6 +7,7 @@ import { navTuning } from "../data/nav";
 import { bodyTuning } from "../data/bodies";
 import { physicsTuning } from "../data/physics";
 import { timeTuning } from "../data/time";
+import { torpedoTuning } from "../data/weapons";
 import { scenarios } from "../data/scenarios";
 
 // Debug panel. Toggle with the backquote key (`).
@@ -102,11 +103,26 @@ export function createDebugPanel(currentScenario: string): GUI {
   fx.add(effectsTuning, "dustOpacity", 0, 1, 0.01);
   fx.close();
 
+  const torp = gui.addFolder("Torpedoes");
+  torp.add(torpedoTuning, "accelG", 5, 60, 1).name("accel (g)");
+  torp.add(torpedoTuning, "deltaV", 2000, 40000, 500).name("delta-v (m/s)");
+  torp.add(torpedoTuning, "terminalReserve", 0, 10000, 100).name("homing reserve (m/s)");
+  torp.add(torpedoTuning, "terminalPhaseS", 5, 120, 1).name("final homing (s)");
+  torp.add(torpedoTuning, "fuseRadius", 10, 1000, 10).name("fuse radius (m)");
+  torp.add(torpedoTuning, "seekerRange", 10000, 10000000, 10000).name("seeker range (m)");
+  torp.add(torpedoTuning, "pointArrival", 1000, 500000, 1000).name("point arrival (m)");
+  torp.add(torpedoTuning, "mineLifetimeS", 60, 14400, 60).name("mine lifetime (s)");
+  torp.add(torpedoTuning, "coldEjectSpeed", 1, 200, 1).name("cold eject (m/s)");
+  torp.add(torpedoTuning, "coldIgnitionDistance", 10000, 10000000, 10000).name("cold ignition (m)");
+  torp.add(torpedoTuning, "hotEjectSpeed", 1, 100, 1).name("hot eject (m/s)");
+  torp.add(torpedoTuning, "tubeReloadS", 1, 60, 0.5).name("tube reload (s)");
+  torp.close();
+
   // Copies all current values as JSON, to paste back into the src/data files.
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },

@@ -1,5 +1,6 @@
 import type { Vec3 } from "./vec3";
 import type { NavOrder, NavState, QueuedCommand, SimEvent } from "./commands";
+import type { Target } from "./target";
 
 export type ShipClass = "corvette" | "frigate" | "destroyer" | "cruiser" | "capital";
 /** Acceleration setting for movement orders (DESIGN.md section 6). */
@@ -31,8 +32,23 @@ export interface Ship {
   health: Record<string, number>;
   /** Set when destroyed; removed from the world at the end of the tick. */
   destroyed?: boolean;
+  /** Weapons state: magazine, tubes, queued launches. */
+  weapons: Weapons;
   /** Test aid until real sensors exist (M4): show this ship as an unknown contact. */
   testShowAsUnknown?: boolean;
+}
+
+export type LaunchMode = "hot" | "cold";
+
+export interface Weapons {
+  /** Torpedoes left in the magazine (not counting those already in the queue). */
+  magazine: number;
+  /** Seconds until each tube can fire again (0 = ready). */
+  tubeReload: number[];
+  /** Torpedoes ordered but not yet out of a tube, in order. */
+  launchQueue: { target: Target; mode: LaunchMode }[];
+  /** Torpedoes launched so far (for ids). */
+  launched: number;
 }
 
 export interface Torpedo {
@@ -42,7 +58,30 @@ export interface Torpedo {
   position: Vec3;
   velocity: Vec3;
   heading: Vec3;
+  /** Drive acceleration this tick, m/s². */
   thrust: number;
+  /** Guided torpedoes (launched by ships). Scenario props without it fly straight. */
+  guidance?: TorpedoGuidance;
+}
+
+/**
+ * cold: ejected and coasting, drive dark. flight: guiding on its target. search: at its
+ * point (or with its target gone), the seeker looks for a hostile ship. Mines are
+ * torpedoes in search that have stopped.
+ */
+export type TorpedoStage = "cold" | "flight" | "search";
+
+export interface TorpedoGuidance {
+  target: Target;
+  launcher: string;
+  mode: LaunchMode;
+  stage: TorpedoStage;
+  /** Delta-v left, m/s. */
+  fuel: number;
+  /** Delta-v kept back from the boost for final homing, m/s. */
+  reserve: number;
+  /** Seconds spent searching; at the mine lifetime the torpedo self-destructs. */
+  searchS: number;
 }
 
 export interface Station {

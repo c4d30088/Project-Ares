@@ -54,19 +54,25 @@ export class Predictor {
     // A minimal copy: the ship, its target (coasting), and charted bodies.
     const world: World = structuredClone({
       ...source,
-      pending: source.pending.filter((q) => q.command.ship === shipId),
+      // Only movement: weapons fired in the ghost run would change the future it predicts.
+      pending: source.pending.filter((q) => q.command.ship === shipId && q.command.type !== "launchTorpedoes"),
       events: [],
       ships: source.ships.filter((s) => s.id === shipId || s.id === targetId),
       torpedoes: source.torpedoes.filter((t) => t.id === targetId),
       stations: source.stations.filter((s) => s.id === targetId),
     });
     for (const s of world.ships) {
+      s.weapons.launchQueue = [];
       if (s.id !== shipId) {
         s.order = null;
         s.thrust = 0;
       }
     }
-    for (const t of world.torpedoes) t.thrust = 0;
+    // A torpedo target is assumed to coast too: no guidance in the ghost run.
+    for (const t of world.torpedoes) {
+      t.thrust = 0;
+      delete t.guidance;
+    }
 
     this.world = world;
     this.targetId = targetId;
