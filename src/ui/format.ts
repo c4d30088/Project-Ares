@@ -27,3 +27,8 @@ export function formatCountdown(seconds: number): string {
   const mm = pad2(Math.floor(s / 60) % 60);
   return h > 0 ? `${h}:${mm}:${pad2(s % 60)}` : `${mm}:${pad2(s % 60)}`;
 }
+
+/** Speed in m/s to "0.4 M/S" or "13.12 KM/S". */
+export function formatSpeed(mps: number): string {
+  return Math.abs(mps) >= 1000 ? `${(mps / 1000).toFixed(2)} KM/S` : `${mps.toFixed(1)} M/S`;
+}

@@ -3,12 +3,39 @@ import { cameraTuning } from "../data/camera";
 import { holotableTuning } from "../data/holotable";
 import { symbolTuning } from "../data/symbols";
 import { effectsTuning } from "../data/effects";
+import { navTuning } from "../data/nav";
+import { timeTuning } from "../data/time";
+import { scenarios } from "../data/scenarios";
 
 // Debug panel. Toggle with the backquote key (`).
 // Controls edit the tunable objects in src/data directly; code reads them every frame.
-export function createDebugPanel(): GUI {
+export function createDebugPanel(currentScenario: string): GUI {
   const gui = new GUI({ title: "Debug  [ ` ]" });
   gui.hide();
+
+  // Scenario picker: reloads the page with ?scenario=...
+  const pick = { scenario: currentScenario };
+  gui.add(pick, "scenario", Object.keys(scenarios)).onChange((name: string) => {
+    const url = new URL(location.href);
+    url.searchParams.set("scenario", name);
+    location.href = url.toString();
+  });
+
+  const time = gui.addFolder("Time");
+  time.add(timeTuning, "slowOnFlip").name("slow to 1x on flip");
+  time.add(timeTuning, "slowOnOrderComplete").name("slow to 1x on arrival");
+  time.add(timeTuning, "maxSimMsPerFrame", 2, 20, 1);
+  time.close();
+
+  const nav = gui.addFolder("Nav computer");
+  nav.add(navTuning, "alignToleranceDeg", 0.2, 10, 0.1);
+  nav.add(navTuning, "arriveDistance", 5, 1000, 5);
+  nav.add(navTuning, "arriveSpeed", 0.05, 5, 0.05);
+  nav.add(navTuning, "lateralTimeConstant", 1, 30, 0.5);
+  nav.add(navTuning, "lateralShare", 0, 1, 0.05);
+  nav.add(navTuning, "rendezvousStandoff", 0, 50000, 500);
+  nav.add(navTuning, "stationHoldRadius", 100, 20000, 100);
+  nav.close();
 
   const cam = gui.addFolder("Camera");
   cam.add(cameraTuning, "fovDeg", 20, 90, 1);
@@ -59,7 +86,7 @@ export function createDebugPanel(): GUI {
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },

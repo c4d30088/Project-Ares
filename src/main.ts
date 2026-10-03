@@ -16,13 +16,14 @@ import { createHolotable } from "./render/holotable";
 import { Hud } from "./ui/Hud";
 import { hudActions, hudStore } from "./ui/store";
 import { timeTuning } from "./data/time";
-import type { Scenario } from "./sim/scenario";
-import holotableTest from "./data/scenarios/holotable-test.json";
+import { defaultScenario, scenarios } from "./data/scenarios";
 import { effectsTuning } from "./data/effects";
 
-const game = createGame(holotableTest as Scenario);
+// Scenario from the URL (?scenario=holotable-test), else the default.
+const scenarioName = new URLSearchParams(location.search).get("scenario") ?? defaultScenario;
+const game = createGame(scenarios[scenarioName] ?? scenarios[defaultScenario]);
 const view = createTableView(document.getElementById("table")!);
-createDebugPanel();
+createDebugPanel(scenarioName);
 createRoot(document.getElementById("hud")!).render(createElement(Hud));
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.

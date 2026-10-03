@@ -1,0 +1,31 @@
+{
+  "name": "Flight test",
+  "seed": 2024,
+  "playerFaction": "blue",
+  "factions": [
+    { "id": "blue", "name": "Own forces", "hostileTo": ["red"] },
+    { "id": "red", "name": "Opposing forces", "hostileTo": ["blue"] }
+  ],
+  "ships": [
+    {
+      "id": "blue-ff1", "name": "FF-1 WARDEN", "faction": "blue", "shipClass": "frigate",
+      "position": { "x": 0, "y": 0, "z": 0 }, "velocity": { "x": 0, "y": 0, "z": 0 },
+      "heading": { "x": 1, "y": 0, "z": 0 }
+    },
+    {
+      "id": "red-ff7", "name": "TRK-21 FRIGATE", "faction": "red", "shipClass": "frigate",
+      "position": { "x": 3200000, "y": 2600000, "z": 900000 }, "velocity": { "x": -1100, "y": 450, "z": -60 },
+      "heading": { "x": -0.9, "y": 0.4, "z": 0 }
+    }
+  ],
+  "bodies": [
+    { "id": "moon-1", "name": "VESSIK", "kind": "moon",
+      "position": { "x": -6500000, "y": 5200000, "z": -1400000 }, "radius": 1100000 },
+    { "id": "ast-1", "name": "AST-3102", "kind": "asteroid",
+      "position": { "x": 1400000, "y": -900000, "z": 250000 }, "radius": 11000 },
+    { "id": "ast-2", "name": "AST-3117", "kind": "asteroid",
+      "position": { "x": -1800000, "y": -2400000, "z": -500000 }, "radius": 7000 },
+    { "id": "ast-3", "name": "AST-3140", "kind": "asteroid",
+      "position": { "x": 2600000, "y": -3100000, "z": 1200000 }, "radius": 4500 }
+  ]
+}

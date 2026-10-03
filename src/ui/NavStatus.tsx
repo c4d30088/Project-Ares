@@ -1,4 +1,4 @@
-import { formatCountdown } from "./format";
+import { formatCountdown, formatSpeed } from "./format";
 import { useHud } from "./store";
 
 const ORDER_NAMES: Record<string, string> = {
@@ -23,14 +23,13 @@ function Row(props: { label: string; value: string; tone?: "warn" | "dim" }) {
 export function NavStatus() {
   const s = useHud().activeShip;
   if (!s) return <div className="panel-empty">No ship selected</div>;
-  const speed = s.speed >= 1000 ? `${(s.speed / 1000).toFixed(2)} KM/S` : `${s.speed.toFixed(1)} M/S`;
   return (
     <div className="nav-status">
       <div className="ship-name">{s.name}</div>
       <div className="ship-class">{s.shipClass}-CLASS</div>
       <Row label="Order" value={ORDER_NAMES[s.order] ?? s.order} />
       <Row label="Drive" value={s.phase.toUpperCase()} tone={s.phase === "flip" ? "warn" : undefined} />
-      <Row label="Speed" value={speed} />
+      <Row label="Speed" value={formatSpeed(s.speed)} />
       <Row label="Accel" value={`${s.accelG.toFixed(2)} G`} />
       <Row label="G set" value={s.g.toUpperCase()} tone={s.g === "max" ? "warn" : undefined} />
       <Row label="Flip" value={s.flipIn !== null ? `T-${formatCountdown(s.flipIn)}` : "—"} tone={s.flipIn === null ? "dim" : undefined} />

@@ -7,7 +7,7 @@
 
 import type { Target } from "./target";
 import { DT, step } from "./sim";
-import { clone, length, type Vec3 } from "./vec3";
+import { clone, length, sub, type Vec3 } from "./vec3";
 import type { World } from "./world";
 
 export interface PathPoint {
@@ -23,7 +23,9 @@ export interface Prediction {
   startTick: number;
   points: PathPoint[];
   flip: { t: number; position: Vec3 } | null;
-  arrival: { t: number; position: Vec3; speed: number } | null;
+  /** Where and when the order completes. Speed is relative to the target for orders
+   *  against a ship or object, otherwise absolute. */
+  arrival: { t: number; position: Vec3; speed: number; relative: boolean } | null;
   /** True once the run has reached the end of the order or the time limit. */
   done: boolean;
 }
@@ -41,6 +43,7 @@ export class Predictor {
   private lastSampleTick = 0;
   private lastBurning: boolean | null = null;
   private readonly maxTicks: number;
+  private readonly targetId: string | null;
 
   constructor(source: World, shipId: string, maxSeconds: number) {
     const ship = source.ships.find((s) => s.id === shipId);
@@ -66,6 +69,7 @@ export class Predictor {
     for (const t of world.torpedoes) t.thrust = 0;
 
     this.world = world;
+    this.targetId = targetId;
     this.maxTicks = Math.round(maxSeconds / DT);
     this.result = {
       shipId,
@@ -96,7 +100,9 @@ export class Predictor {
       for (const e of w.events) {
         if (e.type === "flipStart" && e.ship === r.shipId && !r.flip) r.flip = { t, position: clone(ship.position) };
         if (e.type === "orderComplete" && e.ship === r.shipId) {
-          r.arrival = { t, position: clone(ship.position), speed: length(ship.velocity) };
+          const tgt = this.targetId ? w.ships.find((s) => s.id === this.targetId) ?? w.torpedoes.find((s) => s.id === this.targetId) ?? w.stations.find((s) => s.id === this.targetId) : undefined;
+          const rel = tgt ? sub(ship.velocity, tgt.velocity) : ship.velocity;
+          r.arrival = { t, position: clone(ship.position), speed: length(rel), relative: !!tgt };
           r.points.push({ t, position: clone(ship.position), burning: false });
           r.done = true;
           return true;

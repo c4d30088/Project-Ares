@@ -161,8 +161,108 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       return out;
     }
 
-    default:
-      // Intercept and match velocity arrive in a later M2 step.
-      return coast(ship);
+    case "intercept": {
+      const t = resolveTarget(world, order.target);
+      if (!t) return coast(ship);
+      const r = sub(t.position, ship.position);
+      const v = sub(ship.velocity, t.velocity);
+      if (order.mode === "rendezvous") return rendezvous(ship, r, v, events);
+      return fastPass(ship, r, v, events);
+    }
+
+    case "matchVelocity": {
+      const t = resolveTarget(world, order.target);
+      if (!t) return coast(ship);
+      const dv = sub(t.velocity, ship.velocity);
+      const speed = length(dv);
+      if (speed < N.matchSpeedTolerance) {
+        if (!ship.nav.complete) {
+          ship.nav.complete = true;
+          complete(ship, events);
+        }
+        return hold(ship);
+      }
+      const heading = scale(dv, 1 / speed);
+      return { heading, thrust: Math.min(maxAccel(ship), speed / DT_NAV), phase: burnPhase(ship, heading, false) };
+    }
   }
+}
+
+/**
+ * Rendezvous: arrive at rest relative to the target, stopping rendezvousStandoff short of
+ * it along the line of approach. Then hold station there.
+ */
+function rendezvous(ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
+  const d = length(r);
+  const aim = d > N.rendezvousStandoff ? sub(r, scale(r, N.rendezvousStandoff / d)) : { x: 0, y: 0, z: 0 };
+  const { out, arrived } = arrive(ship, aim, v, N.rendezvousArriveDistance, N.rendezvousArriveSpeed, events);
+  if (arrived && ship.order && "target" in ship.order) {
+    complete(ship, events);
+    ship.order = { type: "stationKeep", target: ship.order.target, offset: scale(r, -1) };
+    ship.nav = { ...freshNavState(), complete: true };
+  }
+  return out;
+}
+
+/**
+ * Time T for the ship, accelerating at a from now, to meet a coasting target:
+ * |r + w T| = a T² / 2, where w is the target's velocity relative to the ship.
+ */
+export function interceptTime(r: Vec3, w: Vec3, a: number): number {
+  const f = (T: number) => length(add(r, scale(w, T))) - 0.5 * a * T * T;
+  let hi = 1;
+  while (f(hi) > 0 && hi < 1e7) hi *= 2;
+  let lo = 0;
+  for (let i = 0; i < 60; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (f(mid) > 0) lo = mid;
+    else hi = mid;
+  }
+  return hi;
+}
+
+/** Closing speed above which fast pass switches to miss-distance homing, m/s. */
+const HOMING_MIN_CLOSING = 100;
+/** Navigation gain for miss-distance homing (3 is the textbook choice). */
+const HOMING_GAIN = 3;
+
+/**
+ * Fast pass: no flip, maximum closing speed. While not yet closing, aim the drive at
+ * where the target will be when full thrust would reach it. Once closing, use
+ * miss-distance homing: correct the predicted miss sideways and spend the rest of the
+ * thrust pushing toward the target. Complete once closest approach is behind the ship.
+ */
+function fastPass(ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
+  const nav = ship.nav;
+  const d = length(r);
+  const closing = dot(v, r) > 0;
+  if (closing) nav.closestApproach = Math.min(nav.closestApproach, d);
+  else if (nav.closestApproach < Infinity) {
+    // Was closing, now opening: the pass is done.
+    complete(ship, events);
+    ship.order = null;
+    ship.nav = { ...freshNavState(), complete: true };
+    return coast(ship);
+  }
+
+  const a = maxAccel(ship);
+  const rHat = d > 1e-9 ? scale(r, 1 / d) : ship.heading;
+  const vc = dot(v, rHat);
+  let cmd: Vec3;
+  if (vc > HOMING_MIN_CLOSING) {
+    const tgo = d / vc;
+    const miss = sub(r, scale(v, tgo)); // where the target ends up relative to us with no thrust
+    const missPerp = sub(miss, scale(rHat, dot(miss, rHat)));
+    let aCorr = scale(missPerp, HOMING_GAIN / (tgo * tgo));
+    const m = length(aCorr);
+    if (m > a) aCorr = scale(aCorr, a / m);
+    const aLong = Math.sqrt(Math.max(0, a * a - dot(aCorr, aCorr)));
+    cmd = add(aCorr, scale(rHat, aLong));
+  } else {
+    const w = scale(v, -1);
+    const T = interceptTime(r, w, a);
+    cmd = add(r, scale(w, T));
+  }
+  const heading = length(cmd) > 1e-9 ? normalize(cmd) : ship.heading;
+  return { heading, thrust: a, phase: burnPhase(ship, heading, false) };
 }

@@ -14,6 +14,10 @@ export const navTuning = {
   velocityDeadband: 0.05,
   /** Rendezvous stops this far short of the target, alongside it. */
   rendezvousStandoff: 5000,
+  /** Rendezvous is complete inside this distance of the standoff point and below this
+   *  relative speed. */
+  rendezvousArriveDistance: 200,
+  rendezvousArriveSpeed: 1,
   /** Station-keeping lets the ship drift this far before correcting. */
   stationHoldRadius: 1000,
   stationHoldSpeed: 1,

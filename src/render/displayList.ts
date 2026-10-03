@@ -3,7 +3,7 @@
 
 import type { Allegiance, SensorPicture } from "../sim/sensors/picture";
 import type { Prediction } from "../sim/predict";
-import { formatCountdown } from "../ui/format";
+import { formatCountdown, formatSpeed } from "../ui/format";
 import type { BodyKind } from "../sim/world";
 import { length, type Vec3 } from "../sim/vec3";
 
@@ -76,7 +76,7 @@ export function pathMarkers(predictions: Iterable<Prediction>, simTick: number, 
         id: `${p.shipId}:arrival`,
         kind: "arrival",
         position: p.arrival.position,
-        label: `ETA ${formatCountdown(Math.max(0, p.arrival.t - elapsed))} · ${p.arrival.speed.toFixed(1)} M/S`,
+        label: `ETA ${formatCountdown(Math.max(0, p.arrival.t - elapsed))} · ${formatSpeed(p.arrival.speed)}${p.arrival.relative ? " REL" : ""}`,
         allegiance: "friendly",
       });
     }
