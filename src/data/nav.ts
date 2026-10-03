@@ -23,6 +23,10 @@ export const navTuning = {
   stationHoldSpeed: 1,
   /** Match velocity is complete below this relative speed. */
   matchSpeedTolerance: 0.5,
+  /** Safety zone around bodies that routes go around: a fraction of the body's radius
+   *  plus a fixed distance. */
+  bodyMarginFraction: 0.2,
+  bodyMarginMeters: 20_000,
   /** Fast pass is complete once closest approach is behind the ship. */
   fastPassMaxTimeS: 6 * 3600,
 };

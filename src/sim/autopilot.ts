@@ -63,9 +63,13 @@ function arrive(
   arriveSpeed: number,
   events: SimEvent[],
   announceFlip = true,
+  pathLength?: number,
 ): { out: NavOutput; arrived: boolean } {
   const a = maxAccel(ship);
-  const d = length(r);
+  // r points at the current aim (a detour point when a body is in the way); d is the
+  // remaining distance along the route, which braking is planned against.
+  const aimDistance = length(r);
+  const d = pathLength ?? aimDistance;
   if (d < arriveDistance && length(v) < arriveSpeed) return { out: hold(ship), arrived: true };
 
   // Final approach: inside the arrival distance the direction to the point is dominated by
@@ -78,7 +82,7 @@ function arrive(
     return { out: { heading, thrust, phase: burnPhase(ship, heading, true) }, arrived: false };
   }
 
-  const rHat = d > 1e-9 ? scale(r, 1 / d) : ship.heading;
+  const rHat = aimDistance > 1e-9 ? scale(r, 1 / aimDistance) : ship.heading;
   const vc = dot(v, rHat); // closing speed, positive toward the reference
   const vLat = sub(v, scale(rHat, vc));
   const nav = ship.nav;
@@ -119,6 +123,74 @@ function arrive(
   return { out: { heading, thrust: Math.min(a, mag), phase: burnPhase(ship, heading, nav.braking) }, arrived: false };
 }
 
+/** Safety radius around a body that routes keep out of. */
+export function safetyRadius(radius: number): number {
+  return radius * (1 + N.bodyMarginFraction) + N.bodyMarginMeters;
+}
+
+/** Closest distance from point c to the segment a-b, and the parameter t (0..1) there. */
+function segmentDistance(a: Vec3, b: Vec3, c: Vec3): { dist: number; t: number; point: Vec3 } {
+  const ab = sub(b, a);
+  const len2 = dot(ab, ab);
+  const t = len2 > 0 ? Math.max(0, Math.min(1, dot(sub(c, a), ab) / len2)) : 0;
+  const point = add(a, scale(ab, t));
+  return { dist: length(sub(c, point)), t, point };
+}
+
+/**
+ * Where to aim to get from `from` to `goal` without crossing a body's safety zone.
+ * If the straight line is clear, that is the goal itself. Otherwise it is a turning point
+ * beside the nearest blocking body, pushed out until both legs clear its zone.
+ * pathLength is the remaining distance along the route (used to plan braking).
+ * A goal inside a safety zone (or a ship already inside one) is approached directly.
+ */
+export function routeAim(world: World, from: Vec3, goal: Vec3): { aim: Vec3; pathLength: number; detour: boolean } {
+  let block: { c: Vec3; R: number; t: number; point: Vec3 } | null = null;
+  for (const b of world.bodies) {
+    const R = safetyRadius(b.radius);
+    if (length(sub(goal, b.position)) < R || length(sub(from, b.position)) < R) continue;
+    const s = segmentDistance(from, goal, b.position);
+    if (s.dist < R && (!block || s.t < block.t)) block = { c: b.position, R, t: s.t, point: s.point };
+  }
+  if (!block) return { aim: goal, pathLength: length(sub(goal, from)), detour: false };
+
+  const { c, R } = block;
+  // Go around on the side the straight line already passes; if it passes through the
+  // center, pick a side deterministically (prefer passing over the top).
+  let side = sub(block.point, c);
+  if (length(side) < R * 1e-6) {
+    const dir = normalize(sub(goal, from));
+    const up = Math.abs(dir.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+    side = sub(up, scale(dir, dot(up, dir)));
+  }
+  const u = normalize(side);
+  let D = R * 1.02;
+  let aim = add(c, scale(u, D));
+  for (let i = 0; i < 80; i++) {
+    aim = add(c, scale(u, D));
+    if (segmentDistance(from, aim, c).dist >= R && segmentDistance(aim, goal, c).dist >= R) break;
+    D *= 1.06;
+  }
+  return { aim, pathLength: length(sub(aim, from)) + length(sub(goal, aim)), detour: true };
+}
+
+/**
+ * Heading and thrust toward a detour point without braking (fast pass): push toward the
+ * point and cancel sideways drift relative to the (static) body frame.
+ */
+function pushToward(ship: Ship, aim: Vec3): NavOutput {
+  const a = maxAccel(ship);
+  const r = sub(aim, ship.position);
+  const rHat = normalize(r);
+  const vLat = sub(ship.velocity, scale(rHat, dot(ship.velocity, rHat)));
+  let aLat = scale(vLat, -1 / N.lateralTimeConstant);
+  const m = length(aLat);
+  if (m > a * N.lateralShare) aLat = scale(aLat, (a * N.lateralShare) / m);
+  const cmd = add(aLat, scale(rHat, Math.sqrt(Math.max(0, a * a - dot(aLat, aLat)))));
+  const heading = normalize(cmd);
+  return { heading, thrust: a, phase: burnPhase(ship, heading, false) };
+}
+
 function complete(ship: Ship, events: SimEvent[]) {
   if (!ship.order) return;
   events.push({ type: "orderComplete", ship: ship.id, order: ship.order.type });
@@ -137,8 +209,9 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
     }
 
     case "burnTo": {
-      const r = sub(order.point, ship.position);
-      const { out, arrived } = arrive(ship, r, ship.velocity, N.arriveDistance, N.arriveSpeed, events);
+      const route = routeAim(world, ship.position, order.point);
+      const r = sub(route.aim, ship.position);
+      const { out, arrived } = arrive(ship, r, ship.velocity, N.arriveDistance, N.arriveSpeed, events, true, route.pathLength);
       if (arrived) {
         complete(ship, events);
         // Arrived at rest: hold position at the point from now on.
@@ -154,6 +227,7 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       const goal = add(t.position, order.offset);
       const r = sub(goal, ship.position);
       const v = sub(ship.velocity, t.velocity);
+      const route = routeAim(world, ship.position, goal);
       // Drift freely inside the hold box; correct only when outside it.
       if (!ship.nav.braking && length(r) < N.stationHoldRadius && length(v) < N.stationHoldSpeed) {
         // Reaching station after travelling completes the order (once). Starting inside the
@@ -166,7 +240,7 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       ship.nav.travelling = true;
       // The first trip to station announces its flip like any trip; later small corrections
       // stay quiet so they never trigger auto-slowdown.
-      const { out, arrived } = arrive(ship, r, v, N.arriveDistance, N.arriveSpeed, events, !ship.nav.complete);
+      const { out, arrived } = arrive(ship, sub(route.aim, ship.position), v, N.arriveDistance, N.arriveSpeed, events, !ship.nav.complete, route.pathLength);
       if (arrived) ship.nav.braking = false;
       return out;
     }
@@ -176,8 +250,8 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       if (!t) return coast(ship);
       const r = sub(t.position, ship.position);
       const v = sub(ship.velocity, t.velocity);
-      if (order.mode === "rendezvous") return rendezvous(ship, r, v, events);
-      return fastPass(ship, r, v, events);
+      if (order.mode === "rendezvous") return rendezvous(world, ship, r, v, events);
+      return fastPass(world, ship, r, v, events);
     }
 
     case "matchVelocity": {
@@ -202,10 +276,12 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
  * Rendezvous: arrive at rest relative to the target, stopping rendezvousStandoff short of
  * it along the line of approach. Then hold station there.
  */
-function rendezvous(ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
+function rendezvous(world: World, ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
   const d = length(r);
-  const aim = d > N.rendezvousStandoff ? sub(r, scale(r, N.rendezvousStandoff / d)) : { x: 0, y: 0, z: 0 };
-  const { out, arrived } = arrive(ship, aim, v, N.rendezvousArriveDistance, N.rendezvousArriveSpeed, events);
+  const standoff = d > N.rendezvousStandoff ? sub(r, scale(r, N.rendezvousStandoff / d)) : { x: 0, y: 0, z: 0 };
+  const route = routeAim(world, ship.position, add(ship.position, standoff));
+  const aim = sub(route.aim, ship.position);
+  const { out, arrived } = arrive(ship, aim, v, N.rendezvousArriveDistance, N.rendezvousArriveSpeed, events, true, route.pathLength);
   if (arrived && ship.order && "target" in ship.order) {
     complete(ship, events);
     ship.order = { type: "stationKeep", target: ship.order.target, offset: scale(r, -1) };
@@ -242,7 +318,7 @@ const HOMING_GAIN = 3;
  * miss-distance homing: correct the predicted miss sideways and spend the rest of the
  * thrust pushing toward the target. Complete once closest approach is behind the ship.
  */
-function fastPass(ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
+function fastPass(world: World, ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
   const nav = ship.nav;
   const d = length(r);
   const closing = dot(v, r) > 0;
@@ -254,6 +330,10 @@ function fastPass(ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
     ship.nav = { ...freshNavState(), complete: true };
     return coast(ship);
   }
+
+  // A body in the way: go around it first, then home on the target.
+  const route = routeAim(world, ship.position, add(ship.position, r));
+  if (route.detour) return pushToward(ship, route.aim);
 
   const a = maxAccel(ship);
   const rHat = d > 1e-9 ? scale(r, 1 / d) : ship.heading;

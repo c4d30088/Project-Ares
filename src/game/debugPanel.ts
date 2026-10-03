@@ -36,6 +36,8 @@ export function createDebugPanel(currentScenario: string): GUI {
   nav.add(navTuning, "lateralShare", 0, 1, 0.05);
   nav.add(navTuning, "rendezvousStandoff", 0, 50000, 500);
   nav.add(navTuning, "stationHoldRadius", 100, 20000, 100);
+  nav.add(navTuning, "bodyMarginFraction", 0, 1, 0.01).name("body margin (x radius)");
+  nav.add(navTuning, "bodyMarginMeters", 0, 500000, 1000).name("body margin (m)");
   nav.close();
 
   const cam = gui.addFolder("Camera");
