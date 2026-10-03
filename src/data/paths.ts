@@ -15,4 +15,7 @@ export const pathTuning = {
   freshBudgetMs: 12,
   /** Re-run predictions this often (real seconds) to absorb drift and target moves. */
   refreshS: 2,
+  /** Torpedo intercept lines: thin, so a salvo reads as converging threads. */
+  interceptWidthPx: 1,
+  interceptOpacity: 0.55,
 };

@@ -9,7 +9,7 @@
 import * as THREE from "three";
 import type { Target } from "../sim/target";
 import type { Vec3 } from "../sim/vec3";
-import type { GSetting } from "../sim/world";
+import type { GSetting, LaunchMode } from "../sim/world";
 import { formatDistance } from "../ui/format";
 import { fromRender } from "../render/frame";
 import { clampOutsideBodies } from "../sim/autopilot";
@@ -17,7 +17,8 @@ import { G0, shipClasses } from "../data/ships";
 import type { TableView } from "../render/scene";
 import type { Game } from "./game";
 
-export type OrderKind = "burnTo" | "rendezvous" | "fastPass" | "match" | "stationKeep" | "orient" | "orbit" | "coast";
+export type OrderKind = "burnTo" | "rendezvous" | "fastPass" | "match" | "stationKeep" | "orient" | "orbit" | "coast" | "launch";
+export type SalvoSize = 1 | 2 | 4 | 6;
 
 /** How each order picks what it applies to. */
 const NEEDS: Record<OrderKind, "point" | "target" | "body" | "pointOrTarget" | "none"> = {
@@ -29,7 +30,10 @@ const NEEDS: Record<OrderKind, "point" | "target" | "body" | "pointOrTarget" | "
   orient: "pointOrTarget",
   orbit: "body",
   coast: "none",
+  launch: "pointOrTarget",
 };
+
+const LAUNCH_HINT = "TORPEDOES: CLICK A SHIP OR OBJECT, OR PRESS ON THE PLANE AND DRAG FOR HEIGHT · ESC CANCELS";
 
 const HINTS: Record<"point" | "target" | "body" | "pointOrTarget", string> = {
   body: "CLICK A MOON OR ASTEROID TO ORBIT · ESC CANCELS",
@@ -54,6 +58,9 @@ export interface OrderInput {
   readonly mode: OrderKind | null;
   readonly hint: string | null;
   readonly preview: PlacementPreview | null;
+  /** Torpedo salvo settings for the next launch (player choices, not sim state). */
+  salvo: SalvoSize;
+  launchMode: LaunchMode;
   start(kind: OrderKind): void;
   cancel(): void;
   setG(g: GSetting): void;
@@ -101,13 +108,27 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     if (mode === "burnTo") game.issue({ type: "burnTo", ship, point });
     if (mode === "stationKeep") game.issue({ type: "stationKeep", ship, target: { kind: "point", position: point } });
     if (mode === "orient") game.issue({ type: "orient", ship, target: { kind: "point", position: point } });
+    if (mode === "launch") launchAt({ kind: "point", position: point });
     finish();
+  }
+
+  function launchAt(target: Target) {
+    const ship = game.activeShipId;
+    if (ship) game.issue({ type: "launchTorpedoes", ship, target, count: input.salvo, mode: input.launchMode });
   }
 
   function issueTarget(id: string) {
     const ship = game.activeShipId;
     if (!ship || !mode || id === ship) return;
     const target = targetFor(id);
+    if (mode === "launch") {
+      // Never at our own side (the fuse would not fire anyway).
+      const friendly = game.picture.ownShips.some((s) => s.id === id) || game.picture.tracks.some((t) => t.id === id && t.allegiance === "friendly");
+      if (friendly) return;
+      launchAt(target);
+      finish();
+      return;
+    }
     if (mode === "orbit") {
       if (!game.picture.bodies.some((b) => b.id === id)) return; // only bodies can be orbited
       game.issue({ type: "orbit", ship, target: { kind: "object", id } });
@@ -148,8 +169,9 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
   function currentPreview(): PlacementPreview | null {
     if (!mode || !ground || NEEDS[mode] === "target" || NEEDS[mode] === "body") return null;
     const raw = { x: ground.x, y: ground.y, z: ground.z + height };
-    // Destinations cannot be inside a body's safety zone (orient only aims, so it may).
-    const { point: position, clamped } = mode === "orient" ? { point: raw, clamped: false } : clampOutsideBodies(game.picture.bodies, raw, activeCruiseAccel());
+    // Destinations cannot be inside a body's safety zone (orient and torpedoes only aim, so
+    // they may).
+    const { point: position, clamped } = mode === "orient" || mode === "launch" ? { point: raw, clamped: false } : clampOutsideBodies(game.picture.bodies, raw, activeCruiseAccel());
     const shipPos = game.activeShipId ? game.positionOf(game.activeShipId) : null;
     const range = shipPos ? Math.hypot(position.x - shipPos.x, position.y - shipPos.y, position.z - shipPos.z) : 0;
     const h = Math.abs(height) < 1 ? "ON PLANE" : `${height > 0 ? "+" : "\u2212"}${formatDistance(Math.abs(height))}`;
@@ -202,11 +224,14 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     issuePoint({ x: ground.x, y: ground.y, z: ground.z + height });
   });
 
-  return {
+  const input: OrderInput = {
+    salvo: 2,
+    launchMode: "hot",
     get mode() {
       return mode;
     },
     get hint() {
+      if (mode === "launch") return LAUNCH_HINT;
       return mode && NEEDS[mode] !== "none" ? HINTS[NEEDS[mode] as keyof typeof HINTS] : null;
     },
     get preview() {
@@ -215,7 +240,7 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     update() {
       if (!placed) return;
       const age = (performance.now() - placed.at) / 1000;
-      if (age > PLACED_TIMEOUT_S || (placed.kind === "orient" && age > PLACED_BRIEF_S)) {
+      if (age > PLACED_TIMEOUT_S || ((placed.kind === "orient" || placed.kind === "launch") && age > PLACED_BRIEF_S)) {
         placed = null;
         return;
       }
@@ -249,4 +274,5 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
       if (ship) game.issue({ type: "setG", ship, g });
     },
   };
+  return input;
 }

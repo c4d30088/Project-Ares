@@ -3,11 +3,12 @@ import { createRoot } from "react-dom/client";
 import { createTableView } from "./render/scene";
 import { createDebugPanel } from "./game/debugPanel";
 import { createGame } from "./game/game";
-import { buildDisplayList, pathMarkers } from "./render/displayList";
+import { buildDisplayList, pathMarkers, torpedoOverlays } from "./render/displayList";
 import { createPathLayer } from "./render/paths";
+import { createInterceptLayer } from "./render/intercepts";
 import { DT } from "./sim/sim";
 import { G0 } from "./data/ships";
-import { createOrderInput, type OrderKind } from "./game/input";
+import { createOrderInput, type OrderKind, type SalvoSize } from "./game/input";
 import { createIconLayer } from "./render/icons";
 import { createBodyLayer } from "./render/bodies";
 import { createDropLines } from "./render/dropLines";
@@ -36,6 +37,7 @@ const holotable = createHolotable(view.scene, readout);
 const bodies = createBodyLayer(view.scene);
 const dropLines = createDropLines(view.scene);
 const paths = createPathLayer(view.scene);
+const intercepts = createInterceptLayer(view.scene);
 const labelRoot = document.createElement("div");
 labelRoot.className = "obj-labels";
 view.overlay.appendChild(labelRoot);
@@ -62,6 +64,12 @@ hudActions.togglePause = () => game.togglePause();
 hudActions.setCompression = (i) => game.setCompression(i);
 hudActions.startOrder = (kind) => orders.start(kind as OrderKind);
 hudActions.setG = (g) => orders.setG(g);
+hudActions.setSalvo = (n) => {
+  orders.salvo = n as SalvoSize;
+};
+hudActions.setLaunchMode = (m) => {
+  orders.launchMode = m;
+};
 
 const isOwnShip = (id: string | null) => !!id && game.picture.ownShips.some((s) => s.id === id);
 const select = (id: string | null) => {
@@ -86,7 +94,7 @@ view.dom.addEventListener("dblclick", (e) => {
   }
 });
 
-const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast" };
+const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", l: "launch" };
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
@@ -160,6 +168,11 @@ function frame(now: number) {
             orbitPeriod: own.orbit ? own.orbit.period : null,
           }
         : null,
+      weapons: own
+        ? { ...own.torpedoes, salvo: orders.salvo, mode: orders.launchMode }
+        : null,
+      launchDetected: game.alerts.launchDetected,
+      impactIn: game.alerts.impactIn,
       orderMode: orders.mode,
       hint: orders.hint,
       simTime: game.simTime,
@@ -172,9 +185,10 @@ function frame(now: number) {
   view.cam.update(dt);
   holotable.update(view.cam.focus, view.cam.distance, dt, view.cam.camera);
   const preview = orders.preview;
+  const torps = torpedoOverlays(game.picture);
   const list = buildDisplayList(
     game.picture,
-    pathMarkers(game.predictions.values(), game.world.tick, DT),
+    [...pathMarkers(game.predictions.values(), game.world.tick, DT), ...torps.markers],
     preview ? [{ id: "placement", position: preview.position, label: preview.label, warn: preview.warn }] : [],
   );
   paths.update(
@@ -187,6 +201,7 @@ function frame(now: number) {
     dt,
     game.picture.ownShips.flatMap((s) => (s.orbit ? [{ id: s.id, ...s.orbit }] : [])),
   );
+  intercepts.update(torps.lines, view.cam.focus);
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);

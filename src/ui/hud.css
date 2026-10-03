@@ -166,3 +166,13 @@
 .data-value { color: var(--text); font-size: 12px; }
 .data-row.warn .data-value { color: var(--uncertain); }
 .data-row.dim .data-value { color: var(--textDim); }
+
+/* --- Weapons row (right of the time controls) and alerts --- */
+.bottom-row { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+.weapons-bar { display: flex; align-items: center; gap: 10px; }
+.weapons-label { color: var(--text); font-size: 11px; letter-spacing: 0.04em; }
+.alert-strip .panel-inner { gap: 18px; }
+.alert { font-size: 12px; letter-spacing: 0.08em; }
+.alert.threat { color: var(--threat); }
+.alert.blink { animation: alert-blink 0.8s steps(2, start) infinite; }
+@keyframes alert-blink { to { visibility: hidden; } }

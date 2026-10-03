@@ -256,6 +256,50 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
 }
 
 /**
+ * Where and when a torpedo will strike, for the intercept lines and impact countdowns.
+ * Assumes the target keeps coasting (the player knows where it is and how it moves, not
+ * what it intends) and the torpedo flies its plan: any boost left, then the coast. For a
+ * point it is the arrival at the point. Null for mines and seekers still searching, and
+ * for a torpedo that is opening on its target with no boost left (it will miss).
+ */
+export function predictImpact(world: World, t: Torpedo): { position: Vec3; t: number; targetId: string | null } | null {
+  const g = t.guidance;
+  if (!g || g.stage === "search") return null;
+  const tgt = resolveTarget(world, g.target);
+  if (!tgt) return null;
+  const a = torpedoAccel();
+  const r = sub(tgt.position, t.position);
+  const d = length(r);
+  const vc = d > 1e-9 ? dot(sub(t.velocity, tgt.velocity), scale(r, 1 / d)) : 0;
+  const targetId = g.target.kind === "point" ? null : g.target.id;
+
+  if (g.target.kind === "point") {
+    // Accelerate to cruise, cruise, brake to a stop (the toPoint velocity field).
+    const cruise = (TT.deltaV - TT.terminalReserve) / 2;
+    const v0 = Math.max(0, Math.min(vc, cruise));
+    const tAcc = (cruise - v0) / a;
+    const dAcc = ((v0 + cruise) / 2) * tAcc;
+    const tBrake = cruise / (a * POINT_BRAKE_MARGIN);
+    const dBrake = (cruise * tBrake) / 2;
+    const rest = d - dAcc - dBrake;
+    const time = rest >= 0 ? tAcc + tBrake + rest / cruise : Math.sqrt((2 * d) / a) * 1.5;
+    return { position: tgt.position, t: time, targetId };
+  }
+
+  const boostLeft = Math.max(0, g.fuel - g.reserve);
+  let coastFirst = 0; // a cold torpedo coasts until it lights
+  let dLeft = d;
+  if (g.stage === "cold") {
+    if (vc <= 0) return null;
+    coastFirst = Math.max(0, d - TT.coldIgnitionDistance) / vc;
+    dLeft = Math.min(d, TT.coldIgnitionDistance);
+  }
+  if (vc <= 0 && boostLeft <= 0) return null;
+  const time = coastFirst + timeToGo(dLeft, Math.max(0, vc), a, boostLeft);
+  return { position: add(tgt.position, scale(tgt.velocity, time)), t: time, targetId };
+}
+
+/**
  * Proximity fuse: a torpedo that passes within the fuse radius of a hostile ship during
  * this tick detonates. Never on friendlies. `shipsBefore` holds positions at the start
  * of the tick.

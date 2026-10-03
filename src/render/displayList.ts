@@ -37,7 +37,7 @@ export interface BodySymbol {
 /** Screen-space markers on predicted paths. */
 export interface PathMarker {
   id: string;
-  kind: "flip" | "arrival";
+  kind: "flip" | "arrival" | "impact";
   position: Vec3;
   label: string;
   allegiance: Allegiance;
@@ -84,6 +84,50 @@ export function pathMarkers(predictions: Iterable<Prediction>, simTick: number, 
     }
   }
   return out;
+}
+
+/** A thin line from a torpedo to its predicted impact point. */
+export interface InterceptLine {
+  from: Vec3;
+  to: Vec3;
+  hostile: boolean;
+}
+
+/**
+ * Intercept lines and impact X marks for torpedoes in flight (DESIGN.md section 7): a line
+ * from each torpedo to where it will strike, and one X per target at the soonest impact,
+ * with a countdown and how many torpedoes are inbound to it.
+ */
+export function torpedoOverlays(picture: SensorPicture): { lines: InterceptLine[]; markers: PathMarker[] } {
+  const lines: InterceptLine[] = [];
+  const groups = new Map<string, { position: Vec3; t: number; count: number; allegiance: Allegiance }>();
+  for (const tr of picture.tracks) {
+    if (tr.kind !== "torpedo" || !tr.impact) continue;
+    const hostile = tr.allegiance === "hostile";
+    lines.push({ from: tr.position, to: tr.impact.position, hostile });
+    // One X per target (per point for point-targeted torpedoes), per side.
+    const key = `${tr.allegiance}:${tr.impact.targetId ?? tr.id}`;
+    const g = groups.get(key);
+    if (!g) groups.set(key, { position: tr.impact.position, t: tr.impact.t, count: 1, allegiance: tr.allegiance });
+    else {
+      g.count++;
+      if (tr.impact.t < g.t) {
+        g.t = tr.impact.t;
+        g.position = tr.impact.position;
+      }
+    }
+  }
+  const markers: PathMarker[] = [];
+  for (const [key, g] of groups) {
+    markers.push({
+      id: `impact:${key}`,
+      kind: "impact",
+      position: g.position,
+      label: `T-${formatCountdown(g.t)}${g.count > 1 ? ` \u00d7${g.count}` : ""}`,
+      allegiance: g.allegiance,
+    });
+  }
+  return { lines, markers };
 }
 
 /** Below this speed a coasting object points along its heading instead of its velocity. */

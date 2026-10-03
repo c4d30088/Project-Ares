@@ -252,7 +252,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         if (s.filled && s.rotates && s.shape !== "torpedo") push(sp.x, sp.y, size * 1.5, angle, EXTRA_CELLS.thrust, hex, 0.9);
       }
 
-      // Path markers: flip glyph and arrival ring, with countdown labels.
+      // Path markers: flip glyph, arrival ring and impact X, with countdown labels.
       for (const m of list.markers) {
         toRender(m.position, focus, v);
         const visible = project(v, cam, sp);
@@ -260,12 +260,20 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         seen.add(m.id);
         el.style.display = visible ? "" : "none";
         if (!visible) continue;
-        const size = m.kind === "flip" ? 22 : 26;
-        push(sp.x, sp.y, size * T.scale, 0, m.kind === "flip" ? EXTRA_CELLS.flip : EXTRA_CELLS.arrival, allegianceColor[m.allegiance], 0.95);
+        const size = m.kind === "flip" ? 22 : m.kind === "impact" ? 18 : 26;
+        const cell = m.kind === "flip" ? EXTRA_CELLS.flip : m.kind === "impact" ? EXTRA_CELLS.impact : EXTRA_CELLS.arrival;
+        const mColor = m.kind === "impact" && m.allegiance === "hostile" ? palette.threat : allegianceColor[m.allegiance];
+        push(sp.x, sp.y, size * T.scale, 0, cell, mColor, 0.95);
         el.textContent = m.label;
-        el.style.color = allegianceColor[m.allegiance];
+        el.style.color = mColor;
         el.style.opacity = "1";
-        candidates.push({ el, x: sp.x + size * 0.5, y: sp.y + 2, w: m.label.length * CHAR_W, priority: 0.5 });
+        if (m.kind === "impact") {
+          // Below the X, clear of the label of the ship it is about to hit; incoming
+          // impacts outrank everything but the selection.
+          candidates.push({ el, x: sp.x - size * 0.3, y: sp.y + size * 0.7, w: m.label.length * CHAR_W, priority: m.allegiance === "hostile" ? -0.5 : 0.5 });
+        } else {
+          candidates.push({ el, x: sp.x + size * 0.5, y: sp.y + 2, w: m.label.length * CHAR_W, priority: 0.5 });
+        }
       }
 
       // Points being placed for an order.

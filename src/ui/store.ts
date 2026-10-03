@@ -17,8 +17,23 @@ export interface ActiveShipInfo {
   orbitPeriod: number | null; // seconds
 }
 
+export interface WeaponsInfo {
+  /** Torpedoes left, and ordered but not yet out of a tube. */
+  magazine: number;
+  queued: number;
+  tubes: number;
+  tubesReady: number;
+  /** Salvo settings for the next launch. */
+  salvo: number;
+  mode: "hot" | "cold";
+}
+
 export interface HudState {
   activeShip: ActiveShipInfo | null;
+  weapons: WeaponsInfo | null;
+  /** Top strip: a hostile launch was just detected; seconds to the soonest hostile impact. */
+  launchDetected: boolean;
+  impactIn: number | null;
   /** Order being placed, or null. */
   orderMode: string | null;
   hint: string | null;
@@ -31,6 +46,9 @@ export interface HudState {
 
 let state: HudState = {
   activeShip: null,
+  weapons: null,
+  launchDetected: false,
+  impactIn: null,
   orderMode: null,
   hint: null,
   simTime: 0,
@@ -69,6 +87,8 @@ export interface HudActions {
   setCompression(index: number): void;
   startOrder(kind: string): void;
   setG(g: "cruise" | "combat" | "max"): void;
+  setSalvo(n: number): void;
+  setLaunchMode(mode: "hot" | "cold"): void;
 }
 
 export const hudActions: HudActions = {
@@ -76,4 +96,6 @@ export const hudActions: HudActions = {
   setCompression() {},
   startOrder() {},
   setG() {},
+  setSalvo() {},
+  setLaunchMode() {},
 };

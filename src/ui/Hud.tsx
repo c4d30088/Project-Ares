@@ -7,6 +7,8 @@ import { Panel } from "./Panel";
 import { TimeControls } from "./TimeControls";
 import { OrderBar } from "./OrderBar";
 import { NavStatus } from "./NavStatus";
+import { WeaponsBar } from "./WeaponsBar";
+import { formatCountdown } from "./format";
 import { useHud } from "./store";
 
 // HUD shell. Panels are empty frames in M1; later milestones fill them.
@@ -15,9 +17,12 @@ export function Hud() {
   return (
     <div className="hud">
       <Panel className="alert-strip">
-        {hud.notice ? (
-          <span className="mono" style={{ color: palette.uncertain }}>{hud.notice}</span>
-        ) : (
+        {hud.impactIn !== null && (
+          <span className="mono alert threat">IMPACT T-{formatCountdown(hud.impactIn)}</span>
+        )}
+        {hud.launchDetected && <span className="mono alert threat blink">LAUNCH DETECTED</span>}
+        {hud.notice && <span className="mono alert" style={{ color: palette.uncertain }}>{hud.notice}</span>}
+        {hud.impactIn === null && !hud.launchDetected && !hud.notice && (
           <span className="mono" style={{ color: palette.textDim }}>NO ALERTS</span>
         )}
       </Panel>
@@ -30,7 +35,10 @@ export function Hud() {
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
       <Panel className="bottom-bar">
         <OrderBar />
-        <TimeControls />
+        <div className="bottom-row">
+          <TimeControls />
+          <WeaponsBar />
+        </div>
       </Panel>
     </div>
   );

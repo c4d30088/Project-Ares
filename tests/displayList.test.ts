@@ -46,3 +46,21 @@ describe("display list", () => {
     expect(byId["red-cr1"].label).toBe("TRK-11 CRUISER");
   });
 });
+
+describe("torpedo intercept overlays", () => {
+  it("draws a line per torpedo and one X per target, counting the salvo", async () => {
+    const { makeShip, makeWorld, v3 } = await import("./helpers");
+    const { step, submit } = await import("../src/sim/sim");
+    const { torpedoOverlays } = await import("../src/render/displayList");
+    const w = makeWorld([makeShip({ id: "ff" }), makeShip({ id: "tgt", faction: "red", position: v3(3_000_000, 0, 0) })]);
+    submit(w, "red", { type: "launchTorpedoes", ship: "tgt", target: { kind: "track", id: "ff" }, count: 2, mode: "hot" });
+    submit(w, "blue", { type: "launchTorpedoes", ship: "ff", target: { kind: "track", id: "tgt" }, count: 1, mode: "hot" });
+    for (let i = 0; i < 40; i++) step(w);
+    const o = torpedoOverlays(buildPerfectPicture(w, "blue"));
+    expect(o.lines).toHaveLength(3);
+    expect(o.lines.filter((l) => l.hostile)).toHaveLength(2);
+    expect(o.markers).toHaveLength(2);
+    const incoming = o.markers.find((m) => m.allegiance === "hostile")!;
+    expect(incoming.label).toMatch(/^T-\d\d:\d\d \u00d72$/);
+  });
+});

@@ -6,6 +6,7 @@
 
 import { clone, type Vec3 } from "../vec3";
 import { bodyMu } from "../gravity";
+import { predictImpact } from "../weapons/torpedo";
 import type { NavOrder, NavPhase } from "../commands";
 import { areHostile, type BodyKind, type FactionId, type GSetting, type ShipClass, type World } from "../world";
 
@@ -30,6 +31,8 @@ export interface Track {
   /** Ids of own ships whose sensors currently contribute to this track (rule 11). */
   contributors: string[];
   lastUpdateTick: number;
+  /** Torpedoes: predicted impact (seconds from now) and what it is aimed at, if known. */
+  impact?: { position: Vec3; t: number; targetId: string | null };
 }
 
 export interface OwnShip {
@@ -46,6 +49,8 @@ export interface OwnShip {
   phase: NavPhase;
   /** Subsystem health, 1 = intact. */
   health: Record<string, number>;
+  /** Torpedoes left (magazine), ordered but not yet fired, and tubes ready to fire. */
+  torpedoes: { magazine: number; queued: number; tubes: number; tubesReady: number };
   /** The orbit the ship is flying to or in. */
   orbit?: { bodyId: string; center: Vec3; radius: number; normal: Vec3; established: boolean; period: number; bodyRadius: number };
 }
@@ -126,6 +131,7 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       burning: t.thrust > 0,
       contributors: t.faction === faction ? [] : [...contributors],
       lastUpdateTick: world.tick,
+      impact: predictImpact(world, t) ?? undefined,
     });
   }
 
@@ -161,6 +167,12 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       phase: s.nav.phase,
       orbit: orbitInfo(world, s),
       health: { ...s.health },
+      torpedoes: {
+        magazine: s.weapons.magazine,
+        queued: s.weapons.launchQueue.length,
+        tubes: s.weapons.tubeReload.length,
+        tubesReady: s.weapons.tubeReload.filter((r) => r <= 0).length,
+      },
     })),
     tracks,
     bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position), gm: bodyMu(b) })),

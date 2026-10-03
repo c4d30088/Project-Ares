@@ -8,6 +8,7 @@ import { bodyTuning } from "../data/bodies";
 import { physicsTuning } from "../data/physics";
 import { timeTuning } from "../data/time";
 import { torpedoTuning } from "../data/weapons";
+import { pathTuning } from "../data/paths";
 import { scenarios } from "../data/scenarios";
 
 // Debug panel. Toggle with the backquote key (`).
@@ -116,13 +117,15 @@ export function createDebugPanel(currentScenario: string): GUI {
   torp.add(torpedoTuning, "coldIgnitionDistance", 10000, 10000000, 10000).name("cold ignition (m)");
   torp.add(torpedoTuning, "hotEjectSpeed", 1, 100, 1).name("hot eject (m/s)");
   torp.add(torpedoTuning, "tubeReloadS", 1, 60, 0.5).name("tube reload (s)");
+  torp.add(pathTuning, "interceptWidthPx", 0.5, 4, 0.1).name("intercept line (px)");
+  torp.add(pathTuning, "interceptOpacity", 0, 1, 0.05).name("intercept line opacity");
   torp.close();
 
   // Copies all current values as JSON, to paste back into the src/data files.
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pathTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },

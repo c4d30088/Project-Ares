@@ -17,7 +17,7 @@ const ROWS = 8;
 const R = CELL * 0.3;
 const LINE = 0.15; // line width in units of R
 
-export const EXTRA_CELLS = { select: 48, bodyMarker: 49, flip: 50, arrival: 51, thrust: 52, waypoint: 53 } as const;
+export const EXTRA_CELLS = { select: 48, bodyMarker: 49, flip: 50, arrival: 51, thrust: 52, waypoint: 53, impact: 54 } as const;
 
 export function cellIndex(shape: SymbolShape, filled: boolean, treatment: Treatment): number {
   return SHAPES.indexOf(shape) * 6 + (filled ? 3 : 0) + TREATMENTS.indexOf(treatment);
@@ -210,6 +210,18 @@ export function createSymbolAtlas(): THREE.CanvasTexture {
       c.moveTo(x * 0.6, y * 0.6);
       c.lineTo(x * 1.2, y * 1.2);
     }
+    c.stroke();
+  });
+
+  // Impact point: an X.
+  drawCell(ctx, EXTRA_CELLS.impact, (c) => {
+    c.lineWidth = LINE * 1.2;
+    c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(-0.8, -0.8);
+    c.lineTo(0.8, 0.8);
+    c.moveTo(0.8, -0.8);
+    c.lineTo(-0.8, 0.8);
     c.stroke();
   });
 

@@ -28,9 +28,10 @@ Done and committed:
   | 5,000 km | hit | escapes | escapes |
 
   Escaping means burning hard for 5 minutes or more, which G-strain (step 6) will make costly.
-- Torpedoes cannot be fired from the game yet; that is step 3.
+- M3 step 3, torpedo targeting and display: `L` then click a target or place a point; salvo size (1/2/4/6) and Hot/Cold in the bottom bar, with the magazine and ready tubes. Thin lines from each torpedo to its predicted impact X, one X per target with a countdown and salvo count (red for incoming). Alert strip: LAUNCH DETECTED, IMPACT T-mm:ss. Time drops to 1x on a detected launch and when an incoming torpedo is inside 60 s (toggles in `src/data/time.ts`).
+- Not yet playable against a shooting enemy: the scripted enemy is step 7.
 Auto mode blocked commands partway through both sessions today. If it happens again, switch to the default permission mode.
-Next session: step 3 (torpedo targeting UI, intercept lines with impact X and countdown, launch alert).
+Next session: step 4 (PDCs and their domes).
 
 ---
 

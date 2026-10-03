@@ -9,7 +9,8 @@ import { loadScenario, type Scenario } from "../sim/scenario";
 import { buildPerfectPicture, type SensorPicture } from "../sim/sensors/picture";
 import { DT, step, submit, TICK_RATE } from "../sim/sim";
 import type { Vec3 } from "../sim/vec3";
-import type { World } from "../sim/world";
+import { areHostile, type World } from "../sim/world";
+import { predictImpact } from "../sim/weapons/torpedo";
 
 /** Never run more than this many ticks in one frame, whatever the compression. */
 const MAX_TICKS_PER_FRAME = 4000;
@@ -31,6 +32,9 @@ export interface Game {
   notice: string | null;
   /** Latest predicted path for each of the player's ships with a movement order. */
   predictions: Map<string, Prediction>;
+  /** Alerts for the top strip, from the player's picture. impactIn: seconds until the
+   *  soonest hostile torpedo reaches one of our ships. */
+  alerts: { launchDetected: boolean; impactIn: number | null };
   readonly simTime: number;
   readonly compression: number;
   positionOf(id: string): Vec3 | null;
@@ -75,8 +79,30 @@ export function createGame(scenario: Scenario): Game {
     noticeUntil = realClock + NOTICE_SECONDS;
   }
 
+  // Hostile torpedoes already warned about for coming inside the threat window.
+  const threatWarned = new Set<string>();
+
   /** Auto-slowdown (DESIGN.md section 5). Returns true if time was slowed. */
   function checkSlowdown(events: SimEvent[]): boolean {
+    const slow = (text: string) => {
+      if (game.compressionIndex === 0) return false;
+      game.compressionIndex = 0;
+      setNotice(`1x: ${text}`);
+      return true;
+    };
+    // Perfect sensors until M4: a launch is detected the moment it happens.
+    for (const e of events) {
+      if (e.type === "torpedoLaunched" && timeTuning.slowOnLaunch && areHostile(world, faction, e.faction) && slow("LAUNCH DETECTED")) return true;
+    }
+    if (timeTuning.slowOnThreatS > 0) {
+      for (const t of world.torpedoes) {
+        if (threatWarned.has(t.id) || !areHostile(world, faction, t.faction)) continue;
+        const hit = predictImpact(world, t);
+        if (!hit || hit.t > timeTuning.slowOnThreatS || !hit.targetId || !isOwn(hit.targetId)) continue;
+        threatWarned.add(t.id);
+        if (slow(`IMPACT T-${Math.ceil(hit.t)} S`)) return true;
+      }
+    }
     for (const e of events) {
       if (e.type === "flipStart" && timeTuning.slowOnFlip && isOwn(e.ship)) {
         if (game.compressionIndex > 0) {
@@ -145,6 +171,27 @@ export function createGame(scenario: Scenario): Game {
     }
   }
 
+  // Alerts read the player's picture (CLAUDE.md rule 6): a hostile torpedo track not seen
+  // before is a detected launch.
+  const knownHostileTorpedoes = new Set<string>();
+  let launchAlertUntil = -Infinity;
+  let alertsPrimed = false;
+  function updateAlerts() {
+    const own = new Set(game.picture.ownShips.map((s) => s.id));
+    let impactIn: number | null = null;
+    for (const t of game.picture.tracks) {
+      if (t.kind !== "torpedo" || t.allegiance !== "hostile") continue;
+      if (!knownHostileTorpedoes.has(t.id)) {
+        knownHostileTorpedoes.add(t.id);
+        // Torpedoes already flying when the scenario starts are not launches.
+        if (alertsPrimed) launchAlertUntil = realClock + timeTuning.launchAlertS;
+      }
+      if (t.impact?.targetId && own.has(t.impact.targetId)) impactIn = Math.min(impactIn ?? Infinity, t.impact.t);
+    }
+    alertsPrimed = true;
+    game.alerts = { launchDetected: realClock < launchAlertUntil, impactIn };
+  }
+
   function rebuildPicture(alpha: number) {
     const pic = buildPerfectPicture(world, faction);
     const lerp = (id: string, p: Vec3) => {
@@ -169,6 +216,7 @@ export function createGame(scenario: Scenario): Game {
     compressionIndex: 0,
     notice: null,
     predictions: new Map(),
+    alerts: { launchDetected: false, impactIn: null },
     get simTime() {
       return world.tick * DT;
     },
@@ -227,6 +275,7 @@ export function createGame(scenario: Scenario): Game {
       }
       updatePredictions();
       rebuildPicture(accumulator);
+      updateAlerts();
     },
   };
   return game;
