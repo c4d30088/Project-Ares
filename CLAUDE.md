@@ -24,7 +24,7 @@ Debug panel (lil-gui): press `` ` `` in the game. "copy values" puts all tunable
 
 Table controls: drag to rotate, right-drag or Shift-drag to pan, scroll to zoom, click to select, double-click or `F` to focus the selection, `T` toggles top-down, `Esc` clears the selection.
 
-Screenshot URL options (pass with `npm run shot -- --query "..."`): `focus=<id>`, `yaw=`, `pitch=`, `dist=` (meters), `top=1`, and effect overrides like `fx.bloomStrength=0`.
+Screenshot URL options (pass with `npm run shot -- --query "..."`): `focus=<id>`, `yaw=`, `pitch=`, `dist=` (meters), `top=1`, and tunable overrides like `fx.bloomStrength=0` (effects) or `h.wallOpacity=0.5` (holotable).
 
 ## Hard rules
 

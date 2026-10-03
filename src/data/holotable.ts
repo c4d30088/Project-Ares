@@ -15,6 +15,13 @@ export const holotableTuning = {
   ringCount: 6,
   /** Seconds to crossfade when the ring spacing changes. */
   ringFadeTime: 0.35,
+  /** Faint grids on the two box walls farthest from the camera. Horizontal lines are
+   *  height steps from the reference plane, at the range ring spacing. */
+  showBackWalls: true,
+  wallOpacity: 0.22,
+  /** Range rings repeated in the two vertical planes through the focus (range spheres). */
+  showRangeSpheres: true,
+  sphereOpacity: 0.16,
   /** Drop lines from objects to the reference plane. Dashed below the plane. */
   dropLineOpacity: 0.6,
   torpedoDropLineOpacity: 0.6,
