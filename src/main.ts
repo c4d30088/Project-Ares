@@ -6,6 +6,10 @@ import { createGame } from "./game/game";
 import { buildDisplayList, pathMarkers, torpedoOverlays } from "./render/displayList";
 import { createPathLayer } from "./render/paths";
 import { createInterceptLayer } from "./render/intercepts";
+import { createRangeRingLayer } from "./render/rangeRings";
+import { dirToSim } from "./render/frame";
+import { torpedoTuning } from "./data/weapons";
+import { formatDistance } from "./ui/format";
 import { DT } from "./sim/sim";
 import { G0 } from "./data/ships";
 import { createOrderInput, type OrderKind, type SalvoSize } from "./game/input";
@@ -38,6 +42,7 @@ const bodies = createBodyLayer(view.scene);
 const dropLines = createDropLines(view.scene);
 const paths = createPathLayer(view.scene);
 const intercepts = createInterceptLayer(view.scene);
+const rangeRings = createRangeRingLayer(view.scene);
 const labelRoot = document.createElement("div");
 labelRoot.className = "obj-labels";
 view.overlay.appendChild(labelRoot);
@@ -186,9 +191,25 @@ function frame(now: number) {
   holotable.update(view.cam.focus, view.cam.distance, dt, view.cam.camera);
   const preview = orders.preview;
   const torps = torpedoOverlays(game.picture, game.torpedoPaths, game.world.tick, DT);
+  // While aiming torpedoes: their range ring on the plane, labelled on the side facing us.
+  const aimingFrom = orders.mode === "launch" && game.activeShipId ? game.positionOf(game.activeShipId) : null;
+  const ring = aimingFrom ? { center: aimingFrom, radius: torpedoTuning.effectiveRange } : null;
+  const ringLabels = [];
+  if (ring) {
+    const c = view.cam.camera.position;
+    const toCam = dirToSim(c.x, c.y, c.z);
+    const h = Math.hypot(toCam.x, toCam.y) || 1;
+    ringLabels.push({
+      id: "range:torpedo",
+      kind: "range" as const,
+      position: { x: ring.center.x + (toCam.x / h) * ring.radius, y: ring.center.y + (toCam.y / h) * ring.radius, z: view.cam.focus.z },
+      label: `TORP RANGE ${formatDistance(ring.radius)}`,
+      allegiance: "friendly" as const,
+    });
+  }
   const list = buildDisplayList(
     game.picture,
-    [...pathMarkers(game.predictions.values(), game.world.tick, DT), ...torps.markers],
+    [...pathMarkers(game.predictions.values(), game.world.tick, DT), ...torps.markers, ...ringLabels],
     preview ? [{ id: "placement", position: preview.position, label: preview.label, warn: preview.warn }] : [],
   );
   paths.update(
@@ -202,6 +223,7 @@ function frame(now: number) {
     game.picture.ownShips.flatMap((s) => (s.orbit ? [{ id: s.id, ...s.orbit }] : [])),
   );
   intercepts.update(torps.lines, view.cam.focus, view.cam.distance);
+  rangeRings.update(ring, view.cam.focus);
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);

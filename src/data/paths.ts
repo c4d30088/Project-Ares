@@ -25,4 +25,7 @@ export const pathTuning = {
   torpedoRefreshS: 1,
   torpedoBudgetMs: 3,
   torpedoMaxPredictS: 1800,
+  /** Weapon range rings on the reference plane. */
+  rangeRingWidthPx: 1.5,
+  rangeRingOpacity: 0.6,
 };

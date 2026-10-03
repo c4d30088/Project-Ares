@@ -38,7 +38,8 @@ export interface BodySymbol {
 /** Screen-space markers on predicted paths. */
 export interface PathMarker {
   id: string;
-  kind: "flip" | "arrival" | "impact";
+  /** range: a label only (for a weapon range ring). */
+  kind: "flip" | "arrival" | "impact" | "range";
   position: Vec3;
   label: string;
   allegiance: Allegiance;

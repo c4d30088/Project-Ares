@@ -107,6 +107,7 @@ Build order (one commit per step):
 - Signatures: drive plume, heat, radar cross-section, emissions
 - Telescope, radar, lidar with ranges and costs from the design table
 - Line of sight blocked by bodies; sensor shadow volumes on the table
+- Weapons target by line of sight (owner, 2026-10-03): a ship hidden behind an asteroid or moon is hard to hit, harder the deeper it hides. A torpedo's seeker needs line of sight; when its target slips out of view it flies on the last position and motion it saw (its intercept line turns amber) and reacquires only if it comes back into view with fuel to correct. Firing at a hidden ship aims at its stale track.
 - Local picture per ship and shared picture per datalink network, with contributors recorded on every track
 - Tracks with uncertainty regions and classification confidence
 - Stale tracks: when the only ship seeing a contact is lost, the track freezes, turns amber, and fades

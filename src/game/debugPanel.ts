@@ -117,6 +117,8 @@ export function createDebugPanel(currentScenario: string): GUI {
   torp.add(torpedoTuning, "coldIgnitionDistance", 10000, 10000000, 10000).name("cold ignition (m)");
   torp.add(torpedoTuning, "hotEjectSpeed", 1, 100, 1).name("hot eject (m/s)");
   torp.add(torpedoTuning, "tubeReloadS", 1, 60, 0.5).name("tube reload (s)");
+  torp.add(torpedoTuning, "effectiveRange", 100000, 20000000, 100000).name("range ring (m)");
+  torp.add(pathTuning, "rangeRingOpacity", 0, 1, 0.05).name("range ring opacity");
   torp.add(pathTuning, "interceptWidthPx", 0.5, 4, 0.1).name("intercept line (px)");
   torp.add(pathTuning, "interceptOpacity", 0, 1, 0.05).name("intercept line opacity");
   torp.add(pathTuning, "interceptDotScale", 0.0005, 0.02, 0.0005).name("intercept dot size");

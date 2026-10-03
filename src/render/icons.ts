@@ -263,7 +263,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         const size = m.kind === "flip" ? 22 : m.kind === "impact" ? 18 : 26;
         const cell = m.kind === "flip" ? EXTRA_CELLS.flip : m.kind === "impact" ? EXTRA_CELLS.impact : EXTRA_CELLS.arrival;
         const mColor = m.kind === "impact" && m.allegiance === "hostile" ? palette.threat : allegianceColor[m.allegiance];
-        push(sp.x, sp.y, size * T.scale, 0, cell, mColor, 0.95);
+        if (m.kind !== "range") push(sp.x, sp.y, size * T.scale, 0, cell, mColor, 0.95);
         el.textContent = m.label;
         el.style.color = mColor;
         el.style.opacity = "1";

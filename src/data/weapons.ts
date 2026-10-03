@@ -23,4 +23,7 @@ export const torpedoTuning = {
   hotEjectSpeed: 15,
   /** Seconds for a tube to reload. */
   tubeReloadS: 12,
+  /** Range ring shown while aiming torpedoes, m: about where a single torpedo still hits a
+   *  ship burning hard (Combat G) across its path the whole way. Display only. */
+  effectiveRange: 3_000_000,
 };
