@@ -17,5 +17,5 @@ export const pathTuning = {
   refreshS: 2,
   /** Torpedo intercept lines: thin, so a salvo reads as converging threads. */
   interceptWidthPx: 1,
-  interceptOpacity: 0.55,
+  interceptOpacity: 0.1,
 };

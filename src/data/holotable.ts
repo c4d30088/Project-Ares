@@ -17,7 +17,7 @@ export const holotableTuning = {
   ringFadeTime: 0.35,
   /** Drop lines from objects to the reference plane. Dashed below the plane. */
   dropLineOpacity: 0.6,
-  torpedoDropLineOpacity: 0.6,
+  torpedoDropLineOpacity: 0.1,
   bodyDropLineOpacity: 0.6,
   /** Foot marker ring radius on the plane, in screen pixels. */
   footRingPx: 5,

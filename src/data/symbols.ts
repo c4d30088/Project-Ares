@@ -10,7 +10,7 @@ export const symbolTuning = {
     capital: 50,
     station: 30,
     unknown: 36,
-    torpedo: 16,
+    torpedo: 10,
   },
   /** Global multiplier on all symbol sizes. */
   scale: 1,
