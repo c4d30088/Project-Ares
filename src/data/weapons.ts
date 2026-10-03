@@ -37,8 +37,13 @@ export const pdcTuning = {
   maxRange: 50_000,
   /** Seconds to swing onto a new target. Damage makes it slower. */
   switchS: 0.3,
-  /** Ammunition per mount, in seconds of continuous fire. */
-  ammoS: 60,
+  /** Rounds in each mount's magazine, and how fast it fires them. */
+  roundsPerMount: 3000,
+  roundsPerS: 50,
+  /** Burst fire for Auto (the player sets it per ship; these are the starting values):
+   *  this many rounds per burst, then a pause of this many seconds. */
+  burstRounds: 20,
+  burstIntervalS: 1,
   /** Against ships (Manual, or Auto with the toggle): hits per second inside effective
    *  range, each doing this much damage. */
   shipHitsPerS: 0.5,

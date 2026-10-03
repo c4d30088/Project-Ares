@@ -107,7 +107,7 @@ describe("PDC mounts and modes", () => {
     expect(leaks(held)).toBe(4);
 
     const dry = defended(1);
-    for (const m of dry.ships[0].weapons.pdcs) m.ammoS = 0.5;
+    for (const m of dry.ships[0].weapons.pdcs) m.rounds = 25;
     salvo(dry, 8);
     const out: number[] = [];
     for (let i = 0; i < 120 / DT && dry.torpedoes.length; i++) {
@@ -116,7 +116,7 @@ describe("PDC mounts and modes", () => {
       dry.ships[0].health.hull = 1;
     }
     expect(out.length).toBeGreaterThan(0);
-    expect(dry.ships[0].weapons.pdcs.every((m) => m.ammoS === 0 || !m.firing)).toBe(true);
+    expect(dry.ships[0].weapons.pdcs.every((m) => m.rounds === 0 || !m.firing)).toBe(true);
   });
 
   it("Manual on a ship inside range damages it; out of range it does nothing", () => {
@@ -155,5 +155,75 @@ describe("PDC mounts and modes", () => {
       return w.rngState;
     };
     expect(run()).toBe(run());
+  });
+});
+
+describe("PDC rounds, bursts and assignments", () => {
+  it("fires rounds at the rate of fire and counts them down", async () => {
+    const { pdcTuning } = await import("../src/data/weapons");
+    const world = defended(9);
+    salvo(world, 1, 100, 0, v3(1, 0, 0));
+    world.torpedoes[0].position = v3(40_000, 0, 0); // slow, far: a long engagement
+    const before = world.ships[0].weapons.pdcs.reduce((s, m) => s + m.rounds, 0);
+    let firingTicks = 0;
+    for (let i = 0; i < 40; i++) {
+      step(world);
+      firingTicks += world.ships[0].weapons.pdcs.filter((m) => m.firing).length;
+    }
+    const used = before - world.ships[0].weapons.pdcs.reduce((s, m) => s + m.rounds, 0);
+    expect(used).toBeCloseTo(firingTicks * pdcTuning.roundsPerS * DT, 6);
+  });
+
+  it("burst fire on Auto fires bursts with pauses, and uses less ammo", async () => {
+    const { pdcTuning } = await import("../src/data/weapons");
+    const rate = pdcTuning.killRatePerS;
+    pdcTuning.killRatePerS = 0; // the target must survive the whole test
+    try {
+      const run = (burst: boolean) => {
+        const world = defended(11);
+        if (burst) submit(world, "blue", { type: "setPdcBurst", ship: "ff", enabled: true, rounds: 10, intervalS: 1 });
+        salvo(world, 1, 100, 0, v3(1, 0, 0));
+        world.torpedoes[0].position = v3(30_000, 0, 0);
+        const before = world.ships[0].weapons.pdcs.reduce((s, m) => s + m.rounds, 0);
+        const pattern: boolean[] = [];
+        for (let i = 0; i < 4 / DT; i++) {
+          step(world);
+          pattern.push(world.ships[0].weapons.pdcs.some((m) => m.firing));
+        }
+        return { used: before - world.ships[0].weapons.pdcs.reduce((s, m) => s + m.rounds, 0), pattern };
+      };
+      const full = run(false);
+      const bursts = run(true);
+      expect(bursts.used).toBeLessThan(full.used * 0.6);
+      // Bursts: firing, then silent, then firing again.
+      const switches = bursts.pattern.filter((f, i) => i > 0 && f !== bursts.pattern[i - 1]).length;
+      expect(switches).toBeGreaterThanOrEqual(3);
+    } finally {
+      pdcTuning.killRatePerS = rate;
+    }
+  });
+
+  it("all mounts can be assigned to one incoming torpedo, ignoring the others", () => {
+    const world = defended(13);
+    salvo(world, 3, 3000, 2, v3(1, 0, 0), 0.4);
+    world.torpedoes.forEach((t, i) => (t.position = scale(normalize(t.position), 30_000 + 2_000 * i)));
+    submit(world, "blue", { type: "setPdcs", ship: "ff", mount: "all", mode: "manual", target: { kind: "track", id: "t1" } });
+    step(world);
+    for (let i = 0; i < 10 / DT && world.torpedoes.some((t) => t.id === "t1"); i++) {
+      for (const m of world.ships[0].weapons.pdcs) if (m.engaged) expect(m.engaged).toBe("t1");
+      step(world);
+      world.ships[0].health.hull = 1;
+    }
+    expect(world.torpedoes.some((t) => t.id === "t1")).toBe(false);
+  });
+
+  it("once its assigned torpedo is gone, a mount goes back to Auto", () => {
+    const world = defended(17);
+    salvo(world, 2, 3000, 2, v3(1, 0, 0), 0.4);
+    submit(world, "blue", { type: "setPdcs", ship: "ff", mount: "all", mode: "manual", target: { kind: "track", id: "t0" } });
+    step(world);
+    world.torpedoes = world.torpedoes.filter((t) => t.id !== "t0"); // shot down elsewhere
+    step(world);
+    expect(world.ships[0].weapons.pdcs.every((m) => m.mode === "auto")).toBe(true);
   });
 });

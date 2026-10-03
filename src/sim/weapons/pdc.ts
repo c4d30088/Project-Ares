@@ -15,7 +15,20 @@ import { dot, length, normalize, scale, sub, type Vec3 } from "../vec3";
 import { areHostile, type PdcMount, type Ship, type ShipClass, type Torpedo, type World } from "../world";
 
 export function initPdcs(cls: ShipClass): PdcMount[] {
-  return Array.from({ length: loadouts[cls].pdcCount }, () => ({ mode: "auto" as const, assigned: null, engaged: null, switchS: 0, ammoS: PT.ammoS, firing: false }));
+  return Array.from({ length: loadouts[cls].pdcCount }, () => ({
+    mode: "auto" as const,
+    assigned: null,
+    engaged: null,
+    switchS: 0,
+    rounds: PT.roundsPerMount,
+    firing: false,
+    burstLeft: PT.burstRounds,
+    burstWaitS: 0,
+  }));
+}
+
+export function initBurst(): { enabled: boolean; rounds: number; intervalS: number } {
+  return { enabled: false, rounds: PT.burstRounds, intervalS: PT.burstIntervalS };
 }
 
 /** Kill (or hit) rate at range r, per second: full inside effective range, none beyond max. */
@@ -62,6 +75,14 @@ function roll(world: World, p: number): boolean {
   const hit = rng.next() < p;
   world.rngState = rng.getState();
   return hit;
+}
+
+/** Burst fire settings for a ship's mounts on Auto. */
+export function setBurst(ship: Ship, enabled: boolean, rounds: number, intervalS: number): string | null {
+  if (!ship.weapons.pdcs.length) return "no PDCs";
+  if (!(rounds >= 1) || !(intervalS >= 0)) return "bad burst settings";
+  ship.weapons.pdcBurst = { enabled, rounds: Math.round(rounds), intervalS };
+  return null;
 }
 
 /** Sets the mode of one mount (index) or all of them. Manual with a target assigns it. */
@@ -124,9 +145,15 @@ export function runPdcs(world: World, dt: number, events: SimEvent[]): void {
     for (const [i, m] of ship.weapons.pdcs.entries()) {
       const health = ship.health[`pdc${i + 1}`] ?? 0;
       m.firing = false;
-      if (m.mode === "hold" || health <= 0 || m.ammoS <= 0) {
+      if (m.mode === "hold" || health <= 0 || m.rounds < 1) {
         m.engaged = null;
         continue;
+      }
+      // A manual assignment that no longer exists (a torpedo shot down, a ship destroyed)
+      // hands the mount back to Auto.
+      if (m.mode === "manual" && m.assigned && m.assigned.kind !== "point" && !resolveTarget(world, m.assigned)) {
+        m.mode = "auto";
+        m.assigned = null;
       }
       const dir = mountDirection(ship, i);
       const aim = m.mode === "auto" ? chooseAuto(world, ship, dir, taken) : m.assigned ? chooseManual(world, ship, dir, m.assigned) : null;
@@ -134,6 +161,9 @@ export function runPdcs(world: World, dt: number, events: SimEvent[]): void {
       if (key !== m.engaged) {
         m.engaged = key;
         m.switchS = aim ? PT.switchS / Math.max(0.25, health) : 0;
+        // A new target starts a fresh burst.
+        m.burstLeft = ship.weapons.pdcBurst.rounds;
+        m.burstWaitS = 0;
       }
       if (!aim) continue;
       if (aim.id) taken.add(aim.id);
@@ -141,10 +171,27 @@ export function runPdcs(world: World, dt: number, events: SimEvent[]): void {
         m.switchS = Math.max(0, m.switchS - dt);
         continue;
       }
+      // Burst fire (Auto only): fire the burst, pause, fire again.
+      const burst = m.mode === "auto" && ship.weapons.pdcBurst.enabled ? ship.weapons.pdcBurst : null;
+      if (burst && m.burstWaitS > 0) {
+        m.burstWaitS = Math.max(0, m.burstWaitS - dt);
+        if (m.burstWaitS > 0) continue;
+        m.burstLeft = burst.rounds;
+      }
+      const shots = Math.min(PT.roundsPerS * dt, m.rounds, burst ? m.burstLeft : Infinity);
+      if (shots <= 0) continue;
       m.firing = true;
-      m.ammoS = Math.max(0, m.ammoS - dt);
-      if (m.ammoS === 0) events.push({ type: "pdcAmmoOut", ship: ship.id, mount: i + 1 });
-      fire(world, ship, i, aim, health, dt, events);
+      m.rounds -= shots;
+      if (burst) {
+        m.burstLeft -= shots;
+        if (m.burstLeft <= 1e-9) m.burstWaitS = burst.intervalS;
+      }
+      if (m.rounds < 1) {
+        m.rounds = 0;
+        events.push({ type: "pdcAmmoOut", ship: ship.id, mount: i + 1 });
+      }
+      // Kill and hit chances scale with the share of a full tick's rounds actually fired.
+      fire(world, ship, i, aim, health, dt * (shots / (PT.roundsPerS * dt)), events);
     }
   }
 }

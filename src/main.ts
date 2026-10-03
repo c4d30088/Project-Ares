@@ -80,6 +80,9 @@ hudActions.setLaunchMode = (m) => {
 hudActions.setPdcMode = (mount, mode) => {
   if (game.activeShipId) game.issue({ type: "setPdcs", ship: game.activeShipId, mount, mode });
 };
+hudActions.setPdcBurst = (b) => {
+  if (game.activeShipId) game.issue({ type: "setPdcBurst", ship: game.activeShipId, ...b });
+};
 
 const isOwnShip = (id: string | null) => !!id && game.picture.ownShips.some((s) => s.id === id);
 const select = (id: string | null) => {
@@ -145,6 +148,7 @@ view.cam.setView({ yawDeg: num("yaw"), pitchDeg: q.has("top") ? 89.9 : num("pitc
 if (q.has("paused")) game.paused = true;
 
 let last = performance.now();
+let lastSimTime = game.simTime;
 let firstFrame = true;
 let hudTimer = 0;
 function frame(now: number) {
@@ -181,7 +185,8 @@ function frame(now: number) {
       weapons: own
         ? { ...own.torpedoes, salvo: orders.salvo, mode: orders.launchMode }
         : null,
-      pdcs: own ? own.pdcs.map((m) => ({ mode: m.mode, firing: m.firing, ammoFraction: m.ammoFraction, health: m.health })) : null,
+      pdcs: own ? own.pdcs.map((m) => ({ mode: m.mode, firing: m.firing, rounds: m.rounds, roundsMax: m.roundsMax, health: m.health })) : null,
+      pdcBurst: own ? own.pdcBurst : null,
       launchDetected: game.alerts.launchDetected,
       impactIn: game.alerts.impactIn,
       orderMode: orders.mode,
@@ -233,18 +238,23 @@ function frame(now: number) {
   // PDC domes on our ships; tracers from every gun that is firing (theirs are visible too).
   const domes: PdcDome[] = [];
   const tracers: Tracer[] = [];
+  const still = { x: 0, y: 0, z: 0 };
+  const velocityOf = (id: string | null) => (id && game.picture.tracks.find((t) => t.id === id)?.velocity) || still;
   for (const s of game.picture.ownShips) {
     s.pdcs.forEach((m, i) => {
       if (m.health <= 0) return;
       domes.push({ key: `${s.id}:${i}`, center: s.position, direction: m.direction, arc: s.pdcArc, firing: m.firing });
       const to = (m.aimId && game.positionOf(m.aimId)) || m.aimAt;
-      if (m.firing && to) tracers.push({ from: s.position, to, hostile: false });
+      if (m.firing && to) tracers.push({ key: `${s.id}:${i}`, from: s.position, fromVelocity: s.velocity, to, toVelocity: velocityOf(m.aimId), hostile: false });
     });
   }
   for (const t of game.picture.tracks) {
-    for (const to of t.pdcFire ?? []) tracers.push({ from: t.position, to, hostile: t.allegiance === "hostile" });
+    (t.pdcFire ?? []).forEach((to, j) =>
+      tracers.push({ key: `${t.id}:${j}`, from: t.position, fromVelocity: t.velocity, to, toVelocity: still, hostile: t.allegiance === "hostile" }),
+    );
   }
-  pdcLayer.update(domes, tracers, view.cam.focus, dt);
+  pdcLayer.update(domes, tracers, view.cam.focus, game.simTime - lastSimTime);
+  lastSimTime = game.simTime;
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);

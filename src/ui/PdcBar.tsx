@@ -26,10 +26,10 @@ export function PdcBar() {
         {(pdcs ?? []).map((m, i) => (
           <button
             key={i}
-            className={`hud-btn mono pdc-chip ${m.firing ? "firing" : ""} ${m.ammoFraction < 0.25 ? "low" : ""} ${m.health <= 0 ? "dead" : ""}`}
+            className={`hud-btn mono pdc-chip ${m.firing ? "firing" : ""} ${m.rounds < 0.25 * m.roundsMax ? "low" : ""} ${m.health <= 0 || m.rounds === 0 ? "dead" : ""}`}
             disabled={m.health <= 0}
             onClick={() => hudActions.setPdcMode(i, NEXT[m.mode])}
-            title={`PDC ${i + 1}: ${m.mode.toUpperCase()} · AMMO ${Math.round(m.ammoFraction * 100)}%${m.health <= 0 ? " · DESTROYED" : ""} (click to change mode)`}
+            title={`PDC ${i + 1}: ${m.mode.toUpperCase()} · ${m.rounds.toLocaleString("en-US")} ROUNDS${m.health <= 0 ? " · DESTROYED" : ""} (click to change mode)`}
           >
             {i + 1}
             {LETTER[m.mode]}

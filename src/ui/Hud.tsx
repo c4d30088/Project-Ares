@@ -9,6 +9,7 @@ import { OrderBar } from "./OrderBar";
 import { NavStatus } from "./NavStatus";
 import { WeaponsBar } from "./WeaponsBar";
 import { PdcBar } from "./PdcBar";
+import { PdcStatus } from "./PdcStatus";
 import { formatCountdown } from "./format";
 import { useHud } from "./store";
 
@@ -29,6 +30,7 @@ export function Hud() {
       </Panel>
       <Panel className="rail-left" title="Own ship">
         <NavStatus />
+        <PdcStatus />
       </Panel>
       <Panel className="rail-right" title="Contacts">
         <div className="panel-empty">Contact list offline</div>

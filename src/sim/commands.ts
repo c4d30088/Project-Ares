@@ -18,7 +18,9 @@ export type Command =
    *  leave in waves. Never automatic (CLAUDE.md rule 10). */
   | { type: "launchTorpedoes"; ship: string; target: Target; count: number; mode: LaunchMode }
   /** PDC mode for one mount (0-based) or all; Manual with a target assigns it. */
-  | { type: "setPdcs"; ship: string; mount: number | "all"; mode: "auto" | "manual" | "hold"; target?: Target };
+  | { type: "setPdcs"; ship: string; mount: number | "all"; mode: "auto" | "manual" | "hold"; target?: Target }
+  /** Burst fire for PDCs on Auto: rounds per burst and the pause between bursts. */
+  | { type: "setPdcBurst"; ship: string; enabled: boolean; rounds: number; intervalS: number };
 
 export interface QueuedCommand {
   tick: number;

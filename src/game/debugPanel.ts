@@ -129,10 +129,16 @@ export function createDebugPanel(currentScenario: string): GUI {
   pdc.add(pdcTuning, "effectiveRange", 1000, 50000, 500).name("effective range (m)");
   pdc.add(pdcTuning, "maxRange", 5000, 200000, 1000).name("max range (m)");
   pdc.add(pdcTuning, "switchS", 0, 2, 0.05).name("switch time (s)");
-  pdc.add(pdcTuning, "ammoS", 5, 300, 5).name("ammo (s of fire)");
+  pdc.add(pdcTuning, "roundsPerMount", 100, 20000, 100).name("rounds per mount");
+  pdc.add(pdcTuning, "roundsPerS", 5, 200, 5).name("rate of fire (/s)");
   pdc.add(pdcTuning, "shipHitsPerS", 0, 5, 0.05).name("hits on ships (/s)");
   pdc.add(pdcTuning, "curtainRadius", 100, 20000, 100).name("barrage radius (m)");
   pdc.add(pdcTuning, "autoEngagesShips").name("auto fires at ships");
+  pdc.add(pathTuning, "pdcRoundSpeed", 500, 30000, 500).name("tracer speed (m/s)");
+  pdc.add(pathTuning, "pdcRoundsDrawnPerS", 1, 60, 1).name("tracers drawn (/s)");
+  pdc.add(pathTuning, "pdcStreakS", 0.01, 0.5, 0.01).name("tracer streak (s)");
+  pdc.add(pathTuning, "pdcLineOpacity", 0, 1, 0.05).name("fire line opacity");
+  pdc.add(pathTuning, "pdcDomeOpacity", 0, 0.05, 0.001).name("dome opacity");
   pdc.close();
 
   // Copies all current values as JSON, to paste back into the src/data files.

@@ -51,6 +51,8 @@ export interface Weapons {
   launched: number;
   /** Point defense mounts, in the order of pdc1..pdcN. */
   pdcs: PdcMount[];
+  /** Burst fire for mounts on Auto: off fires continuously. */
+  pdcBurst: { enabled: boolean; rounds: number; intervalS: number };
 }
 
 export interface PdcMount {
@@ -61,10 +63,13 @@ export interface PdcMount {
   engaged: string | null;
   /** Seconds left swinging onto the engaged target. */
   switchS: number;
-  /** Ammunition left, seconds of fire. */
-  ammoS: number;
+  /** Rounds left (fractional while firing; shown rounded down). */
+  rounds: number;
   /** Fired this tick. */
   firing: boolean;
+  /** Burst fire: rounds left in the current burst, and seconds until the next one. */
+  burstLeft: number;
+  burstWaitS: number;
 }
 
 export interface Torpedo {

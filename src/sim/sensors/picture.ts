@@ -48,7 +48,9 @@ export interface OwnPdc {
   aimId: string | null;
   /** Mount direction in world space (center of its arc). */
   direction: Vec3;
-  ammoFraction: number;
+  /** Rounds left (whole) and a full magazine. */
+  rounds: number;
+  roundsMax: number;
   health: number;
 }
 
@@ -71,6 +73,7 @@ export interface OwnShip {
   pdcs: OwnPdc[];
   /** Half-angle of each PDC mount's arc, radians. */
   pdcArc: number;
+  pdcBurst: { enabled: boolean; rounds: number; intervalS: number };
   /** The orbit the ship is flying to or in. */
   orbit?: { bodyId: string; center: Vec3; radius: number; normal: Vec3; established: boolean; period: number; bodyRadius: number };
 }
@@ -200,10 +203,12 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
         aimAt: pdcAims(world, s)[i],
         aimId: m.firing && m.engaged !== "point" ? m.engaged : null,
         direction: mountDirection(s, i),
-        ammoFraction: m.ammoS / pdcTuning.ammoS,
+        rounds: Math.floor(m.rounds),
+        roundsMax: pdcTuning.roundsPerMount,
         health: s.health[`pdc${i + 1}`] ?? 0,
       })),
       pdcArc: (loadouts[s.shipClass].pdcArcDeg * Math.PI) / 180,
+      pdcBurst: { ...s.weapons.pdcBurst },
     })),
     tracks,
     bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position), gm: bodyMu(b) })),

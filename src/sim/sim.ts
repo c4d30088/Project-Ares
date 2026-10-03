@@ -9,7 +9,7 @@ import { resolveTarget } from "./target";
 import { segmentHitsSphere } from "./collide";
 import { destroy } from "./damage";
 import { fuseTorpedoes, guideTorpedo, queueLaunch, runLaunchers } from "./weapons/torpedo";
-import { runPdcs, setPdcs } from "./weapons/pdc";
+import { runPdcs, setBurst, setPdcs } from "./weapons/pdc";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -47,6 +47,11 @@ function applyCommand(world: World, q: QueuedCommand): void {
     case "setPdcs": {
       if (c.mode === "manual" && c.target && !resolveTarget(world, c.target)) return reject(world, q, "unknown target");
       const why = setPdcs(ship, c.mount, c.mode, c.target ?? null);
+      if (why) reject(world, q, why);
+      return;
+    }
+    case "setPdcBurst": {
+      const why = setBurst(ship, c.enabled, c.rounds, c.intervalS);
       if (why) reject(world, q, why);
       return;
     }
