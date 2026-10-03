@@ -79,6 +79,7 @@ The player gives intents. The nav computer flies them.
 | Evade | Randomized jinking burns. Spoils enemy firing solutions, costs G-strain and makes you bright. |
 | Coast | Drive off. Required for running dark. |
 | Orient | Point the bow along a direction or at a target, for railgun shots, PDC arcs, or minimum cross-section. |
+| Orbit | Enter a circular orbit around a moon or asteroid, just outside its safety zone. Flies to the nearest point on the orbit, burns up to orbital speed, then coasts with the drive off; small corrections only if it drifts. |
 | Manual burn | Direction, G level, and duration. For experienced players. |
 
 Every movement order takes a G setting: **Cruise** (crew-safe), **Combat** (strain builds slowly), **Max** (strain builds fast). Higher G means faster arrival, a brighter drive plume, and tired crew.

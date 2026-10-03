@@ -17,20 +17,22 @@ import { G0, shipClasses } from "../data/ships";
 import type { TableView } from "../render/scene";
 import type { Game } from "./game";
 
-export type OrderKind = "burnTo" | "rendezvous" | "fastPass" | "match" | "stationKeep" | "orient" | "coast";
+export type OrderKind = "burnTo" | "rendezvous" | "fastPass" | "match" | "stationKeep" | "orient" | "orbit" | "coast";
 
 /** How each order picks what it applies to. */
-const NEEDS: Record<OrderKind, "point" | "target" | "pointOrTarget" | "none"> = {
+const NEEDS: Record<OrderKind, "point" | "target" | "body" | "pointOrTarget" | "none"> = {
   burnTo: "point",
   rendezvous: "target",
   fastPass: "target",
   match: "target",
   stationKeep: "pointOrTarget",
   orient: "pointOrTarget",
+  orbit: "body",
   coast: "none",
 };
 
-const HINTS: Record<"point" | "target" | "pointOrTarget", string> = {
+const HINTS: Record<"point" | "target" | "body" | "pointOrTarget", string> = {
+  body: "CLICK A MOON OR ASTEROID TO ORBIT · ESC CANCELS",
   point: "PRESS ON THE PLANE · DRAG UP OR DOWN FOR HEIGHT · RELEASE TO CONFIRM · ESC CANCELS",
   target: "CLICK A SHIP OR OBJECT · ESC CANCELS",
   pointOrTarget: "CLICK A SHIP OR OBJECT, OR PRESS ON THE PLANE AND DRAG FOR HEIGHT · ESC CANCELS",
@@ -106,6 +108,12 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     const ship = game.activeShipId;
     if (!ship || !mode || id === ship) return;
     const target = targetFor(id);
+    if (mode === "orbit") {
+      if (!game.picture.bodies.some((b) => b.id === id)) return; // only bodies can be orbited
+      game.issue({ type: "orbit", ship, target: { kind: "object", id } });
+      finish();
+      return;
+    }
     switch (mode) {
       case "burnTo": {
         const p = game.positionOf(id);
@@ -138,7 +146,7 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
   }
 
   function currentPreview(): PlacementPreview | null {
-    if (!mode || !ground || NEEDS[mode] === "target") return null;
+    if (!mode || !ground || NEEDS[mode] === "target" || NEEDS[mode] === "body") return null;
     const raw = { x: ground.x, y: ground.y, z: ground.z + height };
     // Destinations cannot be inside a body's safety zone (orient only aims, so it may).
     const { point: position, clamped } = mode === "orient" ? { point: raw, clamped: false } : clampOutsideBodies(game.picture.bodies, raw, activeCruiseAccel());
@@ -168,7 +176,7 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
       const metersPerPx = (2 * camDist * Math.tan((view.cam.camera.fov * Math.PI) / 360)) / h;
       height -= (y - lastY) * metersPerPx;
       lastY = y;
-    } else if (NEEDS[mode] !== "target") {
+    } else if (NEEDS[mode] !== "target" && NEEDS[mode] !== "body") {
       ground = groundAt(x, y, w, h);
     }
   });
@@ -181,7 +189,7 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
       issueTarget(id);
       return;
     }
-    if (NEEDS[mode] === "target") return;
+    if (NEEDS[mode] === "target" || NEEDS[mode] === "body") return;
     ground = groundAt(x, y, w, h);
     if (!ground) return;
     dragging = true;

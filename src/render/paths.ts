@@ -39,12 +39,48 @@ function replaceGeometry(line: LineSegments2, positions: number[]) {
   line.visible = positions.length > 0;
 }
 
+export interface OrbitRing {
+  id: string;
+  center: Vec3;
+  radius: number;
+  normal: Vec3;
+  /** In orbit (brighter) or still flying there (faint). */
+  established: boolean;
+}
+
 export function createPathLayer(scene: THREE.Scene) {
   const solidMat = new LineMaterial({ color: palette.friendly, linewidth: T.burnWidthPx, transparent: true, depthWrite: false });
   const dashedMat = new LineMaterial({ color: palette.friendly, linewidth: T.coastWidthPx, transparent: true, depthWrite: false, dashed: true });
   const objects = new Map<string, PathObjects>();
   const v = new THREE.Vector3();
   let clock = 0;
+
+  // Orbit rings: dashed circles (the ship coasts in orbit). Built once per orbit, moved
+  // each frame for the floating origin.
+  const ringMat = new LineMaterial({ color: palette.friendly, linewidth: T.coastWidthPx, transparent: true, depthWrite: false, dashed: true });
+  const rings = new Map<string, { line: LineSegments2; key: string }>();
+  function ringGeometry(r: OrbitRing): LineSegmentsGeometry {
+    // Basis in the orbit plane (sim axes), converted to three.js axes (x, z, -y).
+    const n = r.normal;
+    const helper = Math.abs(n.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+    const ux = helper.y * n.z - helper.z * n.y, uy = helper.z * n.x - helper.x * n.z, uz = helper.x * n.y - helper.y * n.x;
+    const ul = Math.hypot(ux, uy, uz);
+    const u = { x: ux / ul, y: uy / ul, z: uz / ul };
+    const w = { x: n.y * u.z - n.z * u.y, y: n.z * u.x - n.x * u.z, z: n.x * u.y - n.y * u.x };
+    const segs = 256;
+    const pos: number[] = [];
+    const at = (i: number) => {
+      const a = (i / segs) * Math.PI * 2;
+      const x = (u.x * Math.cos(a) + w.x * Math.sin(a)) * r.radius;
+      const y = (u.y * Math.cos(a) + w.y * Math.sin(a)) * r.radius;
+      const z = (u.z * Math.cos(a) + w.z * Math.sin(a)) * r.radius;
+      return [x, z, -y];
+    };
+    for (let i = 0; i < segs; i++) pos.push(...at(i), ...at(i + 1));
+    const g = new LineSegmentsGeometry();
+    g.setPositions(pos);
+    return g;
+  }
 
   function objectsFor(id: string): PathObjects {
     let o = objects.get(id);
@@ -80,8 +116,44 @@ export function createPathLayer(scene: THREE.Scene) {
       focus: Vec3,
       cameraDistance: number,
       realDt: number,
+      orbits: OrbitRing[] = [],
     ) {
       clock += realDt;
+      ringMat.linewidth = T.coastWidthPx;
+      ringMat.dashSize = cameraDistance * T.dashScale;
+      ringMat.gapSize = cameraDistance * T.dashScale * 0.7;
+      const seenRings = new Set<string>();
+      for (const o of orbits) {
+        const key = `${o.radius}|${o.normal.x}|${o.normal.y}|${o.normal.z}`;
+        let r = rings.get(o.id);
+        if (!r || r.key !== key) {
+          if (r) {
+            scene.remove(r.line);
+            r.line.geometry.dispose();
+          }
+          const line = new LineSegments2(ringGeometry(o), ringMat.clone());
+          line.computeLineDistances();
+          line.frustumCulled = false;
+          scene.add(line);
+          r = { line, key };
+          rings.set(o.id, r);
+        }
+        const mat = r.line.material as LineMaterial;
+        mat.linewidth = T.coastWidthPx;
+        mat.dashSize = ringMat.dashSize;
+        mat.gapSize = ringMat.gapSize;
+        mat.opacity = o.established ? T.coastOpacity : T.coastOpacity * 0.4;
+        toRender(o.center, focus, v);
+        r.line.position.copy(v);
+        seenRings.add(o.id);
+      }
+      for (const [id, r] of rings) {
+        if (!seenRings.has(id)) {
+          scene.remove(r.line);
+          r.line.geometry.dispose();
+          rings.delete(id);
+        }
+      }
       solidMat.linewidth = T.burnWidthPx;
       dashedMat.linewidth = T.coastWidthPx;
       solidMat.opacity = T.burnOpacity;

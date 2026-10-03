@@ -1,4 +1,4 @@
-import { formatCountdown, formatSpeed } from "./format";
+import { formatCountdown, formatDistance, formatSpeed } from "./format";
 import { useHud } from "./store";
 
 const ORDER_NAMES: Record<string, string> = {
@@ -7,6 +7,7 @@ const ORDER_NAMES: Record<string, string> = {
   matchVelocity: "MATCH VELOCITY",
   stationKeep: "STATION-KEEP",
   orient: "ORIENT",
+  orbit: "ORBIT",
   coast: "COAST",
 };
 
@@ -34,6 +35,8 @@ export function NavStatus() {
       <Row label="G set" value={s.g.toUpperCase()} tone={s.g === "max" ? "warn" : undefined} />
       <Row label="Flip" value={s.flipIn !== null ? `T-${formatCountdown(s.flipIn)}` : "—"} tone={s.flipIn === null ? "dim" : undefined} />
       <Row label="ETA" value={s.eta !== null ? formatCountdown(s.eta) : "—"} tone={s.eta === null ? "dim" : undefined} />
+      {s.orbitAlt !== null && <Row label="Orbit alt" value={formatDistance(s.orbitAlt)} />}
+      {s.orbitPeriod !== null && <Row label="Period" value={formatCountdown(s.orbitPeriod)} />}
     </div>
   );
 }

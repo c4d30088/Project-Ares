@@ -13,6 +13,8 @@ export interface ActiveShipInfo {
   g: string;
   flipIn: number | null; // seconds
   eta: number | null; // seconds
+  orbitAlt: number | null; // meters above the surface
+  orbitPeriod: number | null; // seconds
 }
 
 export interface HudState {

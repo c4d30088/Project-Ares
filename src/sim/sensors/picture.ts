@@ -44,6 +44,8 @@ export interface OwnShip {
   /** Current nav order type, or null when coasting. */
   orderType: NavOrder["type"] | null;
   phase: NavPhase;
+  /** The orbit the ship is flying to or in. */
+  orbit?: { bodyId: string; center: Vec3; radius: number; normal: Vec3; established: boolean; period: number; bodyRadius: number };
 }
 
 /** Charted objects: bodies are known from navigation charts, not detected. */
@@ -63,6 +65,23 @@ export interface SensorPicture {
   ownShips: OwnShip[];
   tracks: Track[];
   bodies: ChartedBody[];
+}
+
+function orbitInfo(world: World, s: World["ships"][number]): OwnShip["orbit"] {
+  const o = s.order;
+  if (!o || o.type !== "orbit" || o.target.kind === "point") return undefined;
+  const id = o.target.id;
+  const body = world.bodies.find((b) => b.id === id);
+  if (!body) return undefined;
+  return {
+    bodyId: body.id,
+    center: clone(body.position),
+    radius: o.radius,
+    normal: clone(o.normal),
+    established: s.nav.orbitStage === "orbit",
+    period: 2 * Math.PI * Math.sqrt(o.radius ** 3 / bodyMu(body)),
+    bodyRadius: body.radius,
+  };
 }
 
 export function buildPerfectPicture(world: World, faction: FactionId): SensorPicture {
@@ -138,6 +157,7 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       g: s.g,
       orderType: s.order?.type ?? null,
       phase: s.nav.phase,
+      orbit: orbitInfo(world, s),
     })),
     tracks,
     bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position), gm: bodyMu(b) })),

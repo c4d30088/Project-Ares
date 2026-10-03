@@ -2,11 +2,14 @@
 // Time compression runs more ticks, never bigger ones.
 
 import { navTuning } from "../data/nav";
-import { clampOutsideBodies, cruiseAccel, navigate, maxAccel, turnRate } from "./autopilot";
+import { clampOutsideBodies, cruiseAccel, navigate, maxAccel, safetyRadius, turnRate } from "./autopilot";
 import { freshNavState, type Command, type QueuedCommand, type SimEvent } from "./commands";
 import { angleBetween, integrate, integrateWithGravity, slerpToward } from "./physics";
 import { resolveTarget } from "./target";
-import { length, scale, sub } from "./vec3";
+import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
+import type { NavOrder } from "./commands";
+import type { Target } from "./target";
+import type { Body } from "./world";
 import type { World } from "./world";
 
 export const TICK_RATE = 20;
@@ -59,8 +62,38 @@ function applyCommand(world: World, q: QueuedCommand): void {
       if (!resolveTarget(world, c.target)) return reject(world, q, "unknown target");
       ship.order = { type: "orient", target: c.target };
       break;
+    case "orbit": {
+      const tgt = c.target;
+      const body = tgt.kind !== "point" ? world.bodies.find((b) => b.id === tgt.id) : undefined;
+      if (!body) return reject(world, q, "orbit needs a body");
+      const o = planOrbit(ship.position, ship.velocity, body, safetyRadius(body, cruiseAccel(ship)) * navTuning.orbitRadiusFactor, tgt);
+      ship.order = o;
+      ship.nav = freshNavState();
+      // Already close to that orbit: skip the approach and burn straight into it.
+      const rel = sub(ship.position, body.position);
+      if (Math.abs(length(rel) - o.radius) < 0.2 * o.radius && Math.abs(dot(rel, o.normal)) < 0.2 * o.radius) ship.nav.orbitStage = "insert";
+      return;
+    }
   }
   ship.nav = freshNavState();
+}
+
+/**
+ * Chooses a circular orbit: the plane the ship is already moving around the body in, or a
+ * level orbit (counter-clockwise seen from above) if it is not; the entry point is the
+ * nearest point on that circle.
+ */
+function planOrbit(pos: Vec3, vel: Vec3, body: Body, radius: number, target: Target): NavOrder & { type: "orbit" } {
+  const rel = sub(pos, body.position);
+  const h = cross(rel, vel);
+  const tangential = length(rel) > 0 ? length(h) / length(rel) : 0;
+  const normal = tangential > 50 ? normalize(h) : { x: 0, y: 0, z: 1 };
+  let inPlane = sub(rel, scale(normal, dot(rel, normal)));
+  if (length(inPlane) < 1e-6 * radius) {
+    const helper = Math.abs(normal.x) < 0.9 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 };
+    inPlane = sub(helper, scale(normal, dot(helper, normal)));
+  }
+  return { type: "orbit", target, radius, normal, entry: scale(normalize(inPlane), radius) };
 }
 
 /** Advances the world by one tick. */

@@ -4,12 +4,12 @@
 
 import { navTuning as N } from "../data/nav";
 import { G0, shipClasses } from "../data/ships";
-import type { NavPhase, SimEvent } from "./commands";
+import type { NavOrder, NavPhase, SimEvent } from "./commands";
 import { freshNavState } from "./commands";
 import { angleBetween } from "./physics";
 import { bodyMu, gravityAt, type MassiveBody } from "./gravity";
 import { resolveTarget } from "./target";
-import { add, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
+import { add, cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { Target } from "./target";
 import type { Ship, World } from "./world";
 
@@ -324,6 +324,9 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       return withCancel(fastPass(world, ship, r, v, events), cancel);
     }
 
+    case "orbit":
+      return orbit(world, ship, order, gShip, events);
+
     case "matchVelocity": {
       const t = resolveTarget(world, order.target);
       if (!t) return coast(ship);
@@ -341,6 +344,75 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       return withCancel(out, sub(gShip, targetGravity(world, order.target)));
     }
   }
+}
+
+/**
+ * Orbit: fly to the entry point and stop (approach), burn up to circular orbital speed
+ * (insert), then coast with the drive off (orbit), correcting only if the orbit drifts.
+ * Insert and corrections steer the velocity toward a field that is circular at the right
+ * radius and in the right plane, with gravity providing the turn.
+ */
+function orbit(world: World, ship: Ship, order: NavOrder & { type: "orbit" }, gShip: Vec3, events: SimEvent[]): NavOutput {
+  const t = order.target;
+  const body = t.kind !== "point" ? world.bodies.find((b) => b.id === t.id) : undefined;
+  if (!body) return coast(ship);
+  const nav = ship.nav;
+  const c = body.position;
+
+  if (nav.orbitStage === "approach") {
+    const goal = add(c, order.entry);
+    const route = routeAim(world, ship.position, goal, cruiseAccel(ship));
+    const { out, arrived } = arrive(ship, sub(route.aim, ship.position), ship.velocity, N.arriveDistance, N.arriveSpeed, events, true, route.pathLength);
+    if (arrived) {
+      nav.orbitStage = "insert";
+      nav.braking = false;
+    }
+    return withCancel(out, gShip);
+  }
+
+  const R = order.radius;
+  const n = order.normal;
+  const vc = Math.sqrt(bodyMu(body) / R);
+  const r = sub(ship.position, c);
+  const d = length(r);
+  const rHat = scale(r, 1 / d);
+  const along = normalize(cross(n, rHat)); // direction of travel, counter-clockwise about n
+  const eR = R - d; // positive: too low
+  const eN = dot(r, n); // out of plane
+  const vMax = Math.max(2, 0.05 * vc);
+  const clampV = (x: number) => Math.max(-vMax, Math.min(vMax, x));
+  const k = (N.orbitRadialGain * vc) / R; // gentle, relative to the orbit's own angular rate
+  const vDes = add(add(scale(along, vc), scale(rHat, clampV(k * eR))), scale(n, clampV(-k * eN)));
+  const dv = sub(vDes, ship.velocity);
+
+  const dvTol = Math.max(0.05, 0.002 * vc);
+  const posTol = 0.005 * R;
+  const settled = length(dv) < dvTol && Math.abs(eR) < posTol && Math.abs(eN) < posTol;
+
+  if (nav.orbitStage === "insert") {
+    if (settled) {
+      nav.orbitStage = "orbit";
+      nav.complete = true;
+      nav.braking = false;
+      complete(ship, events);
+      return { heading: ship.heading, thrust: 0, phase: "orbit" };
+    }
+  } else {
+    // In orbit: coast; correct only once the orbit has clearly drifted, until settled again.
+    const drifted = length(dv) > 5 * dvTol || Math.abs(eR) > 4 * posTol || Math.abs(eN) > 4 * posTol;
+    if (nav.braking && settled) nav.braking = false;
+    else if (!nav.braking && drifted) nav.braking = true;
+    if (!nav.braking) return { heading: ship.heading, thrust: 0, phase: "orbit" };
+  }
+
+  // Thrust = keep turning with the circle, minus what gravity already does, plus closing
+  // the velocity error. In a perfect orbit this is zero.
+  const turning = scale(rHat, -(vc * vc) / d);
+  const cmd = add(sub(turning, gShip), scale(dv, 1 / N.orbitTimeConstant));
+  const mag = length(cmd);
+  if (mag < MIN_THRUST) return { heading: ship.heading, thrust: 0, phase: "orbit" };
+  const heading = scale(cmd, 1 / mag);
+  return { heading, thrust: mag, phase: burnPhase(ship, heading, false) };
 }
 
 /**

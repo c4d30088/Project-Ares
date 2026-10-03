@@ -33,6 +33,12 @@ export const navTuning = {
   asteroidHardMarginFraction: 0.3,
   roundBodyHardMarginFraction: 0.05,
   bodyHardMarginMeters: 1000,
+  /** Orbit radius as a multiple of the body's safety zone for this ship. */
+  orbitRadiusFactor: 1.15,
+  /** How quickly orbit corrections act, seconds; and how gently radius / plane errors are
+   *  steered out, as a fraction of the orbit's angular rate (gentle = no wobble). */
+  orbitTimeConstant: 5,
+  orbitRadialGain: 0.5,
   /** Holding ships burn to hover against gravity only if it is stronger than this, m/s². */
   hoverMinAccel: 0.01,
   /** Fast pass is complete once closest approach is behind the ship. */

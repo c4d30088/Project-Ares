@@ -7,6 +7,7 @@ const ORDERS: { kind: string; label: string; key: string }[] = [
   { kind: "match", label: "Match vel", key: "M" },
   { kind: "stationKeep", label: "Station", key: "K" },
   { kind: "orient", label: "Orient", key: "O" },
+  { kind: "orbit", label: "Orbit", key: "R" },
   { kind: "coast", label: "Coast", key: "C" },
 ];
 

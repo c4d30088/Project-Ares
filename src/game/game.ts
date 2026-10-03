@@ -99,8 +99,8 @@ export function createGame(scenario: Scenario): Game {
   // Predictions: one running predictor per ship, restarted when the order changes (including
   // a command still waiting for the next tick, so routes appear even while paused) or the
   // refresh interval passes. The last finished result stays on screen meanwhile.
-  const movementOrders = new Set(["burnTo", "intercept", "matchVelocity", "stationKeep"]);
-  const movementCommands = new Set(["burnTo", "intercept", "matchVelocity", "stationKeep"]);
+  const movementOrders = new Set(["burnTo", "intercept", "matchVelocity", "stationKeep", "orbit"]);
+  const movementCommands = new Set(["burnTo", "intercept", "matchVelocity", "stationKeep", "orbit"]);
   const runs = new Map<string, { predictor: Predictor; orderKey: string; startedAt: number; fresh: boolean }>();
   function updatePredictions() {
     const wanted = new Map<string, string>(); // ship id -> order key
@@ -108,7 +108,9 @@ export function createGame(scenario: Scenario): Game {
       if (s.faction !== faction) continue;
       const pending = world.pending.filter((q) => q.command.ship === s.id);
       const last = pending[pending.length - 1]?.command;
-      const moving = last && last.type !== "setG" ? movementCommands.has(last.type) : !!s.order && movementOrders.has(s.order.type);
+      // An established orbit is drawn as a ring, not predicted.
+      const inOrbit = s.order?.type === "orbit" && s.nav.orbitStage === "orbit";
+      const moving = last && last.type !== "setG" ? movementCommands.has(last.type) : !!s.order && movementOrders.has(s.order.type) && !inOrbit;
       if (moving) wanted.set(s.id, JSON.stringify(s.order) + s.g + JSON.stringify(pending.map((q) => q.command)));
     }
     for (const id of [...runs.keys()]) {

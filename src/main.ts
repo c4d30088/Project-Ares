@@ -86,7 +86,7 @@ view.dom.addEventListener("dblclick", (e) => {
   }
 });
 
-const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", c: "coast" };
+const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast" };
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
@@ -156,6 +156,8 @@ function frame(now: number) {
             g: own.g,
             flipIn: pred?.flip && pred.flip.t > elapsed ? pred.flip.t - elapsed : null,
             eta: pred?.arrival ? Math.max(0, pred.arrival.t - elapsed) : null,
+            orbitAlt: own.orbit ? own.orbit.radius - own.orbit.bodyRadius : null,
+            orbitPeriod: own.orbit ? own.orbit.period : null,
           }
         : null,
       orderMode: orders.mode,
@@ -183,6 +185,7 @@ function frame(now: number) {
     view.cam.focus,
     view.cam.distance,
     dt,
+    game.picture.ownShips.flatMap((s) => (s.orbit ? [{ id: s.id, ...s.orbit }] : [])),
   );
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);

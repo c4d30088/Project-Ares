@@ -12,6 +12,7 @@ export type Command =
   | { type: "stationKeep"; ship: string; target: Target; g?: GSetting }
   | { type: "coast"; ship: string }
   | { type: "orient"; ship: string; target: Target }
+  | { type: "orbit"; ship: string; target: Target; g?: GSetting }
   | { type: "setG"; ship: string; g: GSetting };
 
 export interface QueuedCommand {
@@ -26,10 +27,13 @@ export type NavOrder =
   | { type: "intercept"; target: Target; mode: "rendezvous" | "fastPass" }
   | { type: "matchVelocity"; target: Target }
   | { type: "stationKeep"; target: Target; offset: Vec3 }
-  | { type: "orient"; target: Target };
+  | { type: "orient"; target: Target }
+  /** Circular orbit around a body: radius, plane normal (motion is counter-clockwise about
+   *  it) and the entry point relative to the body's center. */
+  | { type: "orbit"; target: Target; radius: number; normal: Vec3; entry: Vec3 };
 
 /** What the nav computer is doing right now, for display and events. */
-export type NavPhase = "coast" | "turn" | "burn" | "flip" | "brake" | "hold";
+export type NavPhase = "coast" | "turn" | "burn" | "flip" | "brake" | "hold" | "orbit";
 
 export interface NavState {
   phase: NavPhase;
@@ -41,6 +45,8 @@ export interface NavState {
   closestApproach: number;
   /** Station-keep: the ship has left the hold box and is travelling back to station. */
   travelling: boolean;
+  /** Orbit: flying to the entry point, burning up to orbital speed, or in orbit. */
+  orbitStage: "approach" | "insert" | "orbit";
 }
 
 export const freshNavState = (): NavState => ({
@@ -49,6 +55,7 @@ export const freshNavState = (): NavState => ({
   complete: false,
   closestApproach: Infinity,
   travelling: false,
+  orbitStage: "approach",
 });
 
 export type SimEvent =
