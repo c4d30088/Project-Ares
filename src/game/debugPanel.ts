@@ -27,10 +27,6 @@ export function createDebugPanel(): GUI {
   table.add(holotableTuning, "boxOpacity", 0, 1, 0.01);
   table.add(holotableTuning, "edgeFade", 0, 1, 0.01);
   table.add(holotableTuning, "ringCount", 2, 16, 1);
-  table.add(holotableTuning, "showBackWalls");
-  table.add(holotableTuning, "wallOpacity", 0, 1, 0.01);
-  table.add(holotableTuning, "showRangeSpheres");
-  table.add(holotableTuning, "sphereOpacity", 0, 1, 0.01);
   table.add(holotableTuning, "dropLineOpacity", 0, 1, 0.01);
   table.add(holotableTuning, "torpedoDropLineOpacity", 0, 1, 0.01);
   table.add(holotableTuning, "bodyDropLineOpacity", 0, 1, 0.01);
