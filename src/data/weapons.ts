@@ -27,3 +27,25 @@ export const torpedoTuning = {
    *  ship burning hard (Combat G) across its path the whole way. Display only. */
   effectiveRange: 3_000_000,
 };
+
+// PDCs (DESIGN.md section 7). Arcs per mount come from the class loadout (combat.ts).
+export const pdcTuning = {
+  /** Kill chance builds up at this rate (per second of fire on one target) inside
+   *  effective range, falling linearly to nothing at maximum range. */
+  killRatePerS: 0.8,
+  effectiveRange: 15_000,
+  maxRange: 50_000,
+  /** Seconds to swing onto a new target. Damage makes it slower. */
+  switchS: 0.3,
+  /** Ammunition per mount, in seconds of continuous fire. */
+  ammoS: 60,
+  /** Against ships (Manual, or Auto with the toggle): hits per second inside effective
+   *  range, each doing this much damage. */
+  shipHitsPerS: 0.5,
+  shipHull: 0.03,
+  shipSubsystem: 0.15,
+  /** A barrage at a point: torpedoes passing within this distance of it are engaged. */
+  curtainRadius: 2_000,
+  /** Auto also fires at enemy ships inside effective range. */
+  autoEngagesShips: false,
+};

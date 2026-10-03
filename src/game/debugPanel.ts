@@ -7,7 +7,7 @@ import { navTuning } from "../data/nav";
 import { bodyTuning } from "../data/bodies";
 import { physicsTuning } from "../data/physics";
 import { timeTuning } from "../data/time";
-import { torpedoTuning } from "../data/weapons";
+import { pdcTuning, torpedoTuning } from "../data/weapons";
 import { pathTuning } from "../data/paths";
 import { scenarios } from "../data/scenarios";
 
@@ -124,11 +124,22 @@ export function createDebugPanel(currentScenario: string): GUI {
   torp.add(pathTuning, "interceptDotScale", 0.0005, 0.02, 0.0005).name("intercept dot size");
   torp.close();
 
+  const pdc = gui.addFolder("PDCs");
+  pdc.add(pdcTuning, "killRatePerS", 0, 5, 0.05).name("kill rate (/s)");
+  pdc.add(pdcTuning, "effectiveRange", 1000, 50000, 500).name("effective range (m)");
+  pdc.add(pdcTuning, "maxRange", 5000, 200000, 1000).name("max range (m)");
+  pdc.add(pdcTuning, "switchS", 0, 2, 0.05).name("switch time (s)");
+  pdc.add(pdcTuning, "ammoS", 5, 300, 5).name("ammo (s of fire)");
+  pdc.add(pdcTuning, "shipHitsPerS", 0, 5, 0.05).name("hits on ships (/s)");
+  pdc.add(pdcTuning, "curtainRadius", 100, 20000, 100).name("barrage radius (m)");
+  pdc.add(pdcTuning, "autoEngagesShips").name("auto fires at ships");
+  pdc.close();
+
   // Copies all current values as JSON, to paste back into the src/data files.
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pathTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pdcTuning, pathTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },

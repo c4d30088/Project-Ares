@@ -49,6 +49,22 @@ export interface Weapons {
   launchQueue: { target: Target; mode: LaunchMode }[];
   /** Torpedoes launched so far (for ids). */
   launched: number;
+  /** Point defense mounts, in the order of pdc1..pdcN. */
+  pdcs: PdcMount[];
+}
+
+export interface PdcMount {
+  /** Auto engages threats on its own; Manual fires only at `assigned`; Hold never fires. */
+  mode: "auto" | "manual" | "hold";
+  assigned: Target | null;
+  /** What it is on now: an entity id, "point" for a barrage, or null. */
+  engaged: string | null;
+  /** Seconds left swinging onto the engaged target. */
+  switchS: number;
+  /** Ammunition left, seconds of fire. */
+  ammoS: number;
+  /** Fired this tick. */
+  firing: boolean;
 }
 
 export interface Torpedo {

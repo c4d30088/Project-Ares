@@ -16,7 +16,9 @@ export type Command =
   | { type: "setG"; ship: string; g: GSetting }
   /** Queues `count` torpedoes at a target. Tubes fire as they are ready, so big salvos
    *  leave in waves. Never automatic (CLAUDE.md rule 10). */
-  | { type: "launchTorpedoes"; ship: string; target: Target; count: number; mode: LaunchMode };
+  | { type: "launchTorpedoes"; ship: string; target: Target; count: number; mode: LaunchMode }
+  /** PDC mode for one mount (0-based) or all; Manual with a target assigns it. */
+  | { type: "setPdcs"; ship: string; mount: number | "all"; mode: "auto" | "manual" | "hold"; target?: Target };
 
 export interface QueuedCommand {
   tick: number;
@@ -75,4 +77,6 @@ export type SimEvent =
   | { type: "torpedoLaunched"; ship: string; torpedo: string; faction: string; mode: LaunchMode }
   | { type: "torpedoDetonated"; torpedo: string; faction: string; hit: string }
   /** A torpedo removed without hitting anything: spent after a miss, or a mine timing out. */
-  | { type: "torpedoExpired"; torpedo: string; reason: "spent" | "timeout" };
+  | { type: "torpedoExpired"; torpedo: string; reason: "spent" | "timeout" }
+  | { type: "pdcKill"; ship: string; mount: number; torpedo: string }
+  | { type: "pdcAmmoOut"; ship: string; mount: number };

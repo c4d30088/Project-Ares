@@ -63,6 +63,7 @@ export class Predictor {
     });
     for (const s of world.ships) {
       s.weapons.launchQueue = [];
+      for (const m of s.weapons.pdcs) m.mode = "hold";
       if (s.id !== shipId) {
         s.order = null;
         s.thrust = 0;

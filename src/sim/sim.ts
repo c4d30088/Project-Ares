@@ -9,6 +9,7 @@ import { resolveTarget } from "./target";
 import { segmentHitsSphere } from "./collide";
 import { destroy } from "./damage";
 import { fuseTorpedoes, guideTorpedo, queueLaunch, runLaunchers } from "./weapons/torpedo";
+import { runPdcs, setPdcs } from "./weapons/pdc";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -40,6 +41,12 @@ function applyCommand(world: World, q: QueuedCommand): void {
     case "launchTorpedoes": {
       // Weapons never change the nav order.
       const why = queueLaunch(world, ship, c.target, c.count, c.mode);
+      if (why) reject(world, q, why);
+      return;
+    }
+    case "setPdcs": {
+      if (c.mode === "manual" && c.target && !resolveTarget(world, c.target)) return reject(world, q, "unknown target");
+      const why = setPdcs(ship, c.mount, c.mode, c.target ?? null);
       if (why) reject(world, q, why);
       return;
     }
@@ -121,6 +128,7 @@ export function step(world: World): void {
   // Torpedoes steer on everyone's positions at the start of the tick, before anything
   // moves. (Steering after the ships moved would aim a tick's travel off the target.)
   for (const t of world.torpedoes) guideTorpedo(world, t, DT, events);
+  runPdcs(world, DT, events);
 
   const shipsBefore = new Map<string, Vec3>();
   const alignTol = (navTuning.alignToleranceDeg * Math.PI) / 180;

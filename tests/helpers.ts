@@ -6,7 +6,11 @@ import { initWeapons } from "../src/sim/weapons/torpedo";
 import type { Ship, ShipClass, World } from "../src/sim/world";
 import type { Vec3 } from "../src/sim/vec3";
 
+/** A test ship. Its PDCs start on Hold, so guidance tests are not decided by kill rolls;
+ *  PDC tests turn them on. (Scenario ships start on Auto.) */
 export function makeShip(over: Partial<Ship> & { id: string; shipClass?: ShipClass }): Ship {
+  const weapons = initWeapons(over.shipClass ?? "frigate");
+  for (const m of weapons.pdcs) m.mode = "hold";
   return {
     name: over.id.toUpperCase(),
     faction: "blue",
@@ -19,7 +23,7 @@ export function makeShip(over: Partial<Ship> & { id: string; shipClass?: ShipCla
     order: null,
     nav: freshNavState(),
     health: initHealth(over.shipClass ?? "frigate"),
-    weapons: initWeapons(over.shipClass ?? "frigate"),
+    weapons,
     ...over,
   };
 }

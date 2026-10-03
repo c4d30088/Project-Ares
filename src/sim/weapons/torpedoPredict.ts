@@ -48,6 +48,8 @@ export class TorpedoPredictor {
       s.order = null;
       s.thrust = 0;
       s.weapons.launchQueue = [];
+      // The path is where the torpedo flies, not whether it survives: no PDC fire.
+      for (const m of s.weapons.pdcs) m.mode = "hold";
     }
     this.world = world;
     this.maxTicks = Math.round(maxSeconds / DT);
