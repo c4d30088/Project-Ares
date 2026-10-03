@@ -6,6 +6,7 @@ import { createGame } from "./game/game";
 import { buildDisplayList } from "./render/displayList";
 import { createIconLayer } from "./render/icons";
 import { createBodyLayer } from "./render/bodies";
+import { createDropLines } from "./render/dropLines";
 import { palette } from "./render/palette";
 import { createHolotable } from "./render/holotable";
 import { Hud } from "./ui/Hud";
@@ -25,6 +26,7 @@ readout.className = "scale-readout mono";
 view.overlay.appendChild(readout);
 const holotable = createHolotable(view.scene, readout);
 const bodies = createBodyLayer(view.scene);
+const dropLines = createDropLines(view.scene);
 const labelRoot = document.createElement("div");
 labelRoot.className = "obj-labels";
 view.overlay.appendChild(labelRoot);
@@ -79,6 +81,7 @@ function frame(now: number) {
   holotable.update(view.cam.focus, view.cam.distance, dt, view.cam.camera);
   const list = buildDisplayList(game.picture);
   bodies.update(list.bodies, view.cam.focus, view.cam.camera);
+  dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);
   view.render([[icons.scene, icons.camera]]);
   if (firstFrame) {

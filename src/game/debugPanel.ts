@@ -26,6 +26,11 @@ export function createDebugPanel(): GUI {
   table.add(holotableTuning, "boxOpacity", 0, 1, 0.01);
   table.add(holotableTuning, "edgeFade", 0, 1, 0.01);
   table.add(holotableTuning, "ringCount", 2, 16, 1);
+  table.add(holotableTuning, "dropLineOpacity", 0, 1, 0.01);
+  table.add(holotableTuning, "torpedoDropLineOpacity", 0, 1, 0.01);
+  table.add(holotableTuning, "bodyDropLineOpacity", 0, 1, 0.01);
+  table.add(holotableTuning, "footRingPx", 0, 15, 0.5);
+  table.add(holotableTuning, "dashScale", 0.001, 0.03, 0.001);
   table.close();
 
   const sym = gui.addFolder("Symbols");
