@@ -12,6 +12,7 @@ import { createHolotable } from "./render/holotable";
 import { Hud } from "./ui/Hud";
 import type { Scenario } from "./sim/scenario";
 import holotableTest from "./data/scenarios/holotable-test.json";
+import { effectsTuning } from "./data/effects";
 
 const game = createGame(holotableTest as Scenario);
 const view = createTableView(document.getElementById("table")!);
@@ -69,6 +70,11 @@ const num = (k: string) => (q.has(k) ? Number(q.get(k)) : undefined);
 if (q.has("focus")) {
   game.selectedId = q.get("focus");
   focusSelected(false);
+}
+// Effect overrides for screenshots: ?fx.bloomStrength=0&fx.dustOpacity=0
+for (const [k, val] of q) {
+  const key = k.startsWith("fx.") ? (k.slice(3) as keyof typeof effectsTuning) : null;
+  if (key && key in effectsTuning) (effectsTuning as Record<string, number | boolean>)[key] = val === "false" ? false : Number(val);
 }
 view.cam.setView({ yawDeg: num("yaw"), pitchDeg: q.has("top") ? 89.9 : num("pitch"), distance: num("dist") }, false);
 

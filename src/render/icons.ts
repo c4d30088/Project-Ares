@@ -150,6 +150,14 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
   const sp2 = { x: 0, y: 0 };
   const seen = new Set<string>();
 
+  // Label decluttering: candidates are placed in priority order; a label that would overlap
+  // one already placed is hidden. Lower priority number wins.
+  interface LabelCandidate { el: HTMLDivElement; x: number; y: number; w: number; priority: number }
+  const candidates: LabelCandidate[] = [];
+  const LABEL_H = 12;
+  const CHAR_W = 6.4;
+  const labelPriority: Record<Allegiance, number> = { friendly: 1, hostile: 2, unknown: 3, neutral: 4 };
+
   return {
     scene,
     camera,
@@ -166,6 +174,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
       count = 0;
       screen.length = 0;
       seen.clear();
+      candidates.length = 0;
       const pulse = T.pulseMin + (1 - T.pulseMin) * (0.5 + 0.5 * Math.cos(time * Math.PI * 2 * T.torpedoPulseHz));
       const pxPerRad = height / 2 / Math.tan((cam.fov * Math.PI) / 360);
 
@@ -185,7 +194,10 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         el.style.color = palette.textDim;
         el.style.opacity = b.kind === "asteroid" ? "0.6" : "0.9";
         const off = Math.max(rPx, (T.bodyMarkerSize * T.scale) / 3);
-        el.style.transform = `translate(${sp.x + off * 0.72 + 4}px, ${sp.y + off * 0.72}px)`;
+        candidates.push({
+          el, x: sp.x + off * 0.72 + 4, y: sp.y + off * 0.72, w: b.name.length * CHAR_W,
+          priority: b.kind === "asteroid" ? 6 : 5,
+        });
       }
 
       for (const s of list.symbols) {
@@ -201,7 +213,10 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
             el.textContent = s.label;
             el.style.color = allegianceColor[s.allegiance];
             el.style.opacity = String(T.labelOpacity);
-            el.style.transform = `translate(${sp.x + size * 0.42}px, ${sp.y - 6}px)`;
+            candidates.push({
+              el, x: sp.x + size * 0.42, y: sp.y - 6, w: s.label.length * CHAR_W,
+              priority: s.isOwn ? 0 : labelPriority[s.allegiance],
+            });
           }
         }
         if (!visible) continue;
@@ -234,6 +249,22 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
       if (sel) push(sel.x, sel.y, Math.max(34, sel.radius * 2.6), 0, EXTRA_CELLS.select, palette.text, 0.9);
 
       for (const [id, el] of labels) if (!seen.has(id)) el.style.display = "none";
+
+      // The selected object's label always shows.
+      const selEl = selectedId ? labels.get(selectedId) : undefined;
+      candidates.sort((a, b) => (a.el === selEl ? -1 : b.el === selEl ? 1 : a.priority - b.priority));
+      const placed: LabelCandidate[] = [];
+      for (const c of candidates) {
+        const overlaps = placed.some(
+          (p) => c.x < p.x + p.w && p.x < c.x + c.w && c.y < p.y + LABEL_H && p.y < c.y + LABEL_H,
+        );
+        if (overlaps) {
+          c.el.style.display = "none";
+          continue;
+        }
+        placed.push(c);
+        c.el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+      }
 
       geo.instanceCount = count;
       for (const a of [aPos, aSize, aAngle, aUv, aColor]) a.needsUpdate = true;

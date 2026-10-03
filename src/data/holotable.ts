@@ -7,7 +7,7 @@ export const holotableTuning = {
   boxScale: 0.32,
   /** Box half-height as a fraction of its half-width. */
   boxHeightRatio: 0.35,
-  gridOpacity: 1.0,
+  gridOpacity: 0.8,
   ringOpacity: 0.4,
   axisOpacity: 0.55,
   boxOpacity: 0.45,

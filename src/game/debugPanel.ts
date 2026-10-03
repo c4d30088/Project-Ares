@@ -2,6 +2,7 @@ import GUI from "lil-gui";
 import { cameraTuning } from "../data/camera";
 import { holotableTuning } from "../data/holotable";
 import { symbolTuning } from "../data/symbols";
+import { effectsTuning } from "../data/effects";
 
 // Debug panel. Toggle with the backquote key (`).
 // Controls edit the tunable objects in src/data directly; code reads them every frame.
@@ -44,11 +45,21 @@ export function createDebugPanel(): GUI {
   sym.add(symbolTuning, "labelOpacity", 0, 1, 0.01);
   sym.close();
 
+  const fx = gui.addFolder("Effects");
+  fx.add(effectsTuning, "enabled");
+  fx.add(effectsTuning, "bloomStrength", 0, 3, 0.01);
+  fx.add(effectsTuning, "bloomRadius", 0, 1, 0.01);
+  fx.add(effectsTuning, "bloomThreshold", 0, 1, 0.01);
+  fx.add(effectsTuning, "chromaticPx", 0, 5, 0.05);
+  fx.add(effectsTuning, "chromaticRadialPx", 0, 8, 0.05);
+  fx.add(effectsTuning, "dustOpacity", 0, 1, 0.01);
+  fx.close();
+
   // Copies all current values as JSON, to paste back into the src/data files.
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },
