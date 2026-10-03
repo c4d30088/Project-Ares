@@ -99,3 +99,15 @@
   font-size: 11px;
   white-space: pre;
 }
+
+.obj-labels { position: absolute; inset: 0; overflow: hidden; }
+.obj-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  will-change: transform;
+}

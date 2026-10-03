@@ -57,7 +57,11 @@ const planeFragment = /* glsl */ `
 
     // Tick marks along the box edge at every visible grid line.
     float band = smoothstep(0.965, 0.975, edge) * step(edge, 1.0);
-    g = max(g, lines(w, uBase * 10.0) * band * 1.6);
+    float ticks = max(lines(w, uBase) * (1.0 - uT), lines(w, uBase * 10.0));
+    g = max(g, ticks * band * 1.4);
+    // Plane border, so the ticks sit on a ruler line.
+    float border = 1.0 - min(abs(edge - 0.999) / fwidth(edge), 1.0);
+    g = max(g, border * 0.8);
 
     float r = length(vPos);
     // Two ring spacings crossfade when the spacing steps (A = current, B = previous).
@@ -70,6 +74,7 @@ const planeFragment = /* glsl */ `
     if (a < 0.003) discard;
     vec3 col = (uGridColor * ga + uRingColor * ra) / max(ga + ra, 1e-5);
     gl_FragColor = vec4(col, a);
+    #include <colorspace_fragment>
   }
 `;
 
@@ -81,7 +86,7 @@ function label(text: string, className: string): CSS2DObject {
 }
 
 export interface Holotable {
-  update(focus: Vec3, cameraDistance: number, dt: number): void;
+  update(focus: Vec3, cameraDistance: number, dt: number, camera: THREE.Camera): void;
 }
 
 export function createHolotable(scene: THREE.Scene, readout: HTMLElement): Holotable {
@@ -143,20 +148,20 @@ export function createHolotable(scene: THREE.Scene, readout: HTMLElement): Holot
   const zLabel = label("Z", "table-label axis-label");
   group.add(xLabel, yLabel, zLabel);
 
-  // Range ring labels, along a fixed bearing between +X and -Y.
+  // Range ring labels, on the near side of the rings (toward the camera), turned 30° right.
   const ringLabels: CSS2DObject[] = [];
   for (let i = 0; i < MAX_RING_LABELS; i++) {
     const l = label("", "table-label ring-label");
     ringLabels.push(l);
     group.add(l);
   }
-  const ringBearing = { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
+  const ringBearing = new THREE.Vector3();
   let ringStep = 0;
   let prevRingStep = 0;
   let ringMix = 1;
 
   return {
-    update(focus, distance, dt) {
+    update(focus, distance, dt, camera) {
       const half = distance * T.boxScale;
       const height = half * T.boxHeightRatio;
       const { base, t } = gridLevels(distance, T.gridDensity);
@@ -195,6 +200,10 @@ export function createHolotable(scene: THREE.Scene, readout: HTMLElement): Holot
       uniforms.uRingB.value = prevRingStep;
       uniforms.uRingMix.value = ringMix;
 
+      ringBearing.set(camera.position.x, 0, camera.position.z);
+      if (ringBearing.lengthSq() < 1e-6) ringBearing.set(0, 0, 1);
+      ringBearing.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), (30 * Math.PI) / 180);
+
       let n = 0;
       for (let k = 1; n < MAX_RING_LABELS; k++) {
         const r = k * ringStep;
@@ -203,7 +212,7 @@ export function createHolotable(scene: THREE.Scene, readout: HTMLElement): Holot
         l.visible = true;
         l.element.style.opacity = String(ringMix);
         l.element.textContent = formatDistance(r);
-        l.position.set(r * ringBearing.x, 0, -r * ringBearing.y);
+        l.position.copy(ringBearing).multiplyScalar(r);
       }
       for (; n < MAX_RING_LABELS; n++) ringLabels[n].visible = false;
 

@@ -25,7 +25,7 @@
       "position": { "x": 3400000, "y": -620000, "z": -360000 }, "velocity": { "x": -2000, "y": 100, "z": 0 },
       "thrust": 0 },
     { "id": "red-cv1", "name": "TRK-13 CORVETTE", "faction": "red", "shipClass": "corvette",
-      "position": { "x": 1800000, "y": -1400000, "z": 720000 }, "velocity": { "x": -900, "y": 1200, "z": 0 },
+      "position": { "x": 600000, "y": -2300000, "z": 680000 }, "velocity": { "x": -900, "y": 1200, "z": 0 },
       "heading": { "x": -0.6, "y": 0.8, "z": -0.2 }, "thrust": 29.4 },
 
     { "id": "grey-x1", "name": "UNKNOWN", "faction": "grey", "shipClass": "frigate",
@@ -50,7 +50,7 @@
   ],
   "salvos": [
     { "idPrefix": "red-t", "faction": "red", "count": 20,
-      "center": { "x": 1350000, "y": 480000, "z": 230000 }, "spread": 60000,
+      "center": { "x": 1350000, "y": 480000, "z": 230000 }, "spread": 150000,
       "velocity": { "x": -6500, "y": -2300, "z": -1100 },
       "aimPoint": { "x": 0, "y": 0, "z": 0 }, "thrust": 294 }
   ]

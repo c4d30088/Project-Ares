@@ -142,6 +142,8 @@ export function createTableCamera(dom: HTMLElement): TableCamera {
       // Keep "up" stable when looking straight down: orient by yaw instead.
       if (Math.abs(pitch) > 89 * DEG) camera.up.set(-Math.sin(yaw), 0, -Math.cos(yaw));
       camera.lookAt(0, 0, 0);
+      // Update matrices now so icons projected this frame line up with the 3D scene.
+      camera.updateMatrixWorld();
       camera.near = Math.max(0.1, d * 1e-4);
       camera.far = d * 1e4 + 1e12;
       camera.fov = T.fovDeg;

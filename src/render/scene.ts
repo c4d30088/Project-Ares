@@ -10,7 +10,10 @@ export interface TableView {
   dom: HTMLElement;
   /** Screen-fixed overlay inside the table area, for readouts. */
   overlay: HTMLElement;
-  render(): void;
+  /** Renders the 3D table, then each overlay (scene, camera) pair on top. */
+  render(overlays?: [THREE.Scene, THREE.Camera][]): void;
+  /** Called on resize with the table size in CSS pixels. */
+  onResize: ((w: number, h: number) => void) | null;
 }
 
 export function createTableView(container: HTMLElement): TableView {
@@ -21,6 +24,7 @@ export function createTableView(container: HTMLElement): TableView {
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(palette.bg);
+  renderer.autoClear = false;
   container.appendChild(renderer.domElement);
 
   // Labels attached to 3D positions (names, axis letters, ring distances).
@@ -41,19 +45,26 @@ export function createTableView(container: HTMLElement): TableView {
     renderer.setSize(w, h);
     labels.setSize(w, h);
     cam.resize(w, h);
+    api?.onResize?.(w, h);
   };
   window.addEventListener("resize", resize);
-  resize();
 
-  return {
+  // eslint-disable-next-line prefer-const
+  let api: TableView | null = null;
+  api = {
     renderer,
     scene,
     cam,
     dom: renderer.domElement,
     overlay,
-    render() {
+    onResize: null,
+    render(overlays = []) {
+      renderer.clear();
       renderer.render(scene, cam.camera);
+      for (const [s, c] of overlays) renderer.render(s, c);
       labels.render(scene, cam.camera);
     },
   };
+  resize();
+  return api;
 }
