@@ -20,7 +20,11 @@ Reference images are in `UX reference/` and `The Expanse UI Reference/`. They ar
 - `npm run build`: type-check, then production build to `dist/`
 - `npm run shot`: headless screenshot of the current scene to `shots/latest.png` (options: `-- --wait 1500 --width 1600 --height 900`)
 
-Debug panel (lil-gui): press `` ` `` in the game.
+Debug panel (lil-gui): press `` ` `` in the game. "copy values" puts all tunables on the clipboard as JSON.
+
+Table controls: drag to rotate, right-drag or Shift-drag to pan, scroll to zoom, click to select, double-click or `F` to focus the selection, `T` toggles top-down, `Esc` clears the selection.
+
+Screenshot URL options (pass with `npm run shot -- --query "..."`): `focus=<id>`, `yaw=`, `pitch=`, `dist=` (meters), `top=1`, and effect overrides like `fx.bloomStrength=0`.
 
 ## Hard rules
 
