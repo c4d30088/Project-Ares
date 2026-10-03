@@ -1,0 +1,57 @@
+{
+  "name": "Holotable test",
+  "seed": 1701,
+  "playerFaction": "blue",
+  "factions": [
+    { "id": "blue", "name": "Own forces", "hostileTo": ["red"] },
+    { "id": "red", "name": "Opposing forces", "hostileTo": ["blue"] },
+    { "id": "grey", "name": "Independent", "hostileTo": [] }
+  ],
+  "ships": [
+    { "id": "blue-ff1", "name": "FF-1 WARDEN", "faction": "blue", "shipClass": "frigate",
+      "position": { "x": 0, "y": 0, "z": 0 }, "velocity": { "x": 1500, "y": 300, "z": 0 },
+      "heading": { "x": 1, "y": 0.35, "z": 0.1 }, "thrust": 19.6 },
+    { "id": "blue-cv2", "name": "CV-2 SPARROW", "faction": "blue", "shipClass": "corvette",
+      "position": { "x": -420000, "y": 640000, "z": 260000 }, "velocity": { "x": 1600, "y": 200, "z": 0 },
+      "thrust": 0 },
+    { "id": "blue-dd3", "name": "DD-3 BULWARK", "faction": "blue", "shipClass": "destroyer",
+      "position": { "x": -680000, "y": -320000, "z": -190000 }, "velocity": { "x": 1400, "y": 350, "z": 0 },
+      "heading": { "x": 1, "y": 0.2, "z": 0.15 }, "thrust": 19.6 },
+
+    { "id": "red-cr1", "name": "TRK-11 CRUISER", "faction": "red", "shipClass": "cruiser",
+      "position": { "x": 2600000, "y": 900000, "z": 420000 }, "velocity": { "x": -1800, "y": -500, "z": 0 },
+      "heading": { "x": -1, "y": -0.3, "z": -0.15 }, "thrust": 14.7 },
+    { "id": "red-cap1", "name": "TRK-12 CAPITAL", "faction": "red", "shipClass": "capital",
+      "position": { "x": 3400000, "y": -620000, "z": -360000 }, "velocity": { "x": -2000, "y": 100, "z": 0 },
+      "thrust": 0 },
+    { "id": "red-cv1", "name": "TRK-13 CORVETTE", "faction": "red", "shipClass": "corvette",
+      "position": { "x": 1800000, "y": -1400000, "z": 720000 }, "velocity": { "x": -900, "y": 1200, "z": 0 },
+      "heading": { "x": -0.6, "y": 0.8, "z": -0.2 }, "thrust": 29.4 },
+
+    { "id": "grey-x1", "name": "UNKNOWN", "faction": "grey", "shipClass": "frigate",
+      "position": { "x": 1150000, "y": 2200000, "z": -520000 }, "velocity": { "x": -300, "y": -900, "z": 0 },
+      "thrust": 0, "testShowAsUnknown": true }
+  ],
+  "stations": [
+    { "id": "grey-st1", "name": "TALLOW RELAY", "faction": "grey",
+      "position": { "x": -1500000, "y": -1900000, "z": 140000 }, "velocity": { "x": 0, "y": 0, "z": 0 } }
+  ],
+  "bodies": [
+    { "id": "moon-1", "name": "VESSIK", "kind": "moon",
+      "position": { "x": -2600000, "y": 3300000, "z": -700000 }, "radius": 1100000 },
+    { "id": "ast-1", "name": "AST-2207", "kind": "asteroid",
+      "position": { "x": 520000, "y": -380000, "z": 90000 }, "radius": 14000 },
+    { "id": "ast-2", "name": "AST-2231", "kind": "asteroid",
+      "position": { "x": 900000, "y": 650000, "z": -240000 }, "radius": 6000 },
+    { "id": "ast-3", "name": "AST-2240", "kind": "asteroid",
+      "position": { "x": -260000, "y": -900000, "z": 330000 }, "radius": 9000 },
+    { "id": "ast-4", "name": "AST-2256", "kind": "asteroid",
+      "position": { "x": 1500000, "y": 300000, "z": 600000 }, "radius": 3500 }
+  ],
+  "salvos": [
+    { "idPrefix": "red-t", "faction": "red", "count": 20,
+      "center": { "x": 1350000, "y": 480000, "z": 230000 }, "spread": 60000,
+      "velocity": { "x": -6500, "y": -2300, "z": -1100 },
+      "aimPoint": { "x": 0, "y": 0, "z": 0 }, "thrust": 294 }
+  ]
+}
