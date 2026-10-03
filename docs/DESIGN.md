@@ -84,7 +84,7 @@ Every movement order takes a G setting: **Cruise** (crew-safe), **Combat** (stra
 
 ### Placing points in 3D
 
-Click on the reference plane to set the horizontal position, then drag vertically with a modifier key to set height. Clicking a body or contact snaps to it. A vertical drop line shows the height while dragging.
+Press on the reference plane to set the horizontal position, drag up or down to set height, and release to confirm. No modifier key is needed: while an order is being placed, left-drag does not rotate the camera (right-drag still pans). Clicking a body or contact snaps to it. A vertical drop line and a range/height label show the point while dragging. Esc cancels.
 
 ### What the player sees
 
@@ -363,13 +363,15 @@ All values are tuned in playtest through the debug panel. 1 g = 9.81 m/s².
 
 ### Ship classes
 
-| Class | Role | Cruise G | Max G | Flip time | PDCs | Tubes / magazine | Railguns |
-|---|---|---|---|---|---|---|---|
-| Corvette | Scout, picket | 3 | 8 | 8 s | 2 | 2 / 8 | None |
-| Frigate (player start) | Multirole | 2 | 6 | 12 s | 4 | 2 / 12 | Light railgun |
-| Destroyer | Escort, PDC screen | 2 | 5 | 18 s | 8 | 4 / 16 | Light railgun |
-| Cruiser | Line ship | 1.5 | 4 | 30 s | 10 | 6 / 30 | Spinal railgun |
-| Capital | Flagship | 1 | 3 | 45 s | 16 | 8 / 48 | 2 spinal railguns |
+| Class | Role | Cruise G | Combat G | Max G | Flip time | PDCs | Tubes / magazine | Railguns |
+|---|---|---|---|---|---|---|---|---|
+| Corvette | Scout, picket | 3 | 5.5 | 8 | 8 s | 2 | 2 / 8 | None |
+| Frigate (player start) | Multirole | 2 | 4 | 6 | 12 s | 4 | 2 / 12 | Light railgun |
+| Destroyer | Escort, PDC screen | 2 | 3.5 | 5 | 18 s | 8 | 4 / 16 | Light railgun |
+| Cruiser | Line ship | 1.5 | 2.75 | 4 | 30 s | 10 | 6 / 30 | Spinal railgun |
+| Capital | Flagship | 1 | 2 | 3 | 45 s | 16 | 8 / 48 | 2 spinal railguns |
+
+Combat G starts halfway between Cruise and Max.
 
 ### Reference timings
 
