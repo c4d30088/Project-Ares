@@ -16,12 +16,12 @@ export const symbolTuning = {
   scale: 1,
   /** Hostile torpedoes pulse at this rate (Hz) between pulseMin and full brightness. */
   torpedoPulseHz: 1.3,
-  pulseMin: 0.4,
+  pulseMin: 0.78,
   /** A body smaller than this on screen (radius, px) is drawn as a marker instead. */
   bodyMarkerBelowPx: 7,
   bodyMarkerSize: 22,
-  bodyOpacity: 0.35,
-  labelOpacity: 0.9,
+  bodyOpacity: 0.25,
+  labelOpacity: 0.75,
   /** Click within this many pixels of a symbol to select it. */
   pickRadiusPx: 14,
 };

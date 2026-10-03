@@ -62,8 +62,11 @@ export interface ScreenItem {
   x: number; // px from left
   y: number; // px from top
   radius: number; // pick radius, px
+  reticle: number; // selection bracket size, px
   visible: boolean;
 }
+
+const reticleSize = (pickRadius: number) => Math.max(34, pickRadius * 2.6);
 
 export interface IconLayer {
   scene: THREE.Scene;
@@ -184,7 +187,9 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         const visible = project(v, cam, sp);
         const dist = v.distanceTo(cam.position);
         const rPx = (b.radius / Math.max(dist, 1)) * pxPerRad;
-        screen.push({ id: b.id, x: sp.x, y: sp.y, radius: Math.max(T.pickRadiusPx, rPx), visible });
+        // Bodies are clickable anywhere on their disc, but the selection brackets stay
+        // the same size as for a ship.
+        screen.push({ id: b.id, x: sp.x, y: sp.y, radius: Math.max(T.pickRadiusPx, rPx), reticle: reticleSize(T.pickRadiusPx), visible });
         const el = labelFor(b.id);
         seen.add(b.id);
         el.style.display = visible ? "" : "none";
@@ -204,7 +209,8 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         toRender(s.position, focus, v);
         const visible = project(v, cam, sp);
         const size = T.size[s.shape] * T.scale;
-        screen.push({ id: s.id, x: sp.x, y: sp.y, radius: Math.max(T.pickRadiusPx, size * 0.4), visible });
+        const pickR = Math.max(T.pickRadiusPx, size * 0.4);
+        screen.push({ id: s.id, x: sp.x, y: sp.y, radius: pickR, reticle: reticleSize(pickR), visible });
         if (s.label) {
           const el = labelFor(s.id);
           seen.add(s.id);
@@ -246,7 +252,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
 
       // Selection reticle on top.
       const sel = selectedId && screen.find((it) => it.id === selectedId && it.visible);
-      if (sel) push(sel.x, sel.y, Math.max(34, sel.radius * 2.6), 0, EXTRA_CELLS.select, palette.text, 0.9);
+      if (sel) push(sel.x, sel.y, sel.reticle, 0, EXTRA_CELLS.select, palette.text, 0.9);
 
       for (const [id, el] of labels) if (!seen.has(id)) el.style.display = "none";
 
