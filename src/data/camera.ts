@@ -1,18 +1,18 @@
-// Camera tunables. Distances in meters.
+// Camera tunables. Distances in meters, angles in degrees.
 
 export const cameraTuning = {
   fovDeg: 45,
-  startDistance: 32_000,
-  minDistance: 10,
-  maxDistance: 1e10,
-  rotateSpeed: 0.6,
+  startDistance: 6_000_000,
+  startYawDeg: -60,
+  startPitchDeg: 32,
+  minDistance: 100,
+  maxDistance: 2e10,
+  /** Degrees of rotation per pixel dragged. */
+  rotateSpeed: 0.3,
+  /** Zoom per wheel step; higher is faster. */
   zoomSpeed: 1.2,
-  dampingFactor: 0.08,
-};
-
-// Placeholder grid shown in M0 so camera rotation is visible. Replaced by the holotable in M1.
-export const placeholderGrid = {
-  size: 20_000,
-  divisions: 20,
-  opacity: 0.35,
+  /** Fraction of the remaining motion covered per 60 Hz frame. Lower is smoother. */
+  dampingFactor: 0.12,
+  /** Pitch used by the top-down snap (T). */
+  topDownPitchDeg: 89.9,
 };

@@ -1,22 +1,18 @@
 import GUI from "lil-gui";
-import type { TableView } from "../render/scene";
 import { cameraTuning } from "../data/camera";
 
 // Debug panel. Toggle with the backquote key (`).
-export function createDebugPanel(view: TableView): GUI {
+// Controls edit the tunable objects in src/data directly; code reads them every frame.
+export function createDebugPanel(): GUI {
   const gui = new GUI({ title: "Debug  [ ` ]" });
   gui.hide();
 
   const cam = gui.addFolder("Camera");
-  cam.add(cameraTuning, "rotateSpeed", 0.1, 3, 0.05).onChange((v: number) => {
-    view.controls.rotateSpeed = v;
-  });
-  cam.add(cameraTuning, "zoomSpeed", 0.1, 5, 0.05).onChange((v: number) => {
-    view.controls.zoomSpeed = v;
-  });
-  cam.add(cameraTuning, "dampingFactor", 0.01, 0.5, 0.01).onChange((v: number) => {
-    view.controls.dampingFactor = v;
-  });
+  cam.add(cameraTuning, "fovDeg", 20, 90, 1);
+  cam.add(cameraTuning, "rotateSpeed", 0.05, 1.5, 0.01);
+  cam.add(cameraTuning, "zoomSpeed", 0.2, 4, 0.05);
+  cam.add(cameraTuning, "dampingFactor", 0.02, 1, 0.01);
+  cam.close();
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "`") gui.show(gui._hidden);
