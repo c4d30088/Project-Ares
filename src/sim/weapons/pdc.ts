@@ -25,8 +25,18 @@ export function pdcRate(r: number, full: number): number {
   return (full * (PT.maxRange - r)) / (PT.maxRange - PT.effectiveRange);
 }
 
-/** World direction a mount faces, and whether a point is inside its arc and range. */
-function mountDirection(ship: Ship, i: number): Vec3 {
+/** Where each of a ship's mounts is firing this tick (null if it is not), for display. */
+export function pdcAims(world: World, ship: Ship): (Vec3 | null)[] {
+  return ship.weapons.pdcs.map((m) => {
+    if (!m.firing || !m.engaged) return null;
+    if (m.engaged === "point") return m.assigned?.kind === "point" ? { ...m.assigned.position } : null;
+    const r = resolveTarget(world, { kind: "track", id: m.engaged }) ?? resolveTarget(world, { kind: "object", id: m.engaged });
+    return r ? r.position : null;
+  });
+}
+
+/** World direction a mount faces (the center of its arc). */
+export function mountDirection(ship: Ship, i: number): Vec3 {
   return toWorld(shipFrame(ship.heading), pdcMountDirections(ship.weapons.pdcs.length)[i]);
 }
 

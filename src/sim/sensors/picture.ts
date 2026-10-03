@@ -7,6 +7,9 @@
 import { clone, type Vec3 } from "../vec3";
 import { bodyMu } from "../gravity";
 import { predictImpact } from "../weapons/torpedo";
+import { mountDirection, pdcAims } from "../weapons/pdc";
+import { pdcTuning } from "../../data/weapons";
+import { loadouts } from "../../data/combat";
 import type { NavOrder, NavPhase } from "../commands";
 import { areHostile, type BodyKind, type FactionId, type GSetting, type ShipClass, type World } from "../world";
 
@@ -33,6 +36,20 @@ export interface Track {
   lastUpdateTick: number;
   /** Torpedoes: predicted impact (seconds from now) and what it is aimed at, if known. */
   impact?: { position: Vec3; t: number; targetId: string | null };
+  /** Ships: where its PDCs are firing this tick (PDC fire is visible). */
+  pdcFire?: Vec3[];
+}
+
+export interface OwnPdc {
+  mode: "auto" | "manual" | "hold";
+  firing: boolean;
+  /** Where it is firing, if it is, and at what (null for a barrage at a point). */
+  aimAt: Vec3 | null;
+  aimId: string | null;
+  /** Mount direction in world space (center of its arc). */
+  direction: Vec3;
+  ammoFraction: number;
+  health: number;
 }
 
 export interface OwnShip {
@@ -51,6 +68,9 @@ export interface OwnShip {
   health: Record<string, number>;
   /** Torpedoes left (magazine), ordered but not yet fired, and tubes ready to fire. */
   torpedoes: { magazine: number; queued: number; tubes: number; tubesReady: number };
+  pdcs: OwnPdc[];
+  /** Half-angle of each PDC mount's arc, radians. */
+  pdcArc: number;
   /** The orbit the ship is flying to or in. */
   orbit?: { bodyId: string; center: Vec3; radius: number; normal: Vec3; established: boolean; period: number; bodyRadius: number };
 }
@@ -115,6 +135,7 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       burning: s.thrust > 0,
       contributors: [...contributors],
       lastUpdateTick: world.tick,
+      pdcFire: pdcAims(world, s).flatMap((p) => (p ? [p] : [])),
     });
   }
 
@@ -173,6 +194,16 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
         tubes: s.weapons.tubeReload.length,
         tubesReady: s.weapons.tubeReload.filter((r) => r <= 0).length,
       },
+      pdcs: s.weapons.pdcs.map((m, i) => ({
+        mode: m.mode,
+        firing: m.firing,
+        aimAt: pdcAims(world, s)[i],
+        aimId: m.firing && m.engaged !== "point" ? m.engaged : null,
+        direction: mountDirection(s, i),
+        ammoFraction: m.ammoS / pdcTuning.ammoS,
+        health: s.health[`pdc${i + 1}`] ?? 0,
+      })),
+      pdcArc: (loadouts[s.shipClass].pdcArcDeg * Math.PI) / 180,
     })),
     tracks,
     bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position), gm: bodyMu(b) })),

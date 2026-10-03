@@ -176,3 +176,13 @@
 .alert.threat { color: var(--threat); }
 .alert.blink { animation: alert-blink 0.8s steps(2, start) infinite; }
 @keyframes alert-blink { to { visibility: hidden; } }
+
+/* --- Three-row bottom bar: orders, time, weapons --- */
+.bottom-bar { height: 124px; }
+.rail-left, .rail-right { bottom: 152px; }
+.order-hint { bottom: 150px; }
+.pdc-bar { display: flex; align-items: center; gap: 10px; }
+.pdc-chip { min-width: 30px; }
+.pdc-chip.firing { color: #fff; background: color-mix(in srgb, var(--friendly) 40%, transparent); }
+.pdc-chip.low { color: var(--uncertain); }
+.pdc-chip.dead { color: var(--threat); opacity: 0.6; }

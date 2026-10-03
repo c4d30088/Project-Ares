@@ -24,9 +24,9 @@ Debug panel (lil-gui): press `` ` `` in the game. "copy values" puts all tunable
 
 Table controls: drag to rotate, right-drag or Shift-drag to pan, scroll to zoom, click to select, double-click or `F` to focus the selection, `T` toggles top-down, `Esc` clears the selection or cancels an order.
 
-Orders (to the active ship, the last own ship selected): `B` burn to point, `I` intercept (rendezvous), `P` fast pass, `M` match velocity, `K` station-keep, `O` orient, `R` orbit (click a body), `C` coast; `1`/`2`/`3` Cruise/Combat/Max G; `L` launch torpedoes (then click a ship or object, or place a point; salvo size and Hot/Cold are buttons in the bottom bar). Placing a point: press on the plane, drag up/down for height, release. Time: `Space` pause, `[` and `]` compression.
+Orders (to the active ship, the last own ship selected): `B` burn to point, `I` intercept (rendezvous), `P` fast pass, `M` match velocity, `K` station-keep, `O` orient, `R` orbit (click a body), `C` coast; `1`/`2`/`3` Cruise/Combat/Max G; `L` launch torpedoes (then click a ship or object, or place a point; salvo size and Hot/Cold are buttons in the bottom bar); `D` assigns all PDCs to a target (Manual), and the PDC row sets Auto/Manual/Hold for all or, by clicking a mount chip, for one. Placing a point: press on the plane, drag up/down for height, release. Time: `Space` pause, `[` and `]` compression.
 
-Scenarios: `?scenario=flight-test` (default) or `?scenario=holotable-test`, or the picker in the debug panel. In dev builds `window.__ares` exposes `{ game, view }` for inspection.
+Scenarios: `?scenario=flight-test` (default), `?scenario=holotable-test` or `?scenario=pdc-test` (enemy cruiser and destroyer fire timed salvos at you), or the picker in the debug panel. Scenario commands can take `atS` (seconds in) to happen later. In dev builds `window.__ares` exposes `{ game, view }` for inspection.
 
 Screenshot URL options (pass with `npm run shot -- --query "..."`): `scenario=<name>`, `paused=1`, `focus=<id>`, `yaw=`, `pitch=`, `dist=` (meters), `top=1`, and effect overrides like `fx.bloomStrength=0`.
 

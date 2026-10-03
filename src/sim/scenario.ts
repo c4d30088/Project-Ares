@@ -4,6 +4,7 @@
 import { Rng } from "./rng";
 import { add, normalize, scale, vec3, type Vec3 } from "./vec3";
 import { freshNavState, type Command } from "./commands";
+import { TICK_RATE } from "./sim";
 import { initHealth } from "./damage";
 import { initWeapons } from "./weapons/torpedo";
 import type { Body, Faction, GSetting, Ship, Station, Torpedo, World } from "./world";
@@ -46,8 +47,8 @@ export interface Scenario {
   bodies?: Body[];
   torpedoes?: Torpedo[];
   salvos?: SalvoSpec[];
-  /** Orders in effect at the start, applied on the first tick. */
-  commands?: { faction: string; command: Command }[];
+  /** Orders given by the scenario: at the start, or `atS` seconds in. */
+  commands?: { faction: string; command: Command; atS?: number }[];
 }
 
 function checkVec(v: Vec3, what: string): void {
@@ -131,7 +132,9 @@ export function loadScenario(scenario: Scenario): World {
     }
   }
 
-  const pending = (scenario.commands ?? []).map((c) => ({ tick: 0, faction: c.faction, command: structuredClone(c.command) }));
+  const pending = (scenario.commands ?? [])
+    .map((c) => ({ tick: Math.round((c.atS ?? 0) * TICK_RATE), faction: c.faction, command: structuredClone(c.command) }))
+    .sort((a, b) => a.tick - b.tick);
   return {
     tick: 0,
     rngState: rng.getState(),

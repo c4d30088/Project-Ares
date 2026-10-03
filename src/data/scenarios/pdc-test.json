@@ -1,0 +1,37 @@
+{
+  "name": "PDC test",
+  "seed": 3141,
+  "playerFaction": "blue",
+  "factions": [
+    { "id": "blue", "name": "Own forces", "hostileTo": ["red"] },
+    { "id": "red", "name": "Opposing forces", "hostileTo": ["blue"] }
+  ],
+  "ships": [
+    {
+      "id": "blue-ff1", "name": "FF-1 WARDEN", "faction": "blue", "shipClass": "frigate",
+      "position": { "x": 0, "y": 0, "z": 0 }, "velocity": { "x": 0, "y": 0, "z": 0 },
+      "heading": { "x": 1, "y": 0, "z": 0 }
+    },
+    {
+      "id": "red-cr1", "name": "TRK-30 CRUISER", "faction": "red", "shipClass": "cruiser",
+      "position": { "x": 1400000, "y": 500000, "z": 150000 }, "velocity": { "x": 0, "y": 0, "z": 0 },
+      "heading": { "x": -1, "y": 0, "z": 0 }
+    },
+    {
+      "id": "red-dd1", "name": "TRK-41 DESTROYER", "faction": "red", "shipClass": "destroyer",
+      "position": { "x": 1350000, "y": -550000, "z": -100000 }, "velocity": { "x": 0, "y": 0, "z": 0 },
+      "heading": { "x": -1, "y": 0, "z": 0 }
+    }
+  ],
+  "bodies": [
+    { "id": "ast-1", "name": "AST-4410", "kind": "asteroid",
+      "position": { "x": -600000, "y": 900000, "z": 120000 }, "radius": 9000 }
+  ],
+  "commands": [
+    { "faction": "red", "atS": 10, "command": { "type": "launchTorpedoes", "ship": "red-cr1", "target": { "kind": "track", "id": "blue-ff1" }, "count": 6, "mode": "hot" } },
+    { "faction": "red", "atS": 300, "command": { "type": "launchTorpedoes", "ship": "red-cr1", "target": { "kind": "track", "id": "blue-ff1" }, "count": 6, "mode": "hot" } },
+    { "faction": "red", "atS": 300, "command": { "type": "launchTorpedoes", "ship": "red-dd1", "target": { "kind": "track", "id": "blue-ff1" }, "count": 4, "mode": "hot" } },
+    { "faction": "red", "atS": 600, "command": { "type": "launchTorpedoes", "ship": "red-cr1", "target": { "kind": "track", "id": "blue-ff1" }, "count": 6, "mode": "hot" } },
+    { "faction": "red", "atS": 600, "command": { "type": "launchTorpedoes", "ship": "red-dd1", "target": { "kind": "track", "id": "blue-ff1" }, "count": 4, "mode": "hot" } }
+  ]
+}

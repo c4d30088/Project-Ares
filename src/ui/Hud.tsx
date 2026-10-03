@@ -8,6 +8,7 @@ import { TimeControls } from "./TimeControls";
 import { OrderBar } from "./OrderBar";
 import { NavStatus } from "./NavStatus";
 import { WeaponsBar } from "./WeaponsBar";
+import { PdcBar } from "./PdcBar";
 import { formatCountdown } from "./format";
 import { useHud } from "./store";
 
@@ -35,9 +36,10 @@ export function Hud() {
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
       <Panel className="bottom-bar">
         <OrderBar />
+        <TimeControls />
         <div className="bottom-row">
-          <TimeControls />
           <WeaponsBar />
+          <PdcBar />
         </div>
       </Panel>
     </div>

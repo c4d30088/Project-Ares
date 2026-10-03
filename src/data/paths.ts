@@ -28,4 +28,7 @@ export const pathTuning = {
   /** Weapon range rings on the reference plane. */
   rangeRingWidthPx: 1.5,
   rangeRingOpacity: 0.6,
+  /** PDC domes (to effective range): resting and while that mount fires. */
+  pdcDomeOpacity: 0.003,
+  pdcDomeFiringOpacity: 0.012,
 };

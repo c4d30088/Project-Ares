@@ -7,6 +7,7 @@ import { buildDisplayList, pathMarkers, torpedoOverlays } from "./render/display
 import { createPathLayer } from "./render/paths";
 import { createInterceptLayer } from "./render/intercepts";
 import { createRangeRingLayer } from "./render/rangeRings";
+import { createPdcLayer, type PdcDome, type Tracer } from "./render/pdcs";
 import { dirToSim } from "./render/frame";
 import { torpedoTuning } from "./data/weapons";
 import { formatDistance } from "./ui/format";
@@ -43,6 +44,7 @@ const dropLines = createDropLines(view.scene);
 const paths = createPathLayer(view.scene);
 const intercepts = createInterceptLayer(view.scene);
 const rangeRings = createRangeRingLayer(view.scene);
+const pdcLayer = createPdcLayer(view.scene);
 const labelRoot = document.createElement("div");
 labelRoot.className = "obj-labels";
 view.overlay.appendChild(labelRoot);
@@ -75,6 +77,9 @@ hudActions.setSalvo = (n) => {
 hudActions.setLaunchMode = (m) => {
   orders.launchMode = m;
 };
+hudActions.setPdcMode = (mount, mode) => {
+  if (game.activeShipId) game.issue({ type: "setPdcs", ship: game.activeShipId, mount, mode });
+};
 
 const isOwnShip = (id: string | null) => !!id && game.picture.ownShips.some((s) => s.id === id);
 const select = (id: string | null) => {
@@ -99,7 +104,7 @@ view.dom.addEventListener("dblclick", (e) => {
   }
 });
 
-const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", l: "launch" };
+const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", l: "launch", d: "pdcTarget" };
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
@@ -176,6 +181,7 @@ function frame(now: number) {
       weapons: own
         ? { ...own.torpedoes, salvo: orders.salvo, mode: orders.launchMode }
         : null,
+      pdcs: own ? own.pdcs.map((m) => ({ mode: m.mode, firing: m.firing, ammoFraction: m.ammoFraction, health: m.health })) : null,
       launchDetected: game.alerts.launchDetected,
       impactIn: game.alerts.impactIn,
       orderMode: orders.mode,
@@ -224,6 +230,21 @@ function frame(now: number) {
   );
   intercepts.update(torps.lines, view.cam.focus, view.cam.distance);
   rangeRings.update(ring, view.cam.focus);
+  // PDC domes on our ships; tracers from every gun that is firing (theirs are visible too).
+  const domes: PdcDome[] = [];
+  const tracers: Tracer[] = [];
+  for (const s of game.picture.ownShips) {
+    s.pdcs.forEach((m, i) => {
+      if (m.health <= 0) return;
+      domes.push({ key: `${s.id}:${i}`, center: s.position, direction: m.direction, arc: s.pdcArc, firing: m.firing });
+      const to = (m.aimId && game.positionOf(m.aimId)) || m.aimAt;
+      if (m.firing && to) tracers.push({ from: s.position, to, hostile: false });
+    });
+  }
+  for (const t of game.picture.tracks) {
+    for (const to of t.pdcFire ?? []) tracers.push({ from: t.position, to, hostile: t.allegiance === "hostile" });
+  }
+  pdcLayer.update(domes, tracers, view.cam.focus, dt);
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);

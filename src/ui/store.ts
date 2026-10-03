@@ -28,8 +28,16 @@ export interface WeaponsInfo {
   mode: "hot" | "cold";
 }
 
+export interface PdcInfo {
+  mode: "auto" | "manual" | "hold";
+  firing: boolean;
+  ammoFraction: number;
+  health: number;
+}
+
 export interface HudState {
   activeShip: ActiveShipInfo | null;
+  pdcs: PdcInfo[] | null;
   weapons: WeaponsInfo | null;
   /** Top strip: a hostile launch was just detected; seconds to the soonest hostile impact. */
   launchDetected: boolean;
@@ -46,6 +54,7 @@ export interface HudState {
 
 let state: HudState = {
   activeShip: null,
+  pdcs: null,
   weapons: null,
   launchDetected: false,
   impactIn: null,
@@ -89,6 +98,8 @@ export interface HudActions {
   setG(g: "cruise" | "combat" | "max"): void;
   setSalvo(n: number): void;
   setLaunchMode(mode: "hot" | "cold"): void;
+  /** PDC mode for one mount (0-based) or all. */
+  setPdcMode(mount: number | "all", mode: "auto" | "manual" | "hold"): void;
 }
 
 export const hudActions: HudActions = {
@@ -98,4 +109,5 @@ export const hudActions: HudActions = {
   setG() {},
   setSalvo() {},
   setLaunchMode() {},
+  setPdcMode() {},
 };

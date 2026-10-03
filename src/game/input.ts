@@ -17,7 +17,7 @@ import { G0, shipClasses } from "../data/ships";
 import type { TableView } from "../render/scene";
 import type { Game } from "./game";
 
-export type OrderKind = "burnTo" | "rendezvous" | "fastPass" | "match" | "stationKeep" | "orient" | "orbit" | "coast" | "launch";
+export type OrderKind = "burnTo" | "rendezvous" | "fastPass" | "match" | "stationKeep" | "orient" | "orbit" | "coast" | "launch" | "pdcTarget";
 export type SalvoSize = 1 | 2 | 4 | 6;
 
 /** How each order picks what it applies to. */
@@ -31,9 +31,11 @@ const NEEDS: Record<OrderKind, "point" | "target" | "body" | "pointOrTarget" | "
   orbit: "body",
   coast: "none",
   launch: "pointOrTarget",
+  pdcTarget: "pointOrTarget",
 };
 
 const LAUNCH_HINT = "TORPEDOES: CLICK A SHIP OR OBJECT, OR PRESS ON THE PLANE AND DRAG FOR HEIGHT · ESC CANCELS";
+const PDC_HINT = "PDCS (ALL TO MANUAL): CLICK A TORPEDO, SHIP OR OBJECT, OR PLACE A BARRAGE POINT · ESC CANCELS";
 
 const HINTS: Record<"point" | "target" | "body" | "pointOrTarget", string> = {
   body: "CLICK A MOON OR ASTEROID TO ORBIT · ESC CANCELS",
@@ -109,6 +111,7 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     if (mode === "stationKeep") game.issue({ type: "stationKeep", ship, target: { kind: "point", position: point } });
     if (mode === "orient") game.issue({ type: "orient", ship, target: { kind: "point", position: point } });
     if (mode === "launch") launchAt({ kind: "point", position: point });
+    if (mode === "pdcTarget") game.issue({ type: "setPdcs", ship, mount: "all", mode: "manual", target: { kind: "point", position: point } });
     finish();
   }
 
@@ -121,11 +124,12 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     const ship = game.activeShipId;
     if (!ship || !mode || id === ship) return;
     const target = targetFor(id);
-    if (mode === "launch") {
-      // Never at our own side (the fuse would not fire anyway).
+    if (mode === "launch" || mode === "pdcTarget") {
+      // Never at our own side.
       const friendly = game.picture.ownShips.some((s) => s.id === id) || game.picture.tracks.some((t) => t.id === id && t.allegiance === "friendly");
       if (friendly) return;
-      launchAt(target);
+      if (mode === "launch") launchAt(target);
+      else game.issue({ type: "setPdcs", ship, mount: "all", mode: "manual", target });
       finish();
       return;
     }
@@ -171,7 +175,7 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     const raw = { x: ground.x, y: ground.y, z: ground.z + height };
     // Destinations cannot be inside a body's safety zone (orient and torpedoes only aim, so
     // they may).
-    const { point: position, clamped } = mode === "orient" || mode === "launch" ? { point: raw, clamped: false } : clampOutsideBodies(game.picture.bodies, raw, activeCruiseAccel());
+    const { point: position, clamped } = mode === "orient" || mode === "launch" || mode === "pdcTarget" ? { point: raw, clamped: false } : clampOutsideBodies(game.picture.bodies, raw, activeCruiseAccel());
     const shipPos = game.activeShipId ? game.positionOf(game.activeShipId) : null;
     const range = shipPos ? Math.hypot(position.x - shipPos.x, position.y - shipPos.y, position.z - shipPos.z) : 0;
     const h = Math.abs(height) < 1 ? "ON PLANE" : `${height > 0 ? "+" : "\u2212"}${formatDistance(Math.abs(height))}`;
@@ -232,6 +236,7 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     },
     get hint() {
       if (mode === "launch") return LAUNCH_HINT;
+      if (mode === "pdcTarget") return PDC_HINT;
       return mode && NEEDS[mode] !== "none" ? HINTS[NEEDS[mode] as keyof typeof HINTS] : null;
     },
     get preview() {
@@ -240,7 +245,7 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     update() {
       if (!placed) return;
       const age = (performance.now() - placed.at) / 1000;
-      if (age > PLACED_TIMEOUT_S || ((placed.kind === "orient" || placed.kind === "launch") && age > PLACED_BRIEF_S)) {
+      if (age > PLACED_TIMEOUT_S || ((placed.kind === "orient" || placed.kind === "launch" || placed.kind === "pdcTarget") && age > PLACED_BRIEF_S)) {
         placed = null;
         return;
       }

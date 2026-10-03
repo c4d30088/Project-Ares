@@ -31,7 +31,9 @@ Done and committed:
 - M3 step 3, torpedo targeting and display: `L` then click a target or place a point; salvo size (1/2/4/6) and Hot/Cold in the bottom bar, with the magazine and ready tubes. Thin lines from each torpedo to its predicted impact X, one X per target with a countdown and salvo count (red for incoming). Alert strip: LAUNCH DETECTED, IMPACT T-mm:ss. Time drops to 1x on a detected launch and when an incoming torpedo is inside 60 s (toggles in `src/data/time.ts`).
 - Not yet playable against a shooting enemy: the scripted enemy is step 7.
 Auto mode blocked commands partway through both sessions today. If it happens again, switch to the default permission mode.
-Next session: step 4 (PDCs and their domes).
+- M3 step 4, PDCs: four mounts on the frigate, Auto (default) / Manual / Hold, domes to effective range, tracers, ammo. Starting kill rate 0.8/s: small salvos are stopped, 12 torpedoes inside 3 s leak about one. Enemy ships defend themselves too, so a 2-torpedo salvo at a lone frigate is usually shot down; bigger salvos are needed.
+- Also: torpedoes route around bodies (asteroids reliably; a target tucked close behind a big moon may be out of reach), intercept lines are dotted along the real path, and a torpedo range ring shows while aiming.
+Next session: try the PDC test scenario; then step 5 (railgun).
 
 ---
 
