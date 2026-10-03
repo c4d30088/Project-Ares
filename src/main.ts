@@ -3,7 +3,9 @@ import { createRoot } from "react-dom/client";
 import { createTableView } from "./render/scene";
 import { createDebugPanel } from "./game/debugPanel";
 import { createGame } from "./game/game";
-import { buildDisplayList } from "./render/displayList";
+import { buildDisplayList, pathMarkers } from "./render/displayList";
+import { createPathLayer } from "./render/paths";
+import { DT } from "./sim/sim";
 import { createIconLayer } from "./render/icons";
 import { createBodyLayer } from "./render/bodies";
 import { createDropLines } from "./render/dropLines";
@@ -30,6 +32,7 @@ view.overlay.appendChild(readout);
 const holotable = createHolotable(view.scene, readout);
 const bodies = createBodyLayer(view.scene);
 const dropLines = createDropLines(view.scene);
+const paths = createPathLayer(view.scene);
 const labelRoot = document.createElement("div");
 labelRoot.className = "obj-labels";
 view.overlay.appendChild(labelRoot);
@@ -123,7 +126,16 @@ function frame(now: number) {
   }
   view.cam.update(dt);
   holotable.update(view.cam.focus, view.cam.distance, dt, view.cam.camera);
-  const list = buildDisplayList(game.picture);
+  const list = buildDisplayList(game.picture, pathMarkers(game.predictions.values(), game.world.tick, DT));
+  paths.update(
+    game.predictions,
+    (id) => game.positionOf(id),
+    game.world.tick,
+    DT,
+    view.cam.focus,
+    view.cam.distance,
+    dt,
+  );
   bodies.update(list.bodies, view.cam.focus, view.cam.camera);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);
@@ -136,3 +148,6 @@ function frame(now: number) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// Debug handle for the browser console and inspection scripts (dev builds only).
+if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view };

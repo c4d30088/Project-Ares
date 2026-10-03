@@ -248,6 +248,24 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         }
         const treatment = s.shape === "torpedo" ? "plain" : treatmentFor[s.allegiance];
         push(sp.x, sp.y, size, angle, cellIndex(s.shape, s.filled, treatment), hex, alpha);
+        // Thrust vector: a short bright line ahead of a burning ship.
+        if (s.filled && s.rotates && s.shape !== "torpedo") push(sp.x, sp.y, size * 1.5, angle, EXTRA_CELLS.thrust, hex, 0.9);
+      }
+
+      // Path markers: flip glyph and arrival ring, with countdown labels.
+      for (const m of list.markers) {
+        toRender(m.position, focus, v);
+        const visible = project(v, cam, sp);
+        const el = labelFor(m.id);
+        seen.add(m.id);
+        el.style.display = visible ? "" : "none";
+        if (!visible) continue;
+        const size = m.kind === "flip" ? 22 : 26;
+        push(sp.x, sp.y, size * T.scale, 0, m.kind === "flip" ? EXTRA_CELLS.flip : EXTRA_CELLS.arrival, allegianceColor[m.allegiance], 0.95);
+        el.textContent = m.label;
+        el.style.color = allegianceColor[m.allegiance];
+        el.style.opacity = "1";
+        candidates.push({ el, x: sp.x + size * 0.5, y: sp.y + 2, w: m.label.length * CHAR_W, priority: 0.5 });
       }
 
       // Selection reticle on top.

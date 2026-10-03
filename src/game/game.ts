@@ -2,6 +2,8 @@
 // (interpolated for smooth rendering), selection, and the player's command channel.
 
 import { timeTuning } from "../data/time";
+import { pathTuning } from "../data/paths";
+import { Predictor, type Prediction } from "../sim/predict";
 import type { Command, SimEvent } from "../sim/commands";
 import { loadScenario, type Scenario } from "../sim/scenario";
 import { buildPerfectPicture, type SensorPicture } from "../sim/sensors/picture";
@@ -25,6 +27,8 @@ export interface Game {
   compressionIndex: number;
   /** Short message explaining an automatic time change, or null. */
   notice: string | null;
+  /** Latest predicted path for each of the player's ships with a movement order. */
+  predictions: Map<string, Prediction>;
   readonly simTime: number;
   readonly compression: number;
   positionOf(id: string): Vec3 | null;
@@ -90,6 +94,35 @@ export function createGame(scenario: Scenario): Game {
     return false;
   }
 
+  // Predictions: one running predictor per ship, restarted when the order changes or the
+  // refresh interval passes. The last finished result stays on screen meanwhile.
+  const predicted = new Set(["burnTo", "intercept", "matchVelocity"]);
+  const runs = new Map<string, { predictor: Predictor; orderKey: string; startedAt: number }>();
+  function updatePredictions() {
+    const wanted = world.ships.filter((s) => s.faction === faction && s.order && predicted.has(s.order.type));
+    for (const id of [...runs.keys()]) {
+      if (!wanted.some((s) => s.id === id)) {
+        runs.delete(id);
+        game.predictions.delete(id);
+      }
+    }
+    for (const s of wanted) {
+      const key = JSON.stringify(s.order) + s.g;
+      const run = runs.get(s.id);
+      const stale = !run || run.orderKey !== key || (run.predictor.result.done && realClock - run.startedAt > pathTuning.refreshS);
+      if (stale) {
+        if (run && run.orderKey !== key) game.predictions.delete(s.id);
+        runs.set(s.id, { predictor: new Predictor(world, s.id, pathTuning.maxPredictS), orderKey: key, startedAt: realClock });
+      }
+    }
+    const start = performance.now();
+    for (const [id, run] of runs) {
+      while (!run.predictor.result.done && performance.now() - start < pathTuning.budgetMs) run.predictor.run(400);
+      // Show a finished prediction, or the first one while it is still being computed.
+      if (run.predictor.result.done || !game.predictions.has(id)) game.predictions.set(id, run.predictor.result);
+    }
+  }
+
   function rebuildPicture(alpha: number) {
     const pic = buildPerfectPicture(world, faction);
     const lerp = (id: string, p: Vec3) => {
@@ -112,6 +145,7 @@ export function createGame(scenario: Scenario): Game {
     paused: false,
     compressionIndex: 0,
     notice: null,
+    predictions: new Map(),
     get simTime() {
       return world.tick * DT;
     },
@@ -168,6 +202,7 @@ export function createGame(scenario: Scenario): Game {
           setNotice(`TIME COMPRESSION LIMITED: SIM LOAD (${game.compression}x)`);
         }
       }
+      updatePredictions();
       rebuildPicture(accumulator);
     },
   };

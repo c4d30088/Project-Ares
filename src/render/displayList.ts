@@ -2,6 +2,8 @@
 // Pure function: no three.js, so it can be unit tested.
 
 import type { Allegiance, SensorPicture } from "../sim/sensors/picture";
+import type { Prediction } from "../sim/predict";
+import { formatCountdown } from "../ui/format";
 import type { BodyKind } from "../sim/world";
 import { length, type Vec3 } from "../sim/vec3";
 
@@ -32,9 +34,46 @@ export interface BodySymbol {
   radius: number;
 }
 
+/** Screen-space markers on predicted paths. */
+export interface PathMarker {
+  id: string;
+  kind: "flip" | "arrival";
+  position: Vec3;
+  label: string;
+  allegiance: Allegiance;
+}
+
 export interface DisplayList {
   symbols: ShipSymbol[];
   bodies: BodySymbol[];
+  markers: PathMarker[];
+}
+
+/** Flip marker and arrival ring for each prediction, with countdowns from `now`. */
+export function pathMarkers(predictions: Iterable<Prediction>, simTick: number, dt: number): PathMarker[] {
+  const out: PathMarker[] = [];
+  for (const p of predictions) {
+    const elapsed = (simTick - p.startTick) * dt;
+    if (p.flip && p.flip.t > elapsed) {
+      out.push({
+        id: `${p.shipId}:flip`,
+        kind: "flip",
+        position: p.flip.position,
+        label: `FLIP T-${formatCountdown(p.flip.t - elapsed)}`,
+        allegiance: "friendly",
+      });
+    }
+    if (p.arrival) {
+      out.push({
+        id: `${p.shipId}:arrival`,
+        kind: "arrival",
+        position: p.arrival.position,
+        label: `ETA ${formatCountdown(Math.max(0, p.arrival.t - elapsed))} · ${p.arrival.speed.toFixed(1)} M/S`,
+        allegiance: "friendly",
+      });
+    }
+  }
+  return out;
 }
 
 /** Below this speed a coasting object points along its heading instead of its velocity. */
@@ -45,7 +84,7 @@ function pointingFor(burning: boolean, heading: Vec3, velocity: Vec3): Vec3 {
   return velocity;
 }
 
-export function buildDisplayList(picture: SensorPicture): DisplayList {
+export function buildDisplayList(picture: SensorPicture, markers: PathMarker[] = []): DisplayList {
   const symbols: ShipSymbol[] = [];
 
   for (const s of picture.ownShips) {
@@ -90,5 +129,5 @@ export function buildDisplayList(picture: SensorPicture): DisplayList {
     radius: b.radius,
   }));
 
-  return { symbols, bodies };
+  return { symbols, bodies, markers };
 }

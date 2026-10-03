@@ -17,7 +17,7 @@ const ROWS = 8;
 const R = CELL * 0.3;
 const LINE = 0.15; // line width in units of R
 
-export const EXTRA_CELLS = { select: 48, bodyMarker: 49 } as const;
+export const EXTRA_CELLS = { select: 48, bodyMarker: 49, flip: 50, arrival: 51, thrust: 52, waypoint: 53 } as const;
 
 export function cellIndex(shape: SymbolShape, filled: boolean, treatment: Treatment): number {
   return SHAPES.indexOf(shape) * 6 + (filled ? 3 : 0) + TREATMENTS.indexOf(treatment);
@@ -160,6 +160,57 @@ export function createSymbolAtlas(): THREE.CanvasTexture {
     c.beginPath();
     c.arc(0, 0, 0.18, 0, Math.PI * 2);
     c.fill();
+  });
+
+  // Flip marker: two rotating arrows around a circle.
+  drawCell(ctx, EXTRA_CELLS.flip, (c) => {
+    c.lineWidth = LINE * 1.1;
+    for (const start of [0.15, Math.PI + 0.15]) {
+      const end = start + Math.PI - 0.5;
+      c.beginPath();
+      c.arc(0, 0, 0.85, start, end);
+      c.stroke();
+      const ex = Math.cos(end) * 0.85, ey = Math.sin(end) * 0.85;
+      const tx = -Math.sin(end), ty = Math.cos(end); // tangent, direction of travel
+      const nx = Math.cos(end), ny = Math.sin(end);
+      c.beginPath();
+      c.moveTo(ex + tx * 0.38, ey + ty * 0.38);
+      c.lineTo(ex + nx * 0.26, ey + ny * 0.26);
+      c.lineTo(ex - nx * 0.26, ey - ny * 0.26);
+      c.closePath();
+      c.fill();
+    }
+  });
+  // Arrival ring: circle with four ticks pointing in.
+  drawCell(ctx, EXTRA_CELLS.arrival, (c) => {
+    c.beginPath();
+    c.arc(0, 0, 1.0, 0, Math.PI * 2);
+    c.stroke();
+    c.beginPath();
+    for (const [x, y] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      c.moveTo(x * 1.0, y * 1.0);
+      c.lineTo(x * 0.62, y * 0.62);
+    }
+    c.stroke();
+  });
+  // Thrust line: from just outside the icon, pointing up (forward).
+  drawCell(ctx, EXTRA_CELLS.thrust, (c) => {
+    c.lineWidth = LINE * 1.3;
+    c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(0, -0.95);
+    c.lineTo(0, -1.6);
+    c.stroke();
+  });
+  // Waypoint: small crosshair.
+  drawCell(ctx, EXTRA_CELLS.waypoint, (c) => {
+    c.beginPath();
+    c.arc(0, 0, 0.45, 0, Math.PI * 2);
+    for (const [x, y] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      c.moveTo(x * 0.6, y * 0.6);
+      c.lineTo(x * 1.2, y * 1.2);
+    }
+    c.stroke();
   });
 
   const tex = new THREE.CanvasTexture(canvas);
