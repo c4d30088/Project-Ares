@@ -1,11 +1,11 @@
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
-import * as THREE from "three";
 import { createTableView } from "./render/scene";
 import { createDebugPanel } from "./game/debugPanel";
 import { createGame } from "./game/game";
 import { createDebugDots } from "./render/debugDots";
 import { palette } from "./render/palette";
+import { createHolotable } from "./render/holotable";
 import { Hud } from "./ui/Hud";
 import type { Scenario } from "./sim/scenario";
 import holotableTest from "./data/scenarios/holotable-test.json";
@@ -15,11 +15,13 @@ const view = createTableView(document.getElementById("table")!);
 createDebugPanel();
 createRoot(document.getElementById("hud")!).render(createElement(Hud));
 
-// TEMPORARY placeholder grid (1,000 km squares) until the holotable lands in step 4.
-const grid = new THREE.GridHelper(10_000_000, 10, palette.grid, palette.grid);
-(grid.material as THREE.LineBasicMaterial).transparent = true;
-(grid.material as THREE.LineBasicMaterial).opacity = 0.35;
-view.scene.add(grid);
+// Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.
+for (const [k, v] of Object.entries(palette)) document.documentElement.style.setProperty(`--${k}`, v);
+
+const readout = document.createElement("div");
+readout.className = "scale-readout mono";
+view.overlay.appendChild(readout);
+const holotable = createHolotable(view.scene, readout);
 const dots = createDebugDots(view.scene, game.picture);
 
 const focusSelected = (animate = true) => {
@@ -49,8 +51,9 @@ function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   view.cam.update(dt);
+  holotable.update(view.cam.focus, view.cam.distance, dt);
   dots.update(view.cam.focus);
-  view.render(0);
+  view.render();
   if (firstFrame) {
     firstFrame = false;
     // Signals the screenshot script that the scene has rendered.

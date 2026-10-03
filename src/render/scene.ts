@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { palette } from "./palette";
 import { createTableCamera, type TableCamera } from "./camera";
 
@@ -7,7 +8,9 @@ export interface TableView {
   scene: THREE.Scene;
   cam: TableCamera;
   dom: HTMLElement;
-  render(dt: number): void;
+  /** Screen-fixed overlay inside the table area, for readouts. */
+  overlay: HTMLElement;
+  render(): void;
 }
 
 export function createTableView(container: HTMLElement): TableView {
@@ -20,6 +23,15 @@ export function createTableView(container: HTMLElement): TableView {
   renderer.setClearColor(palette.bg);
   container.appendChild(renderer.domElement);
 
+  // Labels attached to 3D positions (names, axis letters, ring distances).
+  const labels = new CSS2DRenderer();
+  labels.domElement.className = "table-labels";
+  container.appendChild(labels.domElement);
+
+  const overlay = document.createElement("div");
+  overlay.className = "table-overlay";
+  container.appendChild(overlay);
+
   const scene = new THREE.Scene();
   const cam = createTableCamera(renderer.domElement);
 
@@ -27,6 +39,7 @@ export function createTableView(container: HTMLElement): TableView {
     const w = container.clientWidth;
     const h = container.clientHeight;
     renderer.setSize(w, h);
+    labels.setSize(w, h);
     cam.resize(w, h);
   };
   window.addEventListener("resize", resize);
@@ -37,9 +50,10 @@ export function createTableView(container: HTMLElement): TableView {
     scene,
     cam,
     dom: renderer.domElement,
-    render(dt) {
-      cam.update(dt);
+    overlay,
+    render() {
       renderer.render(scene, cam.camera);
+      labels.render(scene, cam.camera);
     },
   };
 }

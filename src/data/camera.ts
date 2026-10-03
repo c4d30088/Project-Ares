@@ -2,7 +2,7 @@
 
 export const cameraTuning = {
   fovDeg: 45,
-  startDistance: 6_000_000,
+  startDistance: 10_000_000,
   startYawDeg: -60,
   startPitchDeg: 32,
   minDistance: 100,
