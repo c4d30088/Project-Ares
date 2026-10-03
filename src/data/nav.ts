@@ -33,6 +33,18 @@ export const navTuning = {
   asteroidHardMarginFraction: 0.3,
   roundBodyHardMarginFraction: 0.05,
   bodyHardMarginMeters: 1000,
+  /** Routes around a body pass this multiple of its zone radius, for a little margin. */
+  routeClearanceFactor: 1.02,
+  /** A detour aims at most this far around the body at once (degrees of arc), so a ship
+   *  leaving the zone edge sets off along the edge instead of toward a far-off point. */
+  detourMaxArcDeg: 90,
+  /** Body avoidance, the last line of defence: whatever the order, if the ship's motion is
+   *  about to carry it inside a body's hard limit (plus this margin) with no way left to
+   *  swerve, the nav computer takes over and swerves at full thrust. */
+  avoidMarginFraction: 0.02,
+  avoidMarginMeters: 300,
+  /** How far ahead avoidance looks, beyond the time to stop: seconds. */
+  avoidLookaheadExtraS: 30,
   /** Orbit radius as a multiple of the body's safety zone for this ship. */
   orbitRadiusFactor: 1.15,
   /** How quickly orbit corrections act, seconds; and how gently radius / plane errors are

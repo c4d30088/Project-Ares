@@ -27,6 +27,8 @@ export interface NavOutput {
 
 /** Fraction of full acceleration the braking plan assumes, leaving margin to correct. */
 const BRAKE_MARGIN = 0.9;
+/** Braking gives way to closing in again if the stop would come this far short. */
+const BRAKE_RESUME = 0.1;
 /** Below this wanted acceleration (m/s²) the drive stays off and the bow holds. */
 const MIN_THRUST = 1e-3;
 /** The sim tick length. Kept local so the autopilot does not import the stepper. */
@@ -100,8 +102,10 @@ function arrive(
     nav.braking = true;
     // A flip is a reversal of the bow; small braking corrections are not flips.
     if (announceFlip && timeToFaceBrake * turnRate(ship) > Math.PI / 2) events.push({ type: "flipStart", ship: ship.id });
-  } else if (nav.braking && vc <= 0) {
-    nav.braking = false; // stopped short or drifted past: close in again
+  } else if (nav.braking && (vc <= 0 || stopDistance < BRAKE_RESUME * d)) {
+    // Stopped short, drifted past, or (after an overshoot sideways) left creeping in at a
+    // tiny braking rate from far out: close in again.
+    nav.braking = false;
   }
 
   // Sideways drift is cancelled with a gentle time constant. While accelerating, the
@@ -132,6 +136,11 @@ function arrive(
 /** Acceleration the ship can sustain crew-safe (its Cruise setting), m/s². */
 export function cruiseAccel(ship: Ship): number {
   return shipClasses[ship.shipClass].cruiseG * G0;
+}
+
+/** Margin body avoidance keeps outside a hard limit of radius H, m. */
+function avoidMargin(H: number): number {
+  return Math.max(N.avoidMarginFraction * H, N.avoidMarginMeters);
 }
 
 /** Inner radius a route never crosses: the surface (with bumps) plus a little. */
@@ -187,46 +196,90 @@ function segmentDistance(a: Vec3, b: Vec3, c: Vec3): { dist: number; t: number; 
   return { dist: length(sub(c, point)), t, point };
 }
 
+/** Zone radius a route between these two points keeps out of for body b. Normally the
+ *  whole safety zone. If either end is already inside it (a target drifting close to a
+ *  body, a ship that started there), still never cross the body itself: the inner hard
+ *  limit, or, if an end is inside even that, no deeper than that end already is. */
+function routeRadius(b: MassiveBody, from: Vec3, goal: Vec3, accel: number): number {
+  const dMin = Math.min(length(sub(from, b.position)), length(sub(goal, b.position)));
+  const R = safetyRadius(b, accel);
+  if (dMin >= R) return R;
+  const H = hardRadius(b);
+  return dMin >= H ? H : 0.98 * dMin;
+}
+
 /**
  * Where to aim to get from `from` to `goal` without crossing a body's safety zone.
- * If the straight line is clear, that is the goal itself. Otherwise it is a turning point
- * beside the nearest blocking body, pushed out until both legs clear its zone.
+ * If the straight line is clear, that is the goal itself. Otherwise the route runs along
+ * a tangent to the zone, around its edge, and off along a tangent to the goal; the aim is
+ * the corner where the two tangents meet (or, for a long way round, a point along the
+ * first tangent). The side is the shorter way round, unless the ship is already moving
+ * fast the other way (velocity, relative to the body): reversing that costs more.
  * pathLength is the remaining distance along the route (used to plan braking).
- * With the ship or goal inside a safety zone, the route still keeps out of the body's
- * inner hard limit.
  */
-export function routeAim(world: World, from: Vec3, goal: Vec3, accel: number): { aim: Vec3; pathLength: number; detour: boolean } {
-  let block: { c: Vec3; R: number; t: number; point: Vec3 } | null = null;
+export function routeAim(
+  world: World,
+  from: Vec3,
+  goal: Vec3,
+  accel: number,
+  velocity?: Vec3,
+): { aim: Vec3; pathLength: number; detour: boolean } {
+  let block: { c: Vec3; R: number; t: number } | null = null;
   for (const b of world.bodies) {
-    // Normally keep out of the whole safety zone. If the ship or the goal is already inside
-    // it (a target drifting close to a body, a ship that started there), still never cross
-    // the body itself: fall back to the inner hard limit.
-    let R = safetyRadius(b, accel);
-    if (length(sub(goal, b.position)) < R || length(sub(from, b.position)) < R) R = hardRadius(b);
-    if (length(sub(goal, b.position)) < R || length(sub(from, b.position)) < R) continue;
+    const R = routeRadius(b, from, goal, accel);
     const s = segmentDistance(from, goal, b.position);
-    if (s.dist < R && (!block || s.t < block.t)) block = { c: b.position, R, t: s.t, point: s.point };
+    if (s.dist < R && (!block || s.t < block.t)) block = { c: b.position, R, t: s.t };
   }
   if (!block) return { aim: goal, pathLength: length(sub(goal, from)), detour: false };
 
-  const { c, R } = block;
-  // Go around on the side the straight line already passes; if it passes through the
-  // center, pick a side deterministically (prefer passing over the top).
-  let side = sub(block.point, c);
-  if (length(side) < R * 1e-6) {
-    const dir = normalize(sub(goal, from));
-    const up = Math.abs(dir.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
-    side = sub(up, scale(dir, dot(up, dir)));
+  const { c } = block;
+  const f = sub(from, c);
+  const g = sub(goal, c);
+  const dF = length(f);
+  const dG = length(g);
+  // The route circle: a little outside the zone. An end inside it (a ship parked on the
+  // zone edge) gets a tangent from its own angle, which leads gently outward.
+  // It also stays well outside body avoidance's margin, so a routine trip never trips it.
+  const Rr = Math.max(block.R * N.routeClearanceFactor, block.R + 2 * avoidMargin(block.R));
+
+  // The plane of the route holds the body's center, the ship and the goal. If those line
+  // up (goal straight behind the body), use the ship's sideways motion, or pass over the top.
+  const e1 = scale(f, 1 / dF);
+  let side = sub(g, scale(e1, dot(g, e1)));
+  if (length(side) < 1e-6 * dG) {
+    const vPerp = velocity ? sub(velocity, scale(e1, dot(velocity, e1))) : { x: 0, y: 0, z: 0 };
+    if (length(vPerp) > 1e-3) side = vPerp;
+    else {
+      const up = Math.abs(e1.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+      side = sub(up, scale(e1, dot(up, e1)));
+    }
   }
-  const u = normalize(side);
-  let D = R * 1.02;
-  let aim = add(c, scale(u, D));
-  for (let i = 0; i < 80; i++) {
-    aim = add(c, scale(u, D));
-    if (segmentDistance(from, aim, c).dist >= R && segmentDistance(aim, goal, c).dist >= R) break;
-    D *= 1.06;
-  }
-  return { aim, pathLength: length(sub(aim, from)) + length(sub(goal, aim)), detour: true };
+  const e2 = normalize(side);
+  const thetaG = Math.atan2(dot(g, e2), dot(g, e1)); // 0..π: the goal lies on the +e2 side
+  const alphaF = Math.acos(Math.min(1, Rr / dF));
+  const alphaG = Math.acos(Math.min(1, Rr / dG));
+  const legs = Math.sqrt(Math.max(0, dF * dF - Rr * Rr)) + Math.sqrt(Math.max(0, dG * dG - Rr * Rr));
+
+  // Arc around the edge each way, and what each way costs: its length, plus roughly the
+  // distance lost reversing any sideways speed that points the other way.
+  const vSide = velocity ? dot(velocity, e2) : 0;
+  const option = (dir: 1 | -1) => {
+    const around = dir > 0 ? thetaG : 2 * Math.PI - thetaG;
+    const arc = Math.max(0, around - alphaF - alphaG);
+    const against = Math.max(0, -dir * vSide);
+    return { dir, arc, pathLength: legs + Rr * arc, cost: legs + Rr * arc + (against * against) / accel };
+  };
+  const plus = option(1);
+  const minus = option(-1);
+  const best = minus.cost < plus.cost ? minus : plus;
+
+  // Corner of the two tangents: half way along the arc, out at Rr / cos(half the arc).
+  const maxArc = (N.detourMaxArcDeg * Math.PI) / 180;
+  const arc = Math.min(best.arc, maxArc);
+  const ang = best.dir * (alphaF + arc / 2);
+  const dist = Rr / Math.cos(arc / 2);
+  const aim = add(c, add(scale(e1, dist * Math.cos(ang)), scale(e2, dist * Math.sin(ang))));
+  return { aim, pathLength: best.pathLength, detour: true };
 }
 
 /**
@@ -262,6 +315,82 @@ function complete(ship: Ship, events: SimEvent[]) {
 }
 
 export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutput {
+  const out = guide(world, ship, events);
+  const order = ship.order;
+  // Orbits sit deliberately close to a body (their approach is routed like any trip);
+  // coasting and orienting leave the drive to the player.
+  if (!order || order.type === "orient" || (order.type === "orbit" && ship.nav.orbitStage !== "approach")) return out;
+  return avoidBodies(world, ship) ?? out;
+}
+
+/** Closest distance to the origin along a path: coast for tTurn, then accelerate at acc.
+ *  Positions are relative to the body; sampled, with each step checked as a straight chord. */
+function pathClearance(r: Vec3, v: Vec3, acc: Vec3, tTurn: number, T: number): number {
+  const at = (t: number): Vec3 => {
+    const tb = Math.max(0, t - tTurn);
+    return add(add(r, scale(v, t)), scale(acc, 0.5 * tb * tb));
+  };
+  const n = 48;
+  let prev = r;
+  let best = length(r);
+  for (let i = 1; i <= n; i++) {
+    const p = at((T * i) / n);
+    best = Math.min(best, segmentDistance(prev, p, { x: 0, y: 0, z: 0 }).dist);
+    prev = p;
+  }
+  return best;
+}
+
+/**
+ * Body avoidance, the last line of defence under every route. If the ship's coasting line
+ * enters a body's hard limit (plus a margin) and even the best full-thrust swerve (out,
+ * sideways, braking, or between) would only just clear it, the nav computer takes over
+ * and flies that swerve. Until then the order's own guidance flies the ship. Returns null
+ * when no body needs it.
+ */
+function avoidBodies(world: World, ship: Ship): NavOutput | null {
+  const a = maxAccel(ship);
+  if (a <= MIN_THRUST) return null;
+  const v = ship.velocity;
+  const speed = length(v);
+  const T = speed / a + shipClasses[ship.shipClass].flipTimeS + N.avoidLookaheadExtraS;
+  let take: { dir: Vec3; clearance: number; keep: number } | null = null;
+  for (const b of world.bodies) {
+    const r = sub(ship.position, b.position);
+    const d = length(r);
+    const H = hardRadius(b);
+    if (d < H) continue; // already inside (only if ordered there): the route leads out
+    // Take over inside the margin; once taken over, hold on until clear by twice it.
+    const keep = H + avoidMargin(H) * (ship.nav.avoiding ? 2 : 1);
+    if (d - keep > speed * T) continue;
+    const tStar = speed > 1e-9 ? Math.max(0, Math.min(T, -dot(r, v) / (speed * speed))) : 0;
+    const pca = add(r, scale(v, tStar));
+    if (length(pca) >= keep) continue; // coasting misses it
+
+    const out1 = scale(r, 1 / d);
+    const vHat = speed > 1e-9 ? scale(v, 1 / speed) : out1;
+    let lat = sub(pca, scale(vHat, dot(pca, vHat)));
+    if (length(lat) < 1e-6 * H) {
+      lat = cross(vHat, Math.abs(vHat.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 });
+    }
+    lat = normalize(lat);
+    const dirs = [out1, lat, scale(vHat, -1), normalize(sub(lat, vHat))];
+    let best: { dir: Vec3; clearance: number } | null = null;
+    for (const dir of dirs) {
+      const tTurn = angleBetween(ship.heading, dir) / turnRate(ship);
+      const clearance = pathClearance(r, v, scale(dir, a), tTurn, T);
+      if (!best || clearance > best.clearance) best = { dir, clearance };
+    }
+    if (best && best.clearance < keep && (!take || best.clearance - keep < take.clearance - take.keep)) {
+      take = { ...best, keep };
+    }
+  }
+  ship.nav.avoiding = !!take;
+  if (!take) return null;
+  return { heading: take.dir, thrust: a, phase: "avoid", cancel: gravityAt(world.bodies, ship.position) };
+}
+
+function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
   const order = ship.order;
   if (!order) return coast(ship);
   // Guided burns cancel gravity, so the guidance below can plan as if space were flat.
@@ -276,7 +405,7 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
     }
 
     case "burnTo": {
-      const route = routeAim(world, ship.position, order.point, cruiseAccel(ship));
+      const route = routeAim(world, ship.position, order.point, cruiseAccel(ship), ship.velocity);
       const r = sub(route.aim, ship.position);
       const { out, arrived } = arrive(ship, r, ship.velocity, N.arriveDistance, N.arriveSpeed, events, true, route.pathLength);
       if (arrived) {
@@ -294,7 +423,7 @@ export function navigate(world: World, ship: Ship, events: SimEvent[]): NavOutpu
       const goal = add(t.position, order.offset);
       const r = sub(goal, ship.position);
       const v = sub(ship.velocity, t.velocity);
-      const route = routeAim(world, ship.position, goal, cruiseAccel(ship));
+      const route = routeAim(world, ship.position, goal, cruiseAccel(ship), ship.velocity);
       // Holding near a body means hovering against its pull (relative to a moving target,
       // only the difference in pull).
       const cancel = sub(gShip, targetGravity(world, order.target));
@@ -362,7 +491,7 @@ function orbit(world: World, ship: Ship, order: NavOrder & { type: "orbit" }, gS
 
   if (nav.orbitStage === "approach") {
     const goal = add(c, order.entry);
-    const route = routeAim(world, ship.position, goal, cruiseAccel(ship));
+    const route = routeAim(world, ship.position, goal, cruiseAccel(ship), ship.velocity);
     const { out, arrived } = arrive(ship, sub(route.aim, ship.position), ship.velocity, N.arriveDistance, N.arriveSpeed, events, true, route.pathLength);
     if (arrived) {
       nav.orbitStage = "insert";
@@ -423,7 +552,7 @@ function orbit(world: World, ship: Ship, order: NavOrder & { type: "orbit" }, gS
 function rendezvous(world: World, ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]): NavOutput {
   const d = length(r);
   const standoff = d > N.rendezvousStandoff ? sub(r, scale(r, N.rendezvousStandoff / d)) : { x: 0, y: 0, z: 0 };
-  const route = routeAim(world, ship.position, add(ship.position, standoff), cruiseAccel(ship));
+  const route = routeAim(world, ship.position, add(ship.position, standoff), cruiseAccel(ship), ship.velocity);
   const aim = sub(route.aim, ship.position);
   const { out, arrived } = arrive(ship, aim, v, N.rendezvousArriveDistance, N.rendezvousArriveSpeed, events, true, route.pathLength);
   if (arrived && ship.order && "target" in ship.order) {
@@ -476,7 +605,7 @@ function fastPass(world: World, ship: Ship, r: Vec3, v: Vec3, events: SimEvent[]
   }
 
   // A body in the way: go around it first, then home on the target.
-  const route = routeAim(world, ship.position, add(ship.position, r), cruiseAccel(ship));
+  const route = routeAim(world, ship.position, add(ship.position, r), cruiseAccel(ship), ship.velocity);
   if (route.detour) return pushToward(ship, route.aim);
 
   const a = maxAccel(ship);

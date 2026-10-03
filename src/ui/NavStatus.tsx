@@ -29,7 +29,7 @@ export function NavStatus() {
       <div className="ship-name">{s.name}</div>
       <div className="ship-class">{s.shipClass}-CLASS</div>
       <Row label="Order" value={ORDER_NAMES[s.order] ?? s.order} />
-      <Row label="Drive" value={s.phase.toUpperCase()} tone={s.phase === "flip" ? "warn" : undefined} />
+      <Row label="Drive" value={s.phase.toUpperCase()} tone={s.phase === "flip" || s.phase === "avoid" ? "warn" : undefined} />
       <Row label="Speed" value={formatSpeed(s.speed)} />
       <Row label="Accel" value={`${s.accelG.toFixed(2)} G`} />
       <Row label="G set" value={s.g.toUpperCase()} tone={s.g === "max" ? "warn" : undefined} />

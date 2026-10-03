@@ -44,6 +44,8 @@ export function createDebugPanel(currentScenario: string): GUI {
   nav.add(navTuning, "hoverMinAccel", 0, 0.5, 0.005).name("hover above (m/s²)");
   nav.add(navTuning, "asteroidHardMarginFraction", 0, 1, 0.01).name("asteroid hard limit (x r)");
   nav.add(navTuning, "roundBodyHardMarginFraction", 0, 0.5, 0.01).name("moon hard limit (x r)");
+  nav.add(navTuning, "routeClearanceFactor", 1, 1.5, 0.01).name("route clearance (x zone)");
+  nav.add(navTuning, "avoidMarginMeters", 0, 20000, 100).name("avoid margin (m)");
   nav.close();
 
   const cam = gui.addFolder("Camera");

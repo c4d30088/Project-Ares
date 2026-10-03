@@ -33,7 +33,8 @@ export type NavOrder =
   | { type: "orbit"; target: Target; radius: number; normal: Vec3; entry: Vec3 };
 
 /** What the nav computer is doing right now, for display and events. */
-export type NavPhase = "coast" | "turn" | "burn" | "flip" | "brake" | "hold" | "orbit";
+/** "avoid": body avoidance has taken over to swerve clear of a body. */
+export type NavPhase = "coast" | "turn" | "burn" | "flip" | "brake" | "hold" | "orbit" | "avoid";
 
 export interface NavState {
   phase: NavPhase;
@@ -47,6 +48,8 @@ export interface NavState {
   travelling: boolean;
   /** Orbit: flying to the entry point, burning up to orbital speed, or in orbit. */
   orbitStage: "approach" | "insert" | "orbit";
+  /** Body avoidance has taken over (it lets go once clear by a wider margin). */
+  avoiding: boolean;
 }
 
 export const freshNavState = (): NavState => ({
@@ -56,6 +59,7 @@ export const freshNavState = (): NavState => ({
   closestApproach: Infinity,
   travelling: false,
   orbitStage: "approach",
+  avoiding: false,
 });
 
 export type SimEvent =
