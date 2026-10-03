@@ -80,6 +80,25 @@ Session estimates assume a sitting of 1 to 3 hours with Claude Code. They are ro
 
 **Stop rule:** If the torpedo and PDC exchange is not tense after three rounds of tuning, stop and rethink the weapons interaction before building sensors. Sensors make a good fight better. They will not rescue a flat one.
 
+**Approved plan (2026-10-03).** Every weapon takes a `Target` (track, object or point); only PDCs have Auto. Sensors stay perfect until M4: seekers and PDC Auto use ground truth within their range. Starting numbers live in `src/data/combat.ts` and `src/data/weapons.ts`, with debug-panel sliders.
+- Torpedoes (frigate: 2 tubes, 12 in the magazine): 30 g, 15 km/s delta-v with a 3 km/s terminal reserve. Salvo size 1/2/4/6; tubes reload between shots, so big salvos leave in waves. Hot launch lights the drive at once; cold launch coasts and lights at 2,000 km. At a ship: miss-distance homing (the same law as fast pass). At an object: strike it. At a point: fly there, then the seeker searches; if nothing is found, wait as a mine until a timer, then self-destruct. Proximity fuse; no fuse on friendlies.
+- PDCs (frigate: 4 mounts): firing arcs drawn as domes; Auto / Manual / Hold per mount or all; kill chance rises as range falls (max 50 km, effective 15 km); 0.3 s target switch; finite ammo; kill rolls use the seeded RNG.
+- Railgun (frigate: light turret): 20 km/s slug, limited turret arc, recharge and ammo; lead point shown for ship targets; slug flies ballistically (gravity bends it).
+- Damage: done in step 1. Subsystem health, hit side picks the subsystem; drive damage caps acceleration; zero hull or reactor destroys; flying into a body destroys.
+- G-strain: builds above Cruise G, recovers below; slows turns and lowers PDC accuracy; full strain causes crew casualties.
+- HUD: intercept lines from each torpedo to an impact X with countdown (hostile lines red); railgun lead point; weapons row in the bottom bar (torpedo salvo size and Hot/Cold, railgun, PDC modes), targeting reuses the order tool; left rail status panel (subsystems, ammo, magazine, railgun charge, G-strain); top alert strip (LAUNCH DETECTED, IMPACT T-mm:ss, HULL BREACH, PDC n OFFLINE).
+- Scripted enemy frigate that closes to torpedo range and fires salvos on a timer, using commands only. "First fight" scenario and a restart button in the debug panel.
+- Tests: impact prediction and railgun lead match the real flight; PDC saturation statistics over many seeded runs; torpedo never exceeds its fuel budget; damage direction and effects; G-strain; determinism.
+
+Build order (one commit per step):
+1. Loadouts, subsystem damage, hit detection, collisions with bodies. **Done.**
+2. Torpedoes in the sim: launch command and tube queue, guidance, fuel, seeker, mines, fuse and impact.
+3. Torpedo targeting UI, intercept lines with impact X and countdown, launch alert.
+4. PDCs and domes.
+5. Railgun.
+6. G-strain, left rail status panel, alert strip.
+7. Scripted enemy, First fight scenario, tuning.
+
 ---
 
 ### M4. Sensors and stealth (4 to 6 sessions)

@@ -15,6 +15,24 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-03, milestone M3 (in progress): session handoff
+Played: Flight test after M2 sign-off; leaving an orbit and parked positions for intercepts and other routes.
+Felt wrong:
+- BUG (fix first): intercept and other routes still fly through moons and asteroids when the ship leaves an orbit or a position near a body (behind or beside it). The ship must go around the body.
+Where things stand:
+- M2 signed off by the owner.
+- M3 plan approved (see the M3 section of docs/ROADMAP.md). Step 1 is committed: loadouts, subsystem damage by hit direction, hit detection, collisions with bodies (99 tests passing).
+- `src/data/weapons.ts` (torpedo tunables) is committed (7e5d171) and not used yet; step 2 will use it.
+- The session ended early: Claude Code's auto mode began blocking all commands partway through step 2. No source files are half-edited.
+Likely causes of the bug (from reading `routeAim` in `src/sim/autopilot.ts`):
+1. The detour point is found by stepping outward up to 80 times. Near a zone edge (where orbits and clamped destinations put ships) it can fail, and it then returns its last guess even if that route still crosses the body.
+2. Avoidance only checks a straight line to the detour point and ignores the ship's current momentum. A ship leaving orbit at about 960 m/s sideways can be carried through the zone. Fast pass (full forward thrust via `pushToward`) is the worst case.
+3. A ship starting inside a zone falls back to the inner hard limit, still with a straight-line check only.
+Proposed fix: write failing tests first (leaving an orbit for an intercept and a fast pass on a target behind the moon; departing from a zone edge to the far side; a fast ship heading at an asteroid with the target beyond; each must never enter the body). Then compute exact tangent-based detour points, add a momentum lookahead (project the current motion about a minute ahead and steer away if it enters a zone), and depart tangentially when leaving a body.
+Next session: fix the routing bug above, then continue M3 at step 2 (torpedoes in the sim).
+
+---
+
 ## 2026-10-03, milestone M2
 Played: Flight test and holotable test; burn to point, intercept, fast pass, station-keep, orbit; time compression
 Felt good: planning moves; the flip and arrival matching the prediction. "Everything else feels good."
