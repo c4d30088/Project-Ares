@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { routeAim, safetyRadius } from "../src/sim/autopilot";
+import { clampOutsideBodies, hardRadius, routeAim, safetyRadius } from "../src/sim/autopilot";
 import type { Command } from "../src/sim/commands";
 import { Predictor } from "../src/sim/predict";
 import { DT, step, submit } from "../src/sim/sim";
@@ -95,9 +95,46 @@ describe("routing around bodies", () => {
     for (const pt of p.result.points) expect(length(sub(pt.position, v3(2_000_000, 0, 0)))).toBeGreaterThan(MOON_R * 1.05);
   });
 
-  it("a destination inside the safety zone is approached directly", () => {
-    const world = worldWithMoon(v3(2_000_000, 0, 0));
-    const near = v3(2_000_000 - MOON_R - 30_000, 0, 0); // 30 km above the surface, on our side
-    expect(routeAim(world, v3(0, 0, 0), near).detour).toBe(false);
+  it("a destination inside a safety zone is moved to the zone's edge", () => {
+    const moon = { position: v3(2_000_000, 0, 0), radius: MOON_R };
+    const inside = v3(2_000_000 - MOON_R - 30_000, 0, 0);
+    const { point, clamped } = clampOutsideBodies([moon], inside);
+    expect(clamped).toBe(true);
+    expect(length(sub(point, moon.position))).toBeGreaterThanOrEqual(safetyRadius(MOON_R));
+    // Moved straight out, toward the side it was on.
+    expect(point.x).toBeLessThan(inside.x);
+    expect(clampOutsideBodies([moon], v3(0, 0, 0)).clamped).toBe(false);
+  });
+
+  it("burn to a point inside an asteroid's zone, on its far side: stops at the edge without crossing it", () => {
+    const AST_R = 11_000;
+    const world = makeWorld([makeShip({ id: "ff" })]);
+    world.bodies.push({ id: "ast", name: "AST", kind: "asteroid", position: v3(1_000_000, 0, 0), radius: AST_R });
+    const target = v3(1_000_000 + AST_R + 2_000, 0, 0); // 2 km off the far side
+    submit(world, "blue", { type: "burnTo", ship: "ff", point: target });
+    const ship = world.ships[0];
+    let closest = Infinity;
+    let done = false;
+    for (let i = 0; i < 3600 / DT && !done; i++) {
+      step(world);
+      closest = Math.min(closest, length(sub(ship.position, world.bodies[0].position)));
+      done = world.events.some((e) => e.type === "orderComplete");
+    }
+    expect(done).toBe(true);
+    expect(closest).toBeGreaterThan(AST_R * 1.3);
+    expect(length(sub(ship.position, world.bodies[0].position))).toBeGreaterThan(safetyRadius(AST_R) - 100);
+  });
+
+  it("a ship already inside a safety zone still goes around the body itself", () => {
+    const world = worldWithMoon(v3(0, 0, 0));
+    // Start just inside the safety zone on one side, target on the far side.
+    const start = v3(-(MOON_R + 50_000), 0, 0);
+    world.ships[0].position = start;
+    const r = routeAim(world, start, v3(3_000_000, 0, 0));
+    expect(r.detour).toBe(true);
+    const { closest, doneTick } = run(world, { type: "burnTo", ship: "ff", point: v3(3_000_000, 0, 0) });
+    expect(doneTick).not.toBeNull();
+    expect(closest).toBeGreaterThan(MOON_R * 1.05);
+    expect(closest).toBeGreaterThan(hardRadius(MOON_R) * 0.9);
   });
 });

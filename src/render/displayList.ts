@@ -48,6 +48,8 @@ export interface Waypoint {
   id: string;
   position: Vec3;
   label: string;
+  /** Shown in the warning color (amber). */
+  warn?: boolean;
 }
 
 export interface DisplayList {

@@ -38,6 +38,8 @@ export function createDebugPanel(currentScenario: string): GUI {
   nav.add(navTuning, "stationHoldRadius", 100, 20000, 100);
   nav.add(navTuning, "bodyMarginFraction", 0, 1, 0.01).name("body margin (x radius)");
   nav.add(navTuning, "bodyMarginMeters", 0, 500000, 1000).name("body margin (m)");
+  nav.add(navTuning, "asteroidHardMarginFraction", 0, 1, 0.01).name("asteroid hard limit (x r)");
+  nav.add(navTuning, "roundBodyHardMarginFraction", 0, 0.5, 0.01).name("moon hard limit (x r)");
   nav.close();
 
   const cam = gui.addFolder("Camera");

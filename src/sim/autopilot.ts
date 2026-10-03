@@ -9,7 +9,7 @@ import { freshNavState } from "./commands";
 import { angleBetween } from "./physics";
 import { resolveTarget } from "./target";
 import { add, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
-import type { Ship, World } from "./world";
+import type { BodyKind, Ship, World } from "./world";
 
 export interface NavOutput {
   /** Wanted bow direction (unit vector). */
@@ -128,6 +128,38 @@ export function safetyRadius(radius: number): number {
   return radius * (1 + N.bodyMarginFraction) + N.bodyMarginMeters;
 }
 
+/** Inner radius a route never crosses, even inside the safety zone. */
+export function hardRadius(radius: number, kind: BodyKind = "moon"): number {
+  const f = kind === "asteroid" ? N.asteroidHardMarginFraction : N.roundBodyHardMarginFraction;
+  return Math.min(radius * (1 + f) + N.bodyHardMarginMeters, safetyRadius(radius) * 0.98);
+}
+
+/**
+ * Moves a destination out of every body's safety zone, to the nearest point on the zone's
+ * edge. Used for burn-to and station-keep points (sim) and for the placement preview (UI).
+ */
+export function clampOutsideBodies(
+  bodies: readonly { position: Vec3; radius: number }[],
+  point: Vec3,
+): { point: Vec3; clamped: boolean } {
+  let p = { ...point };
+  let clamped = false;
+  for (let pass = 0; pass < 3; pass++) {
+    let moved = false;
+    for (const b of bodies) {
+      const R = safetyRadius(b.radius);
+      const off = sub(p, b.position);
+      const d = length(off);
+      if (d >= R) continue;
+      const dir = d > 1e-9 ? scale(off, 1 / d) : { x: 0, y: 0, z: 1 };
+      p = add(b.position, scale(dir, R * 1.001));
+      moved = clamped = true;
+    }
+    if (!moved) break;
+  }
+  return { point: p, clamped };
+}
+
 /** Closest distance from point c to the segment a-b, and the parameter t (0..1) there. */
 function segmentDistance(a: Vec3, b: Vec3, c: Vec3): { dist: number; t: number; point: Vec3 } {
   const ab = sub(b, a);
@@ -142,12 +174,17 @@ function segmentDistance(a: Vec3, b: Vec3, c: Vec3): { dist: number; t: number; 
  * If the straight line is clear, that is the goal itself. Otherwise it is a turning point
  * beside the nearest blocking body, pushed out until both legs clear its zone.
  * pathLength is the remaining distance along the route (used to plan braking).
- * A goal inside a safety zone (or a ship already inside one) is approached directly.
+ * With the ship or goal inside a safety zone, the route still keeps out of the body's
+ * inner hard limit.
  */
 export function routeAim(world: World, from: Vec3, goal: Vec3): { aim: Vec3; pathLength: number; detour: boolean } {
   let block: { c: Vec3; R: number; t: number; point: Vec3 } | null = null;
   for (const b of world.bodies) {
-    const R = safetyRadius(b.radius);
+    // Normally keep out of the whole safety zone. If the ship or the goal is already inside
+    // it (a target drifting close to a body, a ship that started there), still never cross
+    // the body itself: fall back to the inner hard limit.
+    let R = safetyRadius(b.radius);
+    if (length(sub(goal, b.position)) < R || length(sub(from, b.position)) < R) R = hardRadius(b.radius, b.kind);
     if (length(sub(goal, b.position)) < R || length(sub(from, b.position)) < R) continue;
     const s = segmentDistance(from, goal, b.position);
     if (s.dist < R && (!block || s.t < block.t)) block = { c: b.position, R, t: s.t, point: s.point };

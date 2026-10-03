@@ -12,6 +12,7 @@ import type { Vec3 } from "../sim/vec3";
 import type { GSetting } from "../sim/world";
 import { formatDistance } from "../ui/format";
 import { fromRender } from "../render/frame";
+import { clampOutsideBodies } from "../sim/autopilot";
 import type { TableView } from "../render/scene";
 import type { Game } from "./game";
 
@@ -37,6 +38,8 @@ const HINTS: Record<"point" | "target" | "pointOrTarget", string> = {
 export interface PlacementPreview {
   position: Vec3;
   label: string;
+  /** The point was moved out of a body's safety zone. */
+  warn: boolean;
 }
 
 /** A placed point stays on the table until its route is drawn, or this many seconds. */
@@ -88,7 +91,10 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
     const ship = game.activeShipId;
     if (!ship || !mode) return;
     const preview = currentPreview();
-    if (preview) placed = { preview: { ...preview, position: point }, ship, kind: mode, at: performance.now() };
+    if (preview) {
+      point = preview.position; // already moved out of any safety zone
+      placed = { preview, ship, kind: mode, at: performance.now() };
+    }
     if (mode === "burnTo") game.issue({ type: "burnTo", ship, point });
     if (mode === "stationKeep") game.issue({ type: "stationKeep", ship, target: { kind: "point", position: point } });
     if (mode === "orient") game.issue({ type: "orient", ship, target: { kind: "point", position: point } });
@@ -126,11 +132,13 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
 
   function currentPreview(): PlacementPreview | null {
     if (!mode || !ground || NEEDS[mode] === "target") return null;
-    const position = { x: ground.x, y: ground.y, z: ground.z + height };
+    const raw = { x: ground.x, y: ground.y, z: ground.z + height };
+    // Destinations cannot be inside a body's safety zone (orient only aims, so it may).
+    const { point: position, clamped } = mode === "orient" ? { point: raw, clamped: false } : clampOutsideBodies(game.picture.bodies, raw);
     const shipPos = game.activeShipId ? game.positionOf(game.activeShipId) : null;
     const range = shipPos ? Math.hypot(position.x - shipPos.x, position.y - shipPos.y, position.z - shipPos.z) : 0;
     const h = Math.abs(height) < 1 ? "ON PLANE" : `${height > 0 ? "+" : "\u2212"}${formatDistance(Math.abs(height))}`;
-    return { position, label: `${formatDistance(range)} · ${h}` };
+    return { position, label: `${formatDistance(range)} · ${h}${clamped ? " · MIN CLEARANCE" : ""}`, warn: clamped };
   }
 
   function finish() {

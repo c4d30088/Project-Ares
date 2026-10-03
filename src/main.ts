@@ -173,7 +173,7 @@ function frame(now: number) {
   const list = buildDisplayList(
     game.picture,
     pathMarkers(game.predictions.values(), game.world.tick, DT),
-    preview ? [{ id: "placement", position: preview.position, label: preview.label }] : [],
+    preview ? [{ id: "placement", position: preview.position, label: preview.label, warn: preview.warn }] : [],
   );
   paths.update(
     game.predictions,

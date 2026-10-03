@@ -272,12 +272,13 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
       for (const w of list.waypoints) {
         toRender(w.position, focus, v);
         if (!project(v, cam, sp)) continue;
-        push(sp.x, sp.y, 26 * T.scale, 0, EXTRA_CELLS.waypoint, palette.friendly, 1);
+        const wColor = w.warn ? palette.uncertain : palette.friendly;
+        push(sp.x, sp.y, 26 * T.scale, 0, EXTRA_CELLS.waypoint, wColor, 1);
         const el = labelFor(w.id);
         seen.add(w.id);
         el.style.display = "";
         el.textContent = w.label;
-        el.style.color = palette.friendly;
+        el.style.color = wColor;
         el.style.opacity = "1";
         candidates.push({ el, x: sp.x + 16, y: sp.y - 16, w: w.label.length * CHAR_W, priority: -1 });
       }

@@ -2,7 +2,7 @@
 // Time compression runs more ticks, never bigger ones.
 
 import { navTuning } from "../data/nav";
-import { navigate, maxAccel, turnRate } from "./autopilot";
+import { clampOutsideBodies, navigate, maxAccel, turnRate } from "./autopilot";
 import { freshNavState, type Command, type QueuedCommand, type SimEvent } from "./commands";
 import { angleBetween, integrate, slerpToward } from "./physics";
 import { resolveTarget } from "./target";
@@ -35,7 +35,8 @@ function applyCommand(world: World, q: QueuedCommand): void {
       ship.order = null;
       break;
     case "burnTo":
-      ship.order = { type: "burnTo", point: { ...c.point } };
+      // No destinations inside a body's safety zone: move them to the zone's edge.
+      ship.order = { type: "burnTo", point: clampOutsideBodies(world.bodies, c.point).point };
       break;
     case "intercept":
       if (!resolveTarget(world, c.target)) return reject(world, q, "unknown target");
@@ -50,7 +51,8 @@ function applyCommand(world: World, q: QueuedCommand): void {
       if (!t) return reject(world, q, "unknown target");
       // Hold the current offset from a ship or object; hold exactly at a point.
       const offset = c.target.kind === "point" ? { x: 0, y: 0, z: 0 } : sub(ship.position, t.position);
-      ship.order = { type: "stationKeep", target: c.target, offset };
+      const target = c.target.kind === "point" ? { kind: "point" as const, position: clampOutsideBodies(world.bodies, c.target.position).point } : c.target;
+      ship.order = { type: "stationKeep", target, offset };
       break;
     }
     case "orient":

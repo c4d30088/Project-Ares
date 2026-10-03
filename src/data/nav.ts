@@ -27,6 +27,12 @@ export const navTuning = {
    *  plus a fixed distance. */
   bodyMarginFraction: 0.2,
   bodyMarginMeters: 20_000,
+  /** Inner limit routes never cross, even when a ship or target is inside the safety zone.
+   *  Asteroids are lumpy, so their limit covers the bumpiest drawn surface; moons and
+   *  planets are nearly round. Never larger than the safety zone. */
+  asteroidHardMarginFraction: 0.3,
+  roundBodyHardMarginFraction: 0.05,
+  bodyHardMarginMeters: 1000,
   /** Fast pass is complete once closest approach is behind the ship. */
   fastPassMaxTimeS: 6 * 3600,
 };
