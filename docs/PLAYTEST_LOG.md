@@ -15,6 +15,15 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-02, milestone M0
+Played: opened the game locally, rotated and zoomed the empty scene
+Felt good: everything. Camera rotation, zoom and pan all feel right.
+Felt wrong: nothing
+Confusing: nothing
+Next session: start M1 (the holotable)
+
+---
+
 ## Fun debt
 
 Places where the game works but is not fun yet.
