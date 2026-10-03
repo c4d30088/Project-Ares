@@ -1,0 +1,70 @@
+.hud {
+  --chamfer: 12px;
+  position: absolute;
+  inset: 0;
+  font-family: "Oxanium", sans-serif;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+}
+
+.hud .mono {
+  font-family: "Share Tech Mono", monospace;
+  letter-spacing: 0.04em;
+}
+
+/* Chamfered panel: the outer layer is the border color, the inner layer is the fill,
+   both clipped to the same cut-corner shape. */
+.panel {
+  position: absolute;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--chrome) 55%, transparent);
+  clip-path: polygon(
+    var(--chamfer) 0, 100% 0, 100% calc(100% - var(--chamfer)),
+    calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer)
+  );
+}
+.panel > .panel-inner {
+  position: absolute;
+  inset: 1px;
+  background: color-mix(in srgb, var(--panelBg) 70%, transparent);
+  clip-path: inherit;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px 10px 16px;
+  box-sizing: border-box;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text);
+}
+.panel-title::after {
+  content: "";
+  flex: 1;
+  height: 6px;
+  /* tick-mark scale, as on the airlock and helm references */
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--chrome) 60%, transparent) 0 1px, transparent 1px 6px)
+    bottom / 100% 4px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--chrome) 60%, transparent), color-mix(in srgb, var(--chrome) 60%, transparent))
+    bottom / 100% 1px no-repeat;
+}
+
+.panel-empty {
+  margin-top: 10px;
+  color: var(--textDim);
+  font-size: 10px;
+}
+
+.rail-left   { left: 16px;  top: 60px; bottom: 84px; width: 260px; }
+.rail-right  { right: 16px; top: 60px; bottom: 84px; width: 300px; }
+.bottom-bar  { left: 292px; right: 332px; bottom: 16px; height: 56px; }
+.alert-strip { left: 50%; transform: translateX(-50%); top: 12px; width: min(560px, 50vw); height: 36px; --chamfer: 10px; }
+.alert-strip .panel-inner { flex-direction: row; align-items: center; justify-content: center; padding: 0 16px; }
+.bottom-bar .panel-inner { flex-direction: row; align-items: center; gap: 16px; }

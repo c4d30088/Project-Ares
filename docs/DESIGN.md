@@ -275,9 +275,13 @@ Hits land on subsystems based on the direction the hit came from relative to the
 | Celestial body | Dim wireframe sphere with name label | Neutral gray |
 | Sensor shadow | Faint dark volume behind a body | Neutral gray |
 
-Ship icons point along their thrust vector when burning. When coasting, they point along velocity and switch to a hollow outline, so the player can tell at a glance who is burning and who is dark.
+Ship icons point along their thrust vector when burning. When coasting, they point along velocity.
 
-Allegiance is also shown by shape treatment, not just color: friendly icons are filled, hostile icons are outlined with corner ticks, unknown icons are dashed.
+Fill shows drive state for every allegiance: **filled = burning, hollow = coasting**, so the player can tell at a glance who is burning and who is dark, friend or foe.
+
+Allegiance is shown by color plus a shape treatment, so it never depends on color alone: friendly icons have a plain outline, hostile icons add corner brackets, unknown icons are dashed.
+
+Drop lines from objects below the reference plane are dashed; from objects above it, solid. The reference plane passes through the focused object (usually the player's ship), so above and below the plane means above and below you.
 
 ### Color tokens
 

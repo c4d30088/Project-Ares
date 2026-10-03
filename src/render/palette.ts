@@ -12,6 +12,8 @@ export const palette = {
   uncertain: "#FFB020",
   chrome: "#7C93A0",
   text: "#DCE6EA",
+  textDim: "#8A9BA4",
+  panelBg: "#05080C",
 } as const;
 
 export type PaletteToken = keyof typeof palette;
