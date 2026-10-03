@@ -5,6 +5,8 @@ import "./hud.css";
 import { palette } from "../render/palette";
 import { Panel } from "./Panel";
 import { TimeControls } from "./TimeControls";
+import { OrderBar } from "./OrderBar";
+import { NavStatus } from "./NavStatus";
 import { useHud } from "./store";
 
 // HUD shell. Panels are empty frames in M1; later milestones fill them.
@@ -20,12 +22,14 @@ export function Hud() {
         )}
       </Panel>
       <Panel className="rail-left" title="Own ship">
-        <div className="panel-empty">Status systems offline</div>
+        <NavStatus />
       </Panel>
       <Panel className="rail-right" title="Contacts">
         <div className="panel-empty">Contact list offline</div>
       </Panel>
+      {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
       <Panel className="bottom-bar">
+        <OrderBar />
         <TimeControls />
       </Panel>
     </div>

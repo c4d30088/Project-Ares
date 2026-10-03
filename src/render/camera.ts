@@ -21,6 +21,8 @@ export interface TableCamera {
   setAnchor(p: Vec3): void;
   /** Called when the player pans, so the game can stop following an object. */
   onPan: (() => void) | null;
+  /** When false, left-drag does not rotate and left-click does not select (order input). */
+  leftDragEnabled: boolean;
   toggleTopDown(): void;
   setView(v: { yawDeg?: number; pitchDeg?: number; distance?: number }, animate?: boolean): void;
   update(dt: number): void;
@@ -52,7 +54,7 @@ export function createTableCamera(dom: HTMLElement): TableCamera {
   dom.addEventListener("contextmenu", (e) => e.preventDefault());
   dom.addEventListener("pointerdown", (e) => {
     dom.setPointerCapture(e.pointerId);
-    dragMode = e.button === 2 || e.shiftKey ? "pan" : e.button === 0 ? "rotate" : null;
+    dragMode = e.button === 2 || e.shiftKey ? "pan" : e.button === 0 && api.leftDragEnabled ? "rotate" : null;
     downX = lastX = e.clientX;
     downY = lastY = e.clientY;
     moved = false;
@@ -108,6 +110,7 @@ export function createTableCamera(dom: HTMLElement): TableCamera {
     },
     onClick: null,
     onPan: null,
+    leftDragEnabled: true,
     setFocus(p, animate = true) {
       if (animate) {
         offset.x = focus.x - p.x;

@@ -268,6 +268,20 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         candidates.push({ el, x: sp.x + size * 0.5, y: sp.y + 2, w: m.label.length * CHAR_W, priority: 0.5 });
       }
 
+      // Points being placed for an order.
+      for (const w of list.waypoints) {
+        toRender(w.position, focus, v);
+        if (!project(v, cam, sp)) continue;
+        push(sp.x, sp.y, 26 * T.scale, 0, EXTRA_CELLS.waypoint, palette.friendly, 1);
+        const el = labelFor(w.id);
+        seen.add(w.id);
+        el.style.display = "";
+        el.textContent = w.label;
+        el.style.color = palette.friendly;
+        el.style.opacity = "1";
+        candidates.push({ el, x: sp.x + 16, y: sp.y - 16, w: w.label.length * CHAR_W, priority: -1 });
+      }
+
       // Selection reticle on top.
       const sel = selectedId && screen.find((it) => it.id === selectedId && it.visible);
       if (sel) push(sel.x, sel.y, sel.reticle, 0, EXTRA_CELLS.select, palette.text, 0.9);

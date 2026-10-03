@@ -5,7 +5,8 @@
 // The shape of the picture is already the final one, so the renderer will not change.
 
 import { clone, type Vec3 } from "../vec3";
-import { areHostile, type BodyKind, type FactionId, type ShipClass, type World } from "../world";
+import type { NavOrder, NavPhase } from "../commands";
+import { areHostile, type BodyKind, type FactionId, type GSetting, type ShipClass, type World } from "../world";
 
 export type Allegiance = "friendly" | "neutral" | "hostile" | "unknown";
 export type TrackKind = "ship" | "torpedo" | "station";
@@ -38,6 +39,10 @@ export interface OwnShip {
   velocity: Vec3;
   heading: Vec3;
   thrust: number;
+  g: GSetting;
+  /** Current nav order type, or null when coasting. */
+  orderType: NavOrder["type"] | null;
+  phase: NavPhase;
 }
 
 /** Charted objects: bodies are known from navigation charts, not detected. */
@@ -127,6 +132,9 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       velocity: clone(s.velocity),
       heading: clone(s.heading),
       thrust: s.thrust,
+      g: s.g,
+      orderType: s.order?.type ?? null,
+      phase: s.nav.phase,
     })),
     tracks,
     bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position) })),

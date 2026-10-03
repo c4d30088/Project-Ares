@@ -6,6 +6,8 @@ import { createGame } from "./game/game";
 import { buildDisplayList, pathMarkers } from "./render/displayList";
 import { createPathLayer } from "./render/paths";
 import { DT } from "./sim/sim";
+import { G0 } from "./data/ships";
+import { createOrderInput, type OrderKind } from "./game/input";
 import { createIconLayer } from "./render/icons";
 import { createBodyLayer } from "./render/bodies";
 import { createDropLines } from "./render/dropLines";
@@ -53,8 +55,18 @@ view.cam.onPan = () => {
 };
 focusSelected(false);
 
+const orders = createOrderInput(game, view, (x, y) => icons.pick(x, y));
+
 hudActions.togglePause = () => game.togglePause();
 hudActions.setCompression = (i) => game.setCompression(i);
+hudActions.startOrder = (kind) => orders.start(kind as OrderKind);
+hudActions.setG = (g) => orders.setG(g);
+
+const isOwnShip = (id: string | null) => !!id && game.picture.ownShips.some((s) => s.id === id);
+const select = (id: string | null) => {
+  game.selectedId = id;
+  if (isOwnShip(id)) game.activeShipId = id;
+};
 
 // Click selects the symbol under the cursor (or clears the selection); double-click also focuses.
 const toLocal = (x: number, y: number) => {
@@ -62,21 +74,32 @@ const toLocal = (x: number, y: number) => {
   return [x - r.left, y - r.top] as const;
 };
 view.cam.onClick = (x, y) => {
-  game.selectedId = icons.pick(...toLocal(x, y));
+  if (!orders.mode) select(icons.pick(...toLocal(x, y)));
 };
 view.dom.addEventListener("dblclick", (e) => {
+  if (orders.mode) return;
   const id = icons.pick(...toLocal(e.clientX, e.clientY));
   if (id) {
-    game.selectedId = id;
+    select(id);
     focusSelected();
   }
 });
+
+const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", c: "coast" };
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
   if (e.key === "f" || e.key === "F") focusSelected();
   if (e.key === "t" || e.key === "T") view.cam.toggleTopDown();
-  if (e.key === "Escape") game.selectedId = null;
+  if (e.key === "Escape") {
+    if (orders.mode) orders.cancel();
+    else game.selectedId = null;
+  }
+  const order = ORDER_KEYS[e.key.toLowerCase()];
+  if (order && !e.metaKey && !e.ctrlKey) orders.start(order);
+  if (e.key === "1") orders.setG("cruise");
+  if (e.key === "2") orders.setG("combat");
+  if (e.key === "3") orders.setG("max");
   if (e.key === " ") {
     e.preventDefault();
     game.togglePause();
@@ -116,7 +139,25 @@ function frame(now: number) {
   hudTimer -= dt;
   if (hudTimer <= 0) {
     hudTimer = 0.1;
+    const own = game.picture.ownShips.find((s) => s.id === game.activeShipId);
+    const pred = own ? game.predictions.get(own.id) : undefined;
+    const elapsed = pred ? (game.world.tick - pred.startTick) * DT : 0;
     hudStore.set({
+      activeShip: own
+        ? {
+            name: own.name,
+            shipClass: own.shipClass.toUpperCase(),
+            order: own.orderType ?? "coast",
+            phase: own.phase,
+            speed: Math.hypot(own.velocity.x, own.velocity.y, own.velocity.z),
+            accelG: own.thrust / G0,
+            g: own.g,
+            flipIn: pred?.flip && pred.flip.t > elapsed ? pred.flip.t - elapsed : null,
+            eta: pred?.arrival ? Math.max(0, pred.arrival.t - elapsed) : null,
+          }
+        : null,
+      orderMode: orders.mode,
+      hint: orders.hint,
       simTime: game.simTime,
       paused: game.paused,
       compressionIndex: game.compressionIndex,
@@ -126,7 +167,12 @@ function frame(now: number) {
   }
   view.cam.update(dt);
   holotable.update(view.cam.focus, view.cam.distance, dt, view.cam.camera);
-  const list = buildDisplayList(game.picture, pathMarkers(game.predictions.values(), game.world.tick, DT));
+  const preview = orders.preview;
+  const list = buildDisplayList(
+    game.picture,
+    pathMarkers(game.predictions.values(), game.world.tick, DT),
+    preview ? [{ id: "placement", position: preview.position, label: preview.label }] : [],
+  );
   paths.update(
     game.predictions,
     (id) => game.positionOf(id),

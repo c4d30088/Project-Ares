@@ -8,6 +8,8 @@ export const navTuning = {
   arriveSpeed: 0.5,
   /** How quickly sideways drift is cancelled (bigger = gentler). */
   lateralTimeConstant: 4,
+  /** While accelerating, sideways correction may use at most this fraction of thrust. */
+  lateralShare: 0.6,
   /** Velocity errors smaller than this are ignored, so the ship does not chase noise. */
   velocityDeadband: 0.05,
   /** Rendezvous stops this far short of the target, alongside it. */

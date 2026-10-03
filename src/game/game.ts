@@ -23,6 +23,8 @@ export interface Game {
   /** The player's picture, with positions interpolated between the last two ticks. */
   picture: SensorPicture;
   selectedId: string | null;
+  /** The player's ship that receives orders: the last own ship selected. */
+  activeShipId: string | null;
   paused: boolean;
   compressionIndex: number;
   /** Short message explaining an automatic time change, or null. */
@@ -142,6 +144,7 @@ export function createGame(scenario: Scenario): Game {
     playerFaction: faction,
     picture: buildPerfectPicture(world, faction),
     selectedId: world.ships.find((s) => s.faction === faction)?.id ?? null,
+    activeShipId: world.ships.find((s) => s.faction === faction)?.id ?? null,
     paused: false,
     compressionIndex: 0,
     notice: null,

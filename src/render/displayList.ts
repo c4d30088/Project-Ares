@@ -43,10 +43,18 @@ export interface PathMarker {
   allegiance: Allegiance;
 }
 
+/** A point being placed for an order: crosshair, drop line and label. */
+export interface Waypoint {
+  id: string;
+  position: Vec3;
+  label: string;
+}
+
 export interface DisplayList {
   symbols: ShipSymbol[];
   bodies: BodySymbol[];
   markers: PathMarker[];
+  waypoints: Waypoint[];
 }
 
 /** Flip marker and arrival ring for each prediction, with countdowns from `now`. */
@@ -84,7 +92,7 @@ function pointingFor(burning: boolean, heading: Vec3, velocity: Vec3): Vec3 {
   return velocity;
 }
 
-export function buildDisplayList(picture: SensorPicture, markers: PathMarker[] = []): DisplayList {
+export function buildDisplayList(picture: SensorPicture, markers: PathMarker[] = [], waypoints: Waypoint[] = []): DisplayList {
   const symbols: ShipSymbol[] = [];
 
   for (const s of picture.ownShips) {
@@ -129,5 +137,5 @@ export function buildDisplayList(picture: SensorPicture, markers: PathMarker[] =
     radius: b.radius,
   }));
 
-  return { symbols, bodies, markers };
+  return { symbols, bodies, markers, waypoints };
 }

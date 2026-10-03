@@ -138,3 +138,31 @@
 .time-controls { display: flex; align-items: center; gap: 10px; }
 .clock { color: var(--text); font-size: 13px; margin-left: 4px; }
 .hud-btn.mono { text-transform: none; }
+
+/* --- Bottom bar: orders row above time row --- */
+.bottom-bar { height: 92px; }
+.rail-left, .rail-right { bottom: 120px; }
+.bottom-bar .panel-inner { flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; }
+.order-bar { display: flex; gap: 14px; flex-wrap: wrap; }
+.hud-btn .key { color: var(--textDim); margin-left: 4px; font-family: "Share Tech Mono", monospace; }
+.order-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 118px;
+  transform: translateX(-50%);
+  color: var(--friendly);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.scale-readout { bottom: 140px; }
+
+/* --- Left rail data rows --- */
+.nav-status { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.ship-name { font-size: 14px; font-weight: 600; color: var(--friendly); letter-spacing: 0.1em; }
+.ship-class { font-size: 10px; color: var(--textDim); margin-bottom: 8px; }
+.data-row { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; border-bottom: 1px solid color-mix(in srgb, var(--chrome) 18%, transparent); }
+.data-label { color: var(--textDim); font-size: 10px; }
+.data-value { color: var(--text); font-size: 12px; }
+.data-row.warn .data-value { color: var(--uncertain); }
+.data-row.dim .data-value { color: var(--textDim); }

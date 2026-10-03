@@ -84,6 +84,7 @@ export function createDropLines(scene: THREE.Scene) {
         const hex = isTorpedo && s.allegiance === "hostile" ? palette.threat : allegianceColor[s.allegiance];
         addObject(s.position, focus, cam, hex, isTorpedo ? T.torpedoDropLineOpacity : T.dropLineOpacity, pxPerRad);
       }
+      for (const w of list.waypoints) addObject(w.position, focus, cam, palette.friendly, 0.95, pxPerRad);
       for (const body of list.bodies) {
         addObject(body.position, focus, cam, palette.chrome, T.bodyDropLineOpacity, pxPerRad);
       }

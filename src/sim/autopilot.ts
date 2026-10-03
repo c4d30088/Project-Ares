@@ -95,7 +95,8 @@ function arrive(
   }
 
   // Sideways drift is cancelled with a gentle time constant. While accelerating, the
-  // sideways correction gets first claim on thrust and the rest pushes toward the point;
+  // sideways correction gets first claim on part of the thrust (lateralShare) and the rest
+  // pushes toward the point;
   // while braking, stopping on the point comes first and sideways gets what is left.
   let aLat = length(vLat) < N.velocityDeadband ? { x: 0, y: 0, z: 0 } : scale(vLat, -1 / N.lateralTimeConstant);
   const capLat = (budget: number) => {
@@ -107,7 +108,7 @@ function arrive(
     aLong = -Math.min(a, (vc * vc) / (2 * Math.max(d, 1e-3)));
     capLat(Math.sqrt(Math.max(0, a * a - aLong * aLong)));
   } else {
-    capLat(a);
+    capLat(a * N.lateralShare);
     aLong = Math.sqrt(Math.max(0, a * a - dot(aLat, aLat)));
   }
 

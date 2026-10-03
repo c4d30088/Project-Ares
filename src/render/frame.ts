@@ -15,3 +15,8 @@ export function toRender(simPos: Vec3, focus: Vec3, out: Vector3): Vector3 {
 export function dirToSim(x: number, y: number, z: number): Vec3 {
   return { x, y: -z, z: y };
 }
+
+/** Inverse of toRender: a three.js position (relative to focus) back to sim coordinates. */
+export function fromRender(x: number, y: number, z: number, focus: Vec3): Vec3 {
+  return { x: x + focus.x, y: -z + focus.y, z: y + focus.z };
+}
