@@ -1,0 +1,18 @@
+# OS
+.DS_Store
+
+# Dependencies and builds
+node_modules/
+dist/
+
+# Test output
+playwright-report/
+test-results/
+shots/
+
+# Logs
+*.log
+
+# Reference images: copyrighted screenshots, kept local only
+UX reference/
+The Expanse UI Reference/

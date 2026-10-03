@@ -1,0 +1,191 @@
+# Project Ares: Roadmap
+
+Combat comes first. The career layer, setting, and multiplayer wait until a single-ship fight is fun to play over and over.
+
+Each milestone ends with a **playtest checkpoint**: something you do in the game, and what "good" feels like. You judge the checkpoint by playing, not by reading code. Do not start the next milestone until the checkpoint passes or you have consciously decided to move on.
+
+Session estimates assume a sitting of 1 to 3 hours with Claude Code. They are rough; physics and AI work is the least predictable.
+
+---
+
+## Phase 1: Single-ship combat core
+
+### M0. Project setup (1 session)
+
+**Build**
+- Vite + TypeScript + three.js + React + Vitest + lil-gui + Playwright
+- Folder layout from `docs/ARCHITECTURE.md`
+- git repo with `.gitignore` (reference image folders excluded)
+- `npm run dev`, `npm test`, `npm run build`, `npm run shot` all working
+- A black scene with an orbit camera
+
+**Checkpoint:** The game opens in your browser. You can rotate the camera around an empty dark space.
+
+**First prompt**
+> Read CLAUDE.md and everything in docs/. We are starting milestone M0 from docs/ROADMAP.md. Plan the setup first and show me the plan. After I approve, set up the project, initialize git, make the first commit, and tell me exactly how to open the game in my browser.
+
+---
+
+### M1. The holotable (2 to 4 sessions)
+
+**Build**
+- Bounding box with glowing reference-plane grids and labeled XYZ axes
+- Logarithmic zoom, orbit, pan, focus on selection, snap to top-down
+- Floating origin and logarithmic depth buffer
+- Color tokens in `palette.ts`, fonts loaded
+- Symbol set for all ship classes, unknown contacts, torpedoes, bodies, stations
+- Drop lines from every object to the reference plane
+- Bloom and chromatic split, with debug sliders
+- A static test scenario: a moon, a few asteroids, 3 friendly ships, 3 hostile ships, a swarm of 20 hostile torpedoes, at varied heights
+- HUD shell: empty left rail, right rail, bottom bar, top alert strip, with chamfered panel styling
+
+**Checkpoint:** Rotate the camera around the test scene for 10 seconds. You can say which ships are above or below you, which are hostile, and which class each one is, without hovering anything. It looks like it belongs next to the reference images.
+
+**First prompt**
+> Start M1 from docs/ROADMAP.md. Read the visual language section of docs/DESIGN.md and look at the images in "UX reference/" first. Plan the holotable, the symbol set, and the static test scenario. Take screenshots as you go and compare them against the references.
+
+---
+
+### M2. Flight and the nav computer (3 to 5 sessions)
+
+**Build**
+- Fixed-timestep sim with ships that have mass, acceleration limits, and turn rates
+- Commands: burn to point, intercept (rendezvous and fast pass), match velocity, station-keep, coast, orient
+- G setting (Cruise, Combat, Max)
+- Ghost-run prediction: solid burn arcs, dashed coast arcs, flip marker with countdown, arrival ring with ETA
+- 3D point placement (click plane, drag for height, snap to objects)
+- Time controls: pause, 1x to 1024x, auto-slowdown rules
+- `SensorPicture` interface returning perfect information
+- Unit tests for autopilot accuracy and determinism
+
+**Checkpoint:** Order your frigate to a point 5,000 km away and above the plane. Watch it burn, flip at the marked point, and arrive at rest where the ring said, at the ETA it showed. Then order an intercept on a coasting target. Planning a move should feel satisfying even with nothing shooting at you.
+
+---
+
+### M3. Weapons and the first fight (4 to 6 sessions)
+
+**Build**
+- Torpedoes: hot and cold launch, salvo size, guidance, delta-v budget
+- Intercept lines with predicted impact point and countdown
+- Manual targeting for every weapon: pick a ship, an object, or a point in space (point placement reuses the nav waypoint tool)
+- PDCs: arcs, domes, Auto / Manual / Hold modes per PDC, target switching time, ammunition, saturation
+- Railguns: light turret railgun on the frigate, lead point, slug flight, recharge, ammunition
+- Subsystem damage with hit direction
+- G-strain meter
+- Left rail ship status panel and top alert strip working
+- A scripted enemy that approaches and fires salvos on a timer
+- Unit tests for intercept prediction and PDC saturation
+
+**Checkpoint:** Fight the scripted enemy 5 times. Use each target type at least once: a torpedo salvo at the ship, a railgun shot at a point where you expect it to be, PDCs set to Auto and then switched to Manual. At least once, a red swarm closing on your ship should make you lean toward the screen. You should be able to say why each torpedo that hit you got through.
+
+**Stop rule:** If the torpedo and PDC exchange is not tense after three rounds of tuning, stop and rethink the weapons interaction before building sensors. Sensors make a good fight better. They will not rescue a flat one.
+
+---
+
+### M4. Sensors and stealth (4 to 6 sessions)
+
+**Build**
+- Signatures: drive plume, heat, radar cross-section, emissions
+- Telescope, radar, lidar with ranges and costs from the design table
+- Line of sight blocked by bodies; sensor shadow volumes on the table
+- Local picture per ship and shared picture per datalink network, with contributors recorded on every track
+- Tracks with uncertainty regions and classification confidence
+- Stale tracks: when the only ship seeing a contact is lost, the track freezes, turns amber, and fades
+- Passive bearing-only tracks that firm up over time
+- Running dark with heat buildup and venting
+- Jamming: amber tracks, trajectory cones, display breakdown when you are jammed
+- Decoys and ghost contacts
+- God view debug toggle
+- Unit tests for detection ranges, line of sight, and stale tracks
+
+**Checkpoint:** Play a scenario where the enemy starts behind a moon. You should feel the difference between knowing where they are and guessing. Try one ambush: launch cold torpedoes from cover and light them late. It should work sometimes and fail for a reason you can see.
+
+---
+
+### M5. AI captain and skirmish mode (3 to 5 sessions)
+
+**Build**
+- Utility AI using the same commands and only its own sensor picture
+- Personality settings: aggression, caution, emissions discipline
+- Skirmish setup screen: pick scenario, enemy count (1v1, 1v2), AI personality
+- Win and loss conditions
+- 4 to 6 hand-built scenarios covering all three range phases
+
+**Checkpoint:** Play 10 skirmishes. You win some and lose some. When you lose, you can name what the AI did. The AI should never seem to know something it could not have seen.
+
+---
+
+### M6. Feel and polish pass (2 to 4 sessions)
+
+**Build**
+- Audio: alarms, launch warnings, PDC fire, drive rumble, impacts
+- Hit flicker, jamming static, alert animations
+- After-action replay showing both sides' sensor pictures on a timeline
+- Accessibility basics: color-blind palette, effect sliders, remappable keys
+- Playtest build deployed to a shareable link
+
+**Checkpoint:** Give the link to 3 to 5 people who have not seen the game. Watch them play without explaining anything. Write down where they hesitate, what they never use, and when they lean in. Those notes decide what Phase 2 fixes first.
+
+---
+
+## Phase 2: Attack group (outline)
+
+- Select and command multiple ships; group orders and formations
+- Datalink across the group: shared picture, passive triangulation, visible link lines, links cut by line of sight or jamming
+- Scouting: send a picket ahead; what it sees, everyone sees; when it dies, what it saw goes stale
+- Orders to AI captains: engage target, weapons free, weapons hold, defend ship
+- Coordinated salvos (time-on-target from multiple ships)
+- Overlapping PDC coverage visualized
+- Escort AI that follows simple standing orders
+- Checkpoint: a 3-ship group beats a single heavier ship through coordination, not numbers alone. Losing your scout should hurt in a way you can see on the table.
+
+## Phase 3: Fleet (outline)
+
+- Subordinate group commanders with doctrine settings
+- Fleet-level orders and objectives
+- Performance work for 40 ships and 400 torpedoes (likely moving the sim to a Web Worker)
+- Checkpoint: a fleet battle where the player's job is directing, not micromanaging, and it still feels tense
+
+## Phase 4: Career (outline)
+
+- Original setting and factions (decide open question 1 in DESIGN.md first)
+- Mission board, rank, refits, persistent damage and losses, save system
+- Onboarding: the first 30 minutes teach one concept at a time in safe situations, then test it under pressure
+
+## Phase 5: Multiplayer (outline)
+
+- Server-authoritative PvP running the headless sim in Node
+- Only after the single-player game is fun
+
+---
+
+## How to work with Claude Code (for a non-coder)
+
+### One-time setup
+
+1. Install Node.js (the LTS version) and git.
+2. Create a free GitHub account and a private repository for the project. Claude Code can connect it for you.
+3. Open Claude Code in the Project Ares folder. It reads `CLAUDE.md` automatically at the start of every session.
+
+### Every session
+
+1. Start by telling Claude Code which milestone you are on and what you noticed last time (or point it at the latest `PLAYTEST_LOG.md` entry).
+2. Ask for a plan before any code. Read the plan. If something doesn't match what you want, say so now. It is cheaper than fixing it later.
+3. Let it build in small steps. After each step, it should tell you what to try in the game. Try it.
+4. When something feels wrong, describe what you saw and what you expected, not how to fix it. "The flip happened way before the marker" is more useful than "change the autopilot."
+5. End the session with a commit and a short entry in `PLAYTEST_LOG.md`.
+
+### When things go wrong
+
+- If a change breaks the game and one attempt to fix it fails, ask Claude Code to go back to the last working commit. That is what the commits are for.
+- If the same bug keeps coming back, ask for a unit test that reproduces it before the fix.
+- If a session drifts into a long chain of fixes, stop, start a fresh session, and restate the goal.
+
+### Tuning without code
+
+The lil-gui debug panel (toggle with a key Claude Code will set up in M1) holds every number in the game. Change a value, play, change it again. When something feels right, press "copy values" and ask Claude Code to save them into the data files.
+
+### Two lists to keep
+
+- **Fun debt** (in `PLAYTEST_LOG.md`): places where the game works but isn't fun yet. Review it at the start of each milestone.
+- **Ideas parking lot**: features you want later. Writing them down keeps them out of the current milestone.
