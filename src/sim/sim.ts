@@ -6,6 +6,8 @@ import { clampOutsideBodies, cruiseAccel, navigate, maxAccel, safetyRadius, turn
 import { freshNavState, type Command, type QueuedCommand, type SimEvent } from "./commands";
 import { angleBetween, integrate, integrateWithGravity, slerpToward } from "./physics";
 import { resolveTarget } from "./target";
+import { segmentHitsSphere } from "./collide";
+import { destroy } from "./damage";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -128,12 +130,32 @@ export function step(world: World): void {
     const thrust = aligned ? Math.min(wantThrust, maxAccel(ship)) : 0;
     ship.thrust = thrust;
     ship.nav.phase = out.phase;
+    const before = { ...ship.position };
     integrateWithGravity(ship.position, ship.velocity, scale(ship.heading, thrust), world.bodies, DT);
+    hitBodies(world, ship, before);
   }
 
-  for (const t of world.torpedoes) integrateWithGravity(t.position, t.velocity, scale(t.heading, t.thrust), world.bodies, DT);
+  for (const t of world.torpedoes) {
+    const before = { ...t.position };
+    integrateWithGravity(t.position, t.velocity, scale(t.heading, t.thrust), world.bodies, DT);
+    hitBodies(world, t, before);
+  }
   // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 
+  // Remove what was destroyed this tick.
+  if (world.ships.some((s) => s.destroyed)) world.ships = world.ships.filter((s) => !s.destroyed);
+  if (world.torpedoes.some((t) => t.destroyed)) world.torpedoes = world.torpedoes.filter((t) => !t.destroyed);
+
   world.tick++;
+}
+
+/** Anything that flies into a body is destroyed. */
+function hitBodies(world: World, e: { id: string; position: Vec3; destroyed?: boolean }, before: Vec3): void {
+  for (const b of world.bodies) {
+    if (segmentHitsSphere(before, e.position, b.position, b.radius)) {
+      destroy(world, e, `collision with ${b.name}`);
+      return;
+    }
+  }
 }

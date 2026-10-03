@@ -44,6 +44,8 @@ export interface OwnShip {
   /** Current nav order type, or null when coasting. */
   orderType: NavOrder["type"] | null;
   phase: NavPhase;
+  /** Subsystem health, 1 = intact. */
+  health: Record<string, number>;
   /** The orbit the ship is flying to or in. */
   orbit?: { bodyId: string; center: Vec3; radius: number; normal: Vec3; established: boolean; period: number; bodyRadius: number };
 }
@@ -158,6 +160,7 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       orderType: s.order?.type ?? null,
       phase: s.nav.phase,
       orbit: orbitInfo(world, s),
+      health: { ...s.health },
     })),
     tracks,
     bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position), gm: bodyMu(b) })),

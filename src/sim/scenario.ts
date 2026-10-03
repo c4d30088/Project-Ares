@@ -4,6 +4,7 @@
 import { Rng } from "./rng";
 import { add, normalize, scale, vec3, type Vec3 } from "./vec3";
 import { freshNavState, type Command } from "./commands";
+import { initHealth } from "./damage";
 import type { Body, Faction, GSetting, Ship, Station, Torpedo, World } from "./world";
 
 export interface SalvoSpec {
@@ -83,6 +84,7 @@ export function loadScenario(scenario: Scenario): World {
       g: s.g ?? "cruise",
       order: null,
       nav: freshNavState(),
+      health: initHealth(s.shipClass),
       ...(s.testShowAsUnknown ? { testShowAsUnknown: true } : {}),
     };
   });
@@ -130,6 +132,7 @@ export function loadScenario(scenario: Scenario): World {
   const pending = (scenario.commands ?? []).map((c) => ({ tick: 0, faction: c.faction, command: structuredClone(c.command) }));
   return {
     tick: 0,
+    rngState: rng.getState(),
     pending,
     events: [],
     factions: scenario.factions.map((f) => ({ ...f })),

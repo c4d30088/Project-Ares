@@ -8,6 +8,7 @@ import type { NavOrder, NavPhase, SimEvent } from "./commands";
 import { freshNavState } from "./commands";
 import { angleBetween } from "./physics";
 import { bodyMu, gravityAt, type MassiveBody } from "./gravity";
+import { driveFactor } from "./damage";
 import { resolveTarget } from "./target";
 import { add, cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { Target } from "./target";
@@ -35,7 +36,7 @@ const DT_NAV = 1 / 20;
 export function maxAccel(ship: Ship): number {
   const cls = shipClasses[ship.shipClass];
   const g = ship.g === "cruise" ? cls.cruiseG : ship.g === "combat" ? cls.combatG : cls.maxG;
-  return g * G0;
+  return g * G0 * driveFactor(ship);
 }
 
 /** Turn rate in rad/s, from the class flip time (180° in flipTimeS). */

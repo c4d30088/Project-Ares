@@ -1,6 +1,7 @@
 // Small worlds for sim tests.
 
 import { freshNavState } from "../src/sim/commands";
+import { initHealth } from "../src/sim/damage";
 import type { Ship, ShipClass, World } from "../src/sim/world";
 import type { Vec3 } from "../src/sim/vec3";
 
@@ -16,6 +17,7 @@ export function makeShip(over: Partial<Ship> & { id: string; shipClass?: ShipCla
     g: "cruise",
     order: null,
     nav: freshNavState(),
+    health: initHealth(over.shipClass ?? "frigate"),
     ...over,
   };
 }
@@ -23,6 +25,7 @@ export function makeShip(over: Partial<Ship> & { id: string; shipClass?: ShipCla
 export function makeWorld(ships: Ship[]): World {
   return {
     tick: 0,
+    rngState: 12345,
     pending: [],
     events: [],
     factions: [

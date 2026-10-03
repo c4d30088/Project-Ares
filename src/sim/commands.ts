@@ -61,4 +61,7 @@ export const freshNavState = (): NavState => ({
 export type SimEvent =
   | { type: "flipStart"; ship: string }
   | { type: "orderComplete"; ship: string; order: NavOrder["type"] }
-  | { type: "commandRejected"; faction: string; command: Command; reason: string };
+  | { type: "commandRejected"; faction: string; command: Command; reason: string }
+  | { type: "damage"; ship: string; subsystem: string; side: string; cause: string }
+  | { type: "subsystemDestroyed"; ship: string; subsystem: string }
+  | { type: "destroyed"; id: string; cause: string };

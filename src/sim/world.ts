@@ -27,11 +27,16 @@ export interface Ship {
   /** Current nav order. null means coast. */
   order: NavOrder | null;
   nav: NavState;
+  /** Subsystem health, 1 = intact, 0 = destroyed (see damage.ts). */
+  health: Record<string, number>;
+  /** Set when destroyed; removed from the world at the end of the tick. */
+  destroyed?: boolean;
   /** Test aid until real sensors exist (M4): show this ship as an unknown contact. */
   testShowAsUnknown?: boolean;
 }
 
 export interface Torpedo {
+  destroyed?: boolean;
   id: string;
   faction: FactionId;
   position: Vec3;
@@ -62,6 +67,8 @@ export interface Body {
 
 export interface World {
   tick: number;
+  /** Seeded random state for everything random in the sim (CLAUDE.md rule 3). */
+  rngState: number;
   /** Commands waiting to be applied, in submission order. */
   pending: QueuedCommand[];
   /** Events raised during the most recent tick. */
