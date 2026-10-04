@@ -100,6 +100,7 @@ Build order (one commit per step):
 5. Railgun. **Done** (slugs are untrackable: both sides see only the shot and its predicted path).
 6. G-strain, left rail status panel, alert strip. **Done** (combat stims deferred).
 7. Scripted enemy, First fight scenario, tuning. **Done** (salvo hold adopted).
+8. Playtest fixes after the owner's first fights (2026-10-04): torpedo colors, impact effects and hit text, alert log, debug panel search and explanations. **Done.**
 
 **Status (2026-10-04):** everything in the build list is in. Next: the owner plays the checkpoint (First fight, 5 times); M3 passes on that, or gets another round of tuning.
 
