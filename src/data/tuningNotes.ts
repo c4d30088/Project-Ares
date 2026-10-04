@@ -13,6 +13,11 @@ export const tuningNotes: Record<string, string> = {
   "panel.scenario": "Which scenario is loaded. Picking another one reloads the game.",
   "panel.restart": "Starts the current scenario again from the beginning. Your tuning values are kept.",
   "panel.showNotes": "Shows or hides these explanation lines under each control (the search still reads them).",
+  "panel.textPx": "Size of the control names and values in this panel. Rows grow with it. Remembered when the page reloads.",
+  "panel.notePx": "Size of the grey explanation line under each control (like this one). Remembered when the page reloads.",
+  "panel.widthPx": "How wide this panel is. Wider gives the sliders more room at large text sizes.",
+  "panel.font": "Typeface for the panel: its own sans, the game's HUD font, or the HUD's monospace.",
+  "panel.resetLook": "Puts the panel's text size, explanation size, width and font back to their defaults.",
   "panel.copyValues": "Copies every tuning value as JSON to the clipboard. Paste it into the chat to save your tweaks as the new defaults.",
 
   // --- Physics and time ---

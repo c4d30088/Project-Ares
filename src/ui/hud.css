@@ -277,7 +277,7 @@
 .lil-gui .ares-search:focus { outline: none; border-color: var(--focus-color, #8a8a8a); }
 .lil-gui .ares-desc {
   padding: 0 var(--padding, 4px) 6px calc(var(--padding, 4px) + 2px);
-  font-size: 10px;
+  font-size: var(--ares-note-size, 10px);
   line-height: 1.3;
   letter-spacing: 0;
   text-transform: none;
