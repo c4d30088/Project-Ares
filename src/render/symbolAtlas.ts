@@ -49,18 +49,25 @@ function shapePaths(shape: SymbolShape): Pt[][] {
     case "destroyer":
       return [chevron(-1.0, 1.05, 0.36, 0.85), chevron(-0.25, 1.05, 0.36, 0.85)];
     case "cruiser":
-      return [[[0, -1.1], [0.45, 0], [0, 1.1], [-0.45, 0]]];
+      // The destroyer's chevrons with a third, spaced a little wider so all three stay countable.
+      return [chevron(-1.2, 1.05, 0.36, 0.85), chevron(-0.5, 1.05, 0.36, 0.85), chevron(0.2, 1.05, 0.36, 0.85)];
     case "capital":
+      // Three chevrons over a bar, wider and flatter than the cruiser's so the stack and bar
+      // still fit inside the hostile brackets with a clear gap between every line.
       return [
-        [[0, -1.15], [0.8, 0], [0, 1.15], [-0.8, 0]],
-        [[-1.1, -0.1], [1.1, -0.1], [1.1, 0.1], [-1.1, 0.1]],
+        chevron(-1.3, 0.85, 0.34, 0.95), chevron(-0.68, 0.85, 0.34, 0.95), chevron(-0.06, 0.85, 0.34, 0.95),
+        [[-0.95, 1.07], [0.95, 1.07], [0.95, 1.31], [-0.95, 1.31]],
       ];
     case "station":
-      return [[[-0.72, -0.72], [0.72, -0.72], [0.72, 0.72], [-0.72, 0.72]]];
+      return []; // drawn as a tri-arm hub
     case "unknown":
       return [[[0, -0.95], [0.95, 0], [0, 0.95], [-0.95, 0]]];
     case "torpedo":
-      return []; // drawn as a circle
+      // Slim body, pointed nose, swept tail fins. Smaller than any ship so a salvo stays readable.
+      return [[
+        [0, -0.95], [0.14, -0.72], [0.26, -0.38], [0.26, 0.3], [0.52, 0.82], [0.52, 0.95], [0.2, 0.95],
+        [-0.2, 0.95], [-0.52, 0.95], [-0.52, 0.82], [-0.26, 0.3], [-0.26, -0.38], [-0.14, -0.72],
+      ]];
   }
 }
 
@@ -93,18 +100,40 @@ function brackets(ctx: CanvasRenderingContext2D, half: number, arm: number) {
   ctx.stroke();
 }
 
+// A tri-arm hub: a ring hub with three arms, each ending in a module. Stations never move or
+// turn on the table, so it is drawn upright and the same whether or not "filled" is set.
+function drawStation(ctx: CanvasRenderingContext2D) {
+  ctx.setLineDash([]);
+  ctx.lineWidth = LINE;
+  ctx.beginPath();
+  ctx.arc(0, 0, 0.3, 0, Math.PI * 2);
+  ctx.stroke();
+  for (const deg of [-90, 30, 150]) {
+    const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
+    // A point r along the arm, dx further along it and dy across it.
+    const at = (r: number, dx: number, dy: number): Pt => [c * (r + dx) - s * dy, s * (r + dx) + c * dy];
+    ctx.lineWidth = LINE * 0.9;
+    ctx.beginPath();
+    ctx.moveTo(...at(0.3, 0, 0));
+    ctx.lineTo(...at(0.72, 0, 0));
+    ctx.stroke();
+    ctx.lineWidth = LINE;
+    ctx.beginPath();
+    [[-0.2, -0.24], [0.2, -0.24], [0.2, 0.24], [-0.2, 0.24]].forEach(([dx, dy], i) => {
+      const [x, y] = at(0.98, dx, dy);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  }
+}
+
 function drawSymbol(ctx: CanvasRenderingContext2D, shape: SymbolShape, filled: boolean, treatment: Treatment) {
   ctx.setLineDash(treatment === "dashed" ? [0.32, 0.2] : []);
-  if (shape === "torpedo") {
-    ctx.beginPath();
-    ctx.arc(0, 0, 0.75, 0, Math.PI * 2);
-    if (filled) ctx.fill();
-    else {
-      ctx.lineWidth = LINE * 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, 0.65, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+  if (shape === "station") {
+    drawStation(ctx);
+    if (treatment === "brackets") brackets(ctx, 1.45, 0.42);
     return;
   }
   for (const path of shapePaths(shape)) {
