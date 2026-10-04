@@ -11,7 +11,8 @@ const step = (list: number[], now: number, dir: 1 | -1) => {
   return list[Math.max(0, Math.min(list.length - 1, at + dir))];
 };
 
-/** Left rail: the railgun, rounds left in every PDC, and burst fire for mounts on Auto. */
+/** Left rail weapons: torpedoes, the railgun, rounds left in every PDC, and burst fire
+ *  for mounts on Auto. */
 export function PdcStatus() {
   const hud = useHud();
   const rg = hud.railgun;
@@ -23,6 +24,25 @@ export function PdcStatus() {
   const set = (b: Partial<typeof burst>) => hudActions.setPdcBurst({ ...burst, ...b });
   return (
     <div className="pdc-status">
+      {hud.weapons && hud.weapons.tubes > 0 && (
+        <>
+          <div className="section-title">Torpedoes</div>
+          <div className={`data-row ${hud.weapons.magazine === 0 ? "bad" : ""}`}>
+            <span className="data-label">Magazine</span>
+            <span className="data-value mono">
+              {hud.weapons.magazine}
+              {hud.weapons.queued > 0 ? ` +${hud.weapons.queued} QUEUED` : ""}
+            </span>
+          </div>
+          <div className={`data-row ${(hud.activeShip?.health.tubes ?? 1) <= 0 ? "bad" : ""}`}>
+            <span className="data-label">Tubes ready</span>
+            <span className="data-value mono">
+              {hud.weapons.tubesReady} / {hud.weapons.tubes}
+            </span>
+          </div>
+          <div style={{ height: 12 }} />
+        </>
+      )}
       {rg && (
         <>
           <div className="section-title">{rg.spinal ? "Spinal railgun" : "Railgun"}</div>

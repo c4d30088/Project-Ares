@@ -181,6 +181,9 @@ function frame(now: number) {
             eta: pred?.arrival ? Math.max(0, pred.arrival.t - elapsed) : null,
             orbitAlt: own.orbit ? own.orbit.radius - own.orbit.bodyRadius : null,
             orbitPeriod: own.orbit ? own.orbit.period : null,
+            strain: own.strain,
+            efficiency: own.efficiency,
+            health: own.health,
           }
         : null,
       weapons: own
@@ -190,6 +193,7 @@ function frame(now: number) {
       pdcBurst: own ? own.pdcBurst : null,
       railgun: own ? own.railgun : null,
       railgunDetected: game.alerts.railgunDetected,
+      alerts: game.alertList,
       slugImpactIn: game.alerts.slugImpactIn,
       launchDetected: game.alerts.launchDetected,
       impactIn: game.alerts.impactIn,

@@ -11,8 +11,12 @@ import { WeaponsBar } from "./WeaponsBar";
 import { PdcBar } from "./PdcBar";
 import { PdcStatus } from "./PdcStatus";
 import { RailgunBar } from "./RailgunBar";
+import { ShipStatus } from "./ShipStatus";
 import { formatCountdown } from "./format";
 import { useHud } from "./store";
+
+/** Alerts shown at once in the top strip (most urgent first). */
+const MAX_ALERTS = 3;
 
 // HUD shell. Panels are empty frames in M1; later milestones fill them.
 export function Hud() {
@@ -20,21 +24,19 @@ export function Hud() {
   return (
     <div className="hud">
       <Panel className="alert-strip">
-        {hud.impactIn !== null && (
-          <span className="mono alert threat">IMPACT T-{formatCountdown(hud.impactIn)}</span>
-        )}
-        {hud.slugImpactIn !== null && (
-          <span className="mono alert threat">SLUG T-{formatCountdown(hud.slugImpactIn)}</span>
-        )}
-        {hud.launchDetected && <span className="mono alert threat blink">LAUNCH DETECTED</span>}
-        {hud.railgunDetected && <span className="mono alert threat blink">RAILGUN FIRE DETECTED</span>}
+        {hud.alerts.slice(0, MAX_ALERTS).map((a) => (
+          <span key={a.text} className={`mono alert ${a.tone} ${a.blink ? "blink" : ""}`}>
+            {a.text}
+            {a.countdown !== undefined ? ` T-${formatCountdown(a.countdown)}` : ""}
+          </span>
+        ))}
+        {hud.alerts.length > MAX_ALERTS && <span className="mono alert warn">+{hud.alerts.length - MAX_ALERTS}</span>}
         {hud.notice && <span className="mono alert" style={{ color: palette.uncertain }}>{hud.notice}</span>}
-        {hud.impactIn === null && hud.slugImpactIn === null && !hud.launchDetected && !hud.railgunDetected && !hud.notice && (
-          <span className="mono" style={{ color: palette.textDim }}>NO ALERTS</span>
-        )}
+        {hud.alerts.length === 0 && !hud.notice && <span className="mono" style={{ color: palette.textDim }}>NO ALERTS</span>}
       </Panel>
       <Panel className="rail-left" title="Own ship">
         <NavStatus />
+        <ShipStatus />
         <PdcStatus />
       </Panel>
       <Panel className="rail-right" title="Contacts">

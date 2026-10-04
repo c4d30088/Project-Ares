@@ -15,6 +15,17 @@ export interface ActiveShipInfo {
   eta: number | null; // seconds
   orbitAlt: number | null; // meters above the surface
   orbitPeriod: number | null; // seconds
+  strain: number; // 0..1
+  efficiency: number; // 0..1
+  /** Subsystem health, 1 = intact. */
+  health: Record<string, number>;
+}
+
+export interface AlertInfo {
+  text: string;
+  tone: "threat" | "warn";
+  blink?: boolean;
+  countdown?: number;
 }
 
 export interface WeaponsInfo {
@@ -52,6 +63,7 @@ export interface RailgunInfo {
 
 export interface HudState {
   activeShip: ActiveShipInfo | null;
+  alerts: AlertInfo[];
   railgun: RailgunInfo | null;
   railgunDetected: boolean;
   slugImpactIn: number | null;
@@ -73,6 +85,7 @@ export interface HudState {
 
 let state: HudState = {
   activeShip: null,
+  alerts: [],
   railgun: null,
   railgunDetected: false,
   slugImpactIn: null,

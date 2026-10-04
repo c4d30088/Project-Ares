@@ -199,3 +199,18 @@
 /* --- Railgun --- */
 .railgun-bar { display: flex; align-items: center; gap: 10px; }
 .weapons-label.dim { color: var(--textDim); }
+
+/* --- Ship status: G-strain and subsystems; the left rail scrolls if it must --- */
+.rail-left .panel-inner { overflow-y: auto; }
+.ship-status { margin-top: 14px; }
+.strain-bar { height: 5px; margin: 2px 0 6px; background: color-mix(in srgb, var(--chrome) 18%, transparent); }
+.strain-fill { height: 100%; background: var(--friendly); }
+.strain-bar.warn .strain-fill { background: var(--uncertain); }
+.strain-bar.bad .strain-fill { background: var(--threat); }
+.subsystem-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; margin-top: 4px; }
+.subsystem { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; border-bottom: 1px solid color-mix(in srgb, var(--chrome) 12%, transparent); font-size: 10px; }
+.subsystem .data-value { color: var(--text); }
+.subsystem.warn .data-value { color: var(--uncertain); }
+.subsystem.bad .data-value { color: var(--threat); }
+.alert.warn { color: var(--uncertain); }
+.alert-strip { width: min(760px, 56vw); }

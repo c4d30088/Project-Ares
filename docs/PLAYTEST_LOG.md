@@ -35,7 +35,8 @@ Auto mode blocked commands partway through both sessions today. If it happens ag
 - Also: torpedoes route around bodies (asteroids reliably; a target tucked close behind a big moon may be out of reach), intercept lines are dotted along the real path, and a torpedo range ring shows while aiming.
 - PDC extras: tracer rounds (green ours, yellow theirs), round counts in the left rail, burst fire for Auto, D + click to put every PDC on one torpedo. Weapon fire colors and neutral white are now in the design rules.
 - M3 step 5, railgun: G then click. Light turret on the frigate (20 km/s, 75 degree arc, 8 s recharge, 40 slugs). Slugs are untrackable: each side sees only the shot and its predicted path. Enemy fire raises RAILGUN FIRE DETECTED and, when the shot passes near us, SLUG T-mm:ss. No enemy fires a railgun on its own yet (step 7).
-Next session: step 6 (G-strain, left rail status panel, alert strip), then step 7 (scripted enemy, First fight).
+- M3 step 6: G-strain (fills in ~10 min at Combat G, ~5 at Max G, drains at Cruise; at full strain crew efficiency halves, slowing turns and PDC fire, and holding it causes casualties). Left rail is now the ship status panel (strain bar, crew efficiency, subsystem grid, torpedoes, railgun, PDCs). Alert strip lists the three most urgent alerts (IMPACT, SLUG, HULL BREACH, CREW CASUALTIES, LAUNCH / RAILGUN FIRE DETECTED, PDC n OFFLINE, DRIVE, G-STRAIN). Time drops to 1x when we are hit. Combat stims later (parking lot).
+Next session: step 7 (scripted enemy, First fight scenario, tuning), then the M3 checkpoint.
 
 ---
 
@@ -102,4 +103,5 @@ Features for later. Not for the current milestone.
 
 - Orbit: choose the altitude by dragging; fuel-efficient transfers instead of stop-then-spin-up.
 - Gravity: moving bodies (moons on their own orbits) and slingshot planning.
+- Combat stims (DESIGN.md section 9): raise the G-strain limit for a while, then reduced efficiency; limited supply.
 - Destructible asteroids: asteroids take damage from railgun slugs and torpedoes and break into fragments. Fragments become new objects (debris) that drift, block shots and routes, and can be cleared by PDCs (DESIGN.md already lists debris as a target). Moons and planets stay intact. Best after M3, once railguns exist; it changes cover, so look at it alongside M4 sensors and line of sight.

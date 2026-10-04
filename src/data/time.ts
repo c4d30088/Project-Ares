@@ -15,6 +15,12 @@ export const timeTuning = {
   slowOnThreatS: 60,
   /** Drop to 1x when hostile railgun fire is detected. */
   slowOnRailgun: true,
+  /** Drop to 1x when one of our ships takes damage. */
+  slowOnDamage: true,
+  /** HULL BREACH and CREW CASUALTIES stay in the alert strip this long after it happens,
+   *  real seconds (HULL BREACH stays for good below hullAlert). */
+  damageAlertS: 4,
+  hullAlert: 0.5,
   /** How long LAUNCH DETECTED / RAILGUN FIRE DETECTED stay in the alert strip, real seconds. */
   launchAlertS: 5,
 };

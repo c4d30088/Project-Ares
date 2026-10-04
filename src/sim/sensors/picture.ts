@@ -9,6 +9,7 @@ import { bodyMu } from "../gravity";
 import { predictImpact } from "../weapons/torpedo";
 import { mountDirection, pdcAims } from "../weapons/pdc";
 import { railgunSpec } from "../weapons/railgun";
+import { crewEfficiency } from "../crew";
 import { pdcTuning } from "../../data/weapons";
 import { loadouts } from "../../data/combat";
 import type { NavOrder, NavPhase } from "../commands";
@@ -95,6 +96,9 @@ export interface OwnShip {
   phase: NavPhase;
   /** Subsystem health, 1 = intact. */
   health: Record<string, number>;
+  /** G-strain 0..1, and crew efficiency (1 = fresh and whole). */
+  strain: number;
+  efficiency: number;
   /** Torpedoes left (magazine), ordered but not yet fired, and tubes ready to fire. */
   torpedoes: { magazine: number; queued: number; tubes: number; tubesReady: number };
   pdcs: OwnPdc[];
@@ -221,6 +225,8 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       phase: s.nav.phase,
       orbit: orbitInfo(world, s),
       health: { ...s.health },
+      strain: s.strain,
+      efficiency: crewEfficiency(s),
       torpedoes: {
         magazine: s.weapons.magazine,
         queued: s.weapons.launchQueue.length,

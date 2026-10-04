@@ -13,6 +13,7 @@ import { areHostile, type World } from "../sim/world";
 import { predictImpact } from "../sim/weapons/torpedo";
 import { pathClosest, predictSlugPath } from "../sim/weapons/railgun";
 import { railgunTuning } from "../data/weapons";
+import { crewTuning } from "../data/crew";
 import { TorpedoPredictor, type TorpedoPath } from "../sim/weapons/torpedoPredict";
 
 /** Never run more than this many ticks in one frame, whatever the compression. */
@@ -40,6 +41,8 @@ export interface Game {
   /** Alerts for the top strip, from the player's picture. impactIn: seconds until the
    *  soonest hostile torpedo reaches one of our ships. */
   alerts: { launchDetected: boolean; impactIn: number | null; railgunDetected: boolean; slugImpactIn: number | null };
+  /** The alert strip, most urgent first. */
+  alertList: Alert[];
   /** Railgun shots in the picture with their predicted paths (from the shot) and, for an
    *  enemy shot, where it passes close to one of our ships. */
   shotPaths: Map<string, ShotPath>;
@@ -52,6 +55,16 @@ export interface Game {
   togglePause(): void;
   /** Advances the sim by real seconds (scaled by compression) and rebuilds the picture. */
   update(realDt: number): void;
+}
+
+export interface Alert {
+  text: string;
+  /** threat: danger (red); warn: warning (amber). */
+  tone: "threat" | "warn";
+  /** Blinks while new. */
+  blink?: boolean;
+  /** Seconds to impact, for the countdown alerts (the HUD formats them). */
+  countdown?: number;
 }
 
 export interface ShotPath {
@@ -95,6 +108,10 @@ export function createGame(scenario: Scenario): Game {
     noticeUntil = realClock + NOTICE_SECONDS;
   }
 
+  // When our ships last took a hit or crew losses (real clock), for the alert strip.
+  let lastHullHit = -Infinity;
+  let lastCasualties = -Infinity;
+
   // Hostile torpedoes already warned about for coming inside the threat window.
   const threatWarned = new Set<string>();
 
@@ -110,6 +127,14 @@ export function createGame(scenario: Scenario): Game {
     for (const e of events) {
       if (e.type === "torpedoLaunched" && timeTuning.slowOnLaunch && areHostile(world, faction, e.faction) && slow("LAUNCH DETECTED")) return true;
       if (e.type === "railgunFired" && timeTuning.slowOnRailgun && areHostile(world, faction, e.faction) && slow("RAILGUN FIRE DETECTED")) return true;
+    }
+    // Our ships hurt: remember it for the alert strip, and slow down.
+    for (const e of events) {
+      if (e.type === "damage" && isOwn(e.ship)) {
+        lastHullHit = realClock; // every hit takes hull
+        if (timeTuning.slowOnDamage && slow(`${shipName(e.ship)} HIT`)) return true;
+      }
+      if (e.type === "crewCasualties" && isOwn(e.ship)) lastCasualties = realClock;
     }
     if (timeTuning.slowOnThreatS > 0) {
       for (const t of world.torpedoes) {
@@ -276,6 +301,31 @@ export function createGame(scenario: Scenario): Game {
     }
     alertsPrimed = true;
     game.alerts = { launchDetected: realClock < launchAlertUntil, impactIn, railgunDetected: realClock < railgunAlertUntil, slugImpactIn };
+
+    // The strip, most urgent first. Our own ship's state is ours to know.
+    const list: Alert[] = [];
+    const ship = world.ships.find((s) => s.id === game.activeShipId && s.faction === faction);
+    if (impactIn !== null) list.push({ text: "IMPACT", tone: "threat", countdown: impactIn });
+    if (slugImpactIn !== null) list.push({ text: "SLUG", tone: "threat", countdown: slugImpactIn });
+    if (ship) {
+      const recentHit = realClock - lastHullHit < timeTuning.damageAlertS;
+      if (recentHit || ship.health.hull < timeTuning.hullAlert) list.push({ text: `HULL BREACH ${Math.round(ship.health.hull * 100)}%`, tone: "threat", blink: recentHit });
+      if (realClock - lastCasualties < timeTuning.damageAlertS) list.push({ text: "CREW CASUALTIES", tone: "threat", blink: true });
+    }
+    if (game.alerts.launchDetected) list.push({ text: "LAUNCH DETECTED", tone: "threat", blink: true });
+    if (game.alerts.railgunDetected) list.push({ text: "RAILGUN FIRE DETECTED", tone: "threat", blink: true });
+    if (ship) {
+      ship.weapons.pdcs.forEach((_, i) => {
+        if ((ship.health[`pdc${i + 1}`] ?? 1) <= 0) list.push({ text: `PDC ${i + 1} OFFLINE`, tone: "threat" });
+      });
+      if (ship.health.drive <= 0) list.push({ text: "DRIVE OFFLINE", tone: "threat" });
+      else if (ship.health.drive < 1) list.push({ text: `DRIVE DAMAGED ${Math.round(ship.health.drive * 100)}%`, tone: "warn" });
+      if ((ship.health.railgun ?? 1) <= 0) list.push({ text: "RAILGUN OFFLINE", tone: "threat" });
+      if ((ship.health.tubes ?? 1) <= 0) list.push({ text: "TUBES OFFLINE", tone: "threat" });
+      if (ship.strain >= 1) list.push({ text: "G-STRAIN MAX", tone: "threat" });
+      else if (ship.strain > crewTuning.strainWarn) list.push({ text: `G-STRAIN ${Math.round(ship.strain * 100)}%`, tone: "warn" });
+    }
+    game.alertList = list;
   }
 
   function rebuildPicture(alpha: number) {
@@ -303,6 +353,7 @@ export function createGame(scenario: Scenario): Game {
     notice: null,
     predictions: new Map(),
     alerts: { launchDetected: false, impactIn: null, railgunDetected: false, slugImpactIn: null },
+    alertList: [],
     shotPaths: new Map(),
     torpedoPaths: new Map(),
     get simTime() {
