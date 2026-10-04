@@ -8,6 +8,7 @@ import { bodyTuning } from "../data/bodies";
 import { physicsTuning } from "../data/physics";
 import { timeTuning } from "../data/time";
 import { pdcTuning, railgunTuning, torpedoTuning } from "../data/weapons";
+import { crewTuning } from "../data/crew";
 import { pathTuning } from "../data/paths";
 import { scenarios } from "../data/scenarios";
 
@@ -150,6 +151,16 @@ export function createDebugPanel(currentScenario: string): GUI {
   pdc.add(pathTuning, "pdcDomeOpacity", 0, 0.05, 0.001).name("dome opacity");
   pdc.close();
 
+  const crew = gui.addFolder("G-strain");
+  crew.add(crewTuning, "strainFillS", 30, 3600, 10).name("fill time at 2x cruise (s)");
+  crew.add(crewTuning, "strainRecoverS", 30, 3600, 10).name("drain time (s)");
+  crew.add(crewTuning, "efficiencyAtFullStrain", 0.1, 1, 0.05).name("efficiency at full strain");
+  crew.add(crewTuning, "efficiencyAtNoCrew", 0.1, 1, 0.05).name("efficiency with no crew");
+  crew.add(crewTuning, "casualtyIntervalS", 1, 60, 1).name("casualties every (s)");
+  crew.add(crewTuning, "casualtyDamage", 0, 0.5, 0.01).name("casualty damage");
+  crew.add(crewTuning, "strainWarn", 0, 1, 0.05).name("warn above");
+  crew.close();
+
   const rg = gui.addFolder("Railguns");
   for (const kind of ["light", "spinal"] as const) {
     rg.add(railgunTuning[kind], "slugSpeed", 2000, 60000, 500).name(`${kind}: slug speed (m/s)`);
@@ -166,7 +177,7 @@ export function createDebugPanel(currentScenario: string): GUI {
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pdcTuning, railgunTuning, pathTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pdcTuning, railgunTuning, crewTuning, pathTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },

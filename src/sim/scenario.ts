@@ -87,6 +87,8 @@ export function loadScenario(scenario: Scenario): World {
       order: null,
       nav: freshNavState(),
       health: initHealth(s.shipClass),
+      strain: 0,
+      casualtyS: 0,
       weapons: initWeapons(s.shipClass),
       ...(s.testShowAsUnknown ? { testShowAsUnknown: true } : {}),
     };

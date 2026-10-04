@@ -11,6 +11,7 @@ import { destroy } from "./damage";
 import { fuseTorpedoes, guideTorpedo, queueLaunch, runLaunchers } from "./weapons/torpedo";
 import { runPdcs, setBurst, setPdcs } from "./weapons/pdc";
 import { fireRailgun, moveSlugs, rechargeRailguns } from "./weapons/railgun";
+import { updateStrain } from "./crew";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -180,6 +181,7 @@ export function step(world: World): void {
   }
   fuseTorpedoes(world, torpedoesBefore, shipsBefore, events);
   moveSlugs(world, DT, shipsBefore, events);
+  updateStrain(world, DT, events);
   // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 

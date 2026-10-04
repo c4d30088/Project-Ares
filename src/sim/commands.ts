@@ -85,4 +85,6 @@ export type SimEvent =
   | { type: "pdcKill"; ship: string; mount: number; torpedo: string }
   | { type: "pdcAmmoOut"; ship: string; mount: number }
   | { type: "railgunFired"; ship: string; faction: string; slug: string }
-  | { type: "slugHit"; slug: string; faction: string; hit: string };
+  | { type: "slugHit"; slug: string; faction: string; hit: string }
+  /** Crew losses from holding full G-strain. */
+  | { type: "crewCasualties"; ship: string };

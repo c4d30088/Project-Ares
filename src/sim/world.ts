@@ -30,6 +30,10 @@ export interface Ship {
   nav: NavState;
   /** Subsystem health, 1 = intact, 0 = destroyed (see damage.ts). */
   health: Record<string, number>;
+  /** G-strain, 0 (none) to 1 (full); and time held at full strain toward the next
+   *  casualties (see crew.ts). */
+  strain: number;
+  casualtyS: number;
   /** Set when destroyed; removed from the world at the end of the tick. */
   destroyed?: boolean;
   /** Weapons state: magazine, tubes, queued launches. */

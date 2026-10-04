@@ -23,6 +23,8 @@ export function makeShip(over: Partial<Ship> & { id: string; shipClass?: ShipCla
     order: null,
     nav: freshNavState(),
     health: initHealth(over.shipClass ?? "frigate"),
+    strain: 0,
+    casualtyS: 0,
     weapons,
     ...over,
   };

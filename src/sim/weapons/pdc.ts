@@ -7,6 +7,7 @@ import { loadouts } from "../../data/combat";
 import { pdcTuning as PT, railgunTuning as RT } from "../../data/weapons";
 import type { SimEvent } from "../commands";
 import { applyHit, destroy } from "../damage";
+import { crewEfficiency } from "../crew";
 import { angleBetween } from "../physics";
 import { Rng } from "../rng";
 import { pdcMountDirections, shipFrame, toWorld } from "../shipFrame";
@@ -206,7 +207,8 @@ export function runPdcs(world: World, dt: number, events: SimEvent[]): void {
         events.push({ type: "pdcAmmoOut", ship: ship.id, mount: i + 1 });
       }
       // Kill and hit chances scale with the share of a full tick's rounds actually fired.
-      fire(world, ship, i, aim, health, dt * (shots / (PT.roundsPerS * dt)), events);
+      // A strained or depleted crew shoots worse (DESIGN.md section 9).
+      fire(world, ship, i, aim, health * crewEfficiency(ship), dt * (shots / (PT.roundsPerS * dt)), events);
     }
   }
 }

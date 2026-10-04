@@ -9,6 +9,7 @@ import { freshNavState } from "./commands";
 import { angleBetween } from "./physics";
 import { bodyMu, gravityAt, type MassiveBody } from "./gravity";
 import { driveFactor } from "./damage";
+import { crewEfficiency } from "./crew";
 import { resolveTarget } from "./target";
 import { add, cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { Target } from "./target";
@@ -41,9 +42,10 @@ export function maxAccel(ship: Ship): number {
   return g * G0 * driveFactor(ship);
 }
 
-/** Turn rate in rad/s, from the class flip time (180° in flipTimeS). */
+/** Turn rate in rad/s, from the class flip time (180° in flipTimeS), slowed by a
+ *  strained or depleted crew. */
 export function turnRate(ship: Ship): number {
-  return Math.PI / shipClasses[ship.shipClass].flipTimeS;
+  return (Math.PI / shipClasses[ship.shipClass].flipTimeS) * crewEfficiency(ship);
 }
 
 const coast = (ship: Ship): NavOutput => ({ heading: ship.heading, thrust: 0, phase: "coast" });
