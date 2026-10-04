@@ -42,8 +42,19 @@ export interface BurstInfo {
   intervalS: number;
 }
 
+export interface RailgunInfo {
+  rechargeS: number;
+  slugs: number;
+  slugsMax: number;
+  health: number;
+  spinal: boolean;
+}
+
 export interface HudState {
   activeShip: ActiveShipInfo | null;
+  railgun: RailgunInfo | null;
+  railgunDetected: boolean;
+  slugImpactIn: number | null;
   pdcs: PdcInfo[] | null;
   pdcBurst: BurstInfo | null;
   weapons: WeaponsInfo | null;
@@ -62,6 +73,9 @@ export interface HudState {
 
 let state: HudState = {
   activeShip: null,
+  railgun: null,
+  railgunDetected: false,
+  slugImpactIn: null,
   pdcs: null,
   pdcBurst: null,
   weapons: null,

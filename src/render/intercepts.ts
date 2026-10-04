@@ -23,10 +23,20 @@ export function createInterceptLayer(scene: THREE.Scene) {
   };
   const own = make(palette.fireFriendly);
   const hostile = make(palette.fireHostile);
+  // Slug streaks: short solid strokes where our slugs are.
+  const solid = (color: string) => {
+    const line = new LineSegments2(new LineSegmentsGeometry(), new LineMaterial({ color, linewidth: 2, transparent: true, depthWrite: false }));
+    line.frustumCulled = false;
+    line.visible = false;
+    scene.add(line);
+    return line;
+  };
+  const ownStreaks = solid(palette.fireFriendly);
+  const hostileStreaks = solid(palette.fireHostile);
   const a = new THREE.Vector3();
   const b = new THREE.Vector3();
 
-  function rebuild(line: LineSegments2, paths: InterceptLine[], focus: Vec3, cameraDistance: number) {
+  function rebuild(line: LineSegments2, paths: InterceptLine[], focus: Vec3, cameraDistance: number, dotted = true) {
     const pos: number[] = [];
     for (const p of paths) {
       for (let i = 1; i < p.points.length; i++) {
@@ -40,8 +50,9 @@ export function createInterceptLayer(scene: THREE.Scene) {
     if (pos.length) g.setPositions(pos);
     line.geometry = g;
     line.visible = pos.length > 0;
-    if (pos.length) line.computeLineDistances();
+    if (pos.length && dotted) line.computeLineDistances();
     const mat = line.material as LineMaterial;
+    if (!dotted) return;
     mat.linewidth = T.interceptWidthPx;
     mat.opacity = T.interceptOpacity;
     mat.dashSize = cameraDistance * T.interceptDotScale;
@@ -49,9 +60,11 @@ export function createInterceptLayer(scene: THREE.Scene) {
   }
 
   return {
-    update(lines: InterceptLine[], focus: Vec3, cameraDistance: number) {
+    update(lines: InterceptLine[], focus: Vec3, cameraDistance: number, streaks: InterceptLine[] = []) {
       rebuild(own, lines.filter((l) => !l.hostile), focus, cameraDistance);
       rebuild(hostile, lines.filter((l) => l.hostile), focus, cameraDistance);
+      rebuild(ownStreaks, streaks.filter((l) => !l.hostile), focus, cameraDistance, false);
+      rebuild(hostileStreaks, streaks.filter((l) => l.hostile), focus, cameraDistance, false);
     },
   };
 }

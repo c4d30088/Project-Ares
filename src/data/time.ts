@@ -13,6 +13,8 @@ export const timeTuning = {
   /** Drop to 1x when a hostile torpedo aimed at one of our ships is this close to impact
    *  (seconds); 0 turns it off. */
   slowOnThreatS: 60,
-  /** How long LAUNCH DETECTED stays in the alert strip, real seconds. */
+  /** Drop to 1x when hostile railgun fire is detected. */
+  slowOnRailgun: true,
+  /** How long LAUNCH DETECTED / RAILGUN FIRE DETECTED stay in the alert strip, real seconds. */
   launchAlertS: 5,
 };

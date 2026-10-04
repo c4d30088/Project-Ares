@@ -3,14 +3,15 @@ import { createRoot } from "react-dom/client";
 import { createTableView } from "./render/scene";
 import { createDebugPanel } from "./game/debugPanel";
 import { createGame } from "./game/game";
-import { buildDisplayList, pathMarkers, torpedoOverlays } from "./render/displayList";
+import { buildDisplayList, pathMarkers, railShotOverlays, torpedoOverlays } from "./render/displayList";
+import { aimRailgun, railgunBlocked } from "./sim/weapons/railgun";
 import { createPathLayer } from "./render/paths";
 import { createInterceptLayer } from "./render/intercepts";
 import { createRangeRingLayer } from "./render/rangeRings";
 import { createPdcLayer, type PdcDome, type Tracer } from "./render/pdcs";
 import { dirToSim } from "./render/frame";
 import { torpedoTuning } from "./data/weapons";
-import { formatDistance } from "./ui/format";
+import { formatCountdown, formatDistance } from "./ui/format";
 import { DT } from "./sim/sim";
 import { G0 } from "./data/ships";
 import { createOrderInput, type OrderKind, type SalvoSize } from "./game/input";
@@ -107,7 +108,7 @@ view.dom.addEventListener("dblclick", (e) => {
   }
 });
 
-const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", l: "launch", d: "pdcTarget" };
+const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", l: "launch", d: "pdcTarget", g: "railgun" };
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
@@ -187,6 +188,9 @@ function frame(now: number) {
         : null,
       pdcs: own ? own.pdcs.map((m) => ({ mode: m.mode, firing: m.firing, rounds: m.rounds, roundsMax: m.roundsMax, health: m.health })) : null,
       pdcBurst: own ? own.pdcBurst : null,
+      railgun: own ? own.railgun : null,
+      railgunDetected: game.alerts.railgunDetected,
+      slugImpactIn: game.alerts.slugImpactIn,
       launchDetected: game.alerts.launchDetected,
       impactIn: game.alerts.impactIn,
       orderMode: orders.mode,
@@ -202,6 +206,21 @@ function frame(now: number) {
   holotable.update(view.cam.focus, view.cam.distance, dt, view.cam.camera);
   const preview = orders.preview;
   const torps = torpedoOverlays(game.picture, game.torpedoPaths, game.world.tick, DT);
+  const rails = railShotOverlays(game.picture, game.shotPaths, game.world.tick, DT);
+  // Aiming the railgun: the lead point on the target under the cursor, with the flight
+  // time, or why the shot cannot be made (orange).
+  const rgPreview = [];
+  const shooter = game.world.ships.find((s) => s.id === game.activeShipId);
+  if (orders.mode === "railgun" && shooter && orders.hoverId && orders.hoverId !== shooter.id) {
+    const isTrack = game.picture.tracks.some((t) => t.id === orders.hoverId && t.allegiance !== "friendly");
+    const isBody = game.picture.bodies.some((b) => b.id === orders.hoverId);
+    if (isTrack || isBody) {
+      const target = isTrack ? { kind: "track" as const, id: orders.hoverId } : { kind: "object" as const, id: orders.hoverId };
+      const aim = aimRailgun(game.world, shooter, target);
+      const why = railgunBlocked(game.world, shooter, target);
+      if (aim) rgPreview.push({ id: "rg-lead", position: aim.aimPoint, label: why ? why.toUpperCase() : `RG LEAD · ${formatCountdown(aim.t)}`, warn: !!why });
+    }
+  }
   // While aiming torpedoes: their range ring on the plane, labelled on the side facing us.
   const aimingFrom = orders.mode === "launch" && game.activeShipId ? game.positionOf(game.activeShipId) : null;
   const ring = aimingFrom ? { center: aimingFrom, radius: torpedoTuning.effectiveRange } : null;
@@ -220,8 +239,8 @@ function frame(now: number) {
   }
   const list = buildDisplayList(
     game.picture,
-    [...pathMarkers(game.predictions.values(), game.world.tick, DT), ...torps.markers, ...ringLabels],
-    preview ? [{ id: "placement", position: preview.position, label: preview.label, warn: preview.warn }] : [],
+    [...pathMarkers(game.predictions.values(), game.world.tick, DT), ...torps.markers, ...rails.markers, ...ringLabels],
+    [...(preview ? [{ id: "placement", position: preview.position, label: preview.label, warn: preview.warn }] : []), ...rgPreview],
   );
   paths.update(
     game.predictions,
@@ -233,7 +252,7 @@ function frame(now: number) {
     dt,
     game.picture.ownShips.flatMap((s) => (s.orbit ? [{ id: s.id, ...s.orbit }] : [])),
   );
-  intercepts.update(torps.lines, view.cam.focus, view.cam.distance);
+  intercepts.update([...torps.lines, ...rails.lines], view.cam.focus, view.cam.distance, rails.streaks);
   rangeRings.update(ring, view.cam.focus);
   // PDC domes on our ships; tracers from every gun that is firing (theirs are visible too).
   const domes: PdcDome[] = [];

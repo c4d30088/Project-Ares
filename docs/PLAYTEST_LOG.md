@@ -33,7 +33,9 @@ Done and committed:
 Auto mode blocked commands partway through both sessions today. If it happens again, switch to the default permission mode.
 - M3 step 4, PDCs: four mounts on the frigate, Auto (default) / Manual / Hold, domes to effective range, tracers, ammo. Starting kill rate 0.8/s: small salvos are stopped, 12 torpedoes inside 3 s leak about one. Enemy ships defend themselves too, so a 2-torpedo salvo at a lone frigate is usually shot down; bigger salvos are needed.
 - Also: torpedoes route around bodies (asteroids reliably; a target tucked close behind a big moon may be out of reach), intercept lines are dotted along the real path, and a torpedo range ring shows while aiming.
-Next session: try the PDC test scenario; then step 5 (railgun).
+- PDC extras: tracer rounds (green ours, yellow theirs), round counts in the left rail, burst fire for Auto, D + click to put every PDC on one torpedo. Weapon fire colors and neutral white are now in the design rules.
+- M3 step 5, railgun: G then click. Light turret on the frigate (20 km/s, 75 degree arc, 8 s recharge, 40 slugs). Slugs are untrackable: each side sees only the shot and its predicted path. Enemy fire raises RAILGUN FIRE DETECTED and, when the shot passes near us, SLUG T-mm:ss. No enemy fires a railgun on its own yet (step 7).
+Next session: step 6 (G-strain, left rail status panel, alert strip), then step 7 (scripted enemy, First fight).
 
 ---
 

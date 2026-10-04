@@ -11,6 +11,8 @@ import { DT, step, submit, TICK_RATE } from "../sim/sim";
 import type { Vec3 } from "../sim/vec3";
 import { areHostile, type World } from "../sim/world";
 import { predictImpact } from "../sim/weapons/torpedo";
+import { pathClosest, predictSlugPath } from "../sim/weapons/railgun";
+import { railgunTuning } from "../data/weapons";
 import { TorpedoPredictor, type TorpedoPath } from "../sim/weapons/torpedoPredict";
 
 /** Never run more than this many ticks in one frame, whatever the compression. */
@@ -37,7 +39,10 @@ export interface Game {
   torpedoPaths: Map<string, TorpedoPath>;
   /** Alerts for the top strip, from the player's picture. impactIn: seconds until the
    *  soonest hostile torpedo reaches one of our ships. */
-  alerts: { launchDetected: boolean; impactIn: number | null };
+  alerts: { launchDetected: boolean; impactIn: number | null; railgunDetected: boolean; slugImpactIn: number | null };
+  /** Railgun shots in the picture with their predicted paths (from the shot) and, for an
+   *  enemy shot, where it passes close to one of our ships. */
+  shotPaths: Map<string, ShotPath>;
   readonly simTime: number;
   readonly compression: number;
   positionOf(id: string): Vec3 | null;
@@ -47,6 +52,14 @@ export interface Game {
   togglePause(): void;
   /** Advances the sim by real seconds (scaled by compression) and rebuilds the picture. */
   update(realDt: number): void;
+}
+
+export interface ShotPath {
+  /** Predicted from the shot; t in seconds after it was fired. */
+  points: { t: number; position: Vec3 }[];
+  /** Enemy shots: where and in how many seconds it passes within the danger radius of one
+   *  of our ships (assumed coasting), if it does. */
+  danger: { position: Vec3; t: number; shipId: string } | null;
 }
 
 export function createGame(scenario: Scenario): Game {
@@ -96,6 +109,7 @@ export function createGame(scenario: Scenario): Game {
     // Perfect sensors until M4: a launch is detected the moment it happens.
     for (const e of events) {
       if (e.type === "torpedoLaunched" && timeTuning.slowOnLaunch && areHostile(world, faction, e.faction) && slow("LAUNCH DETECTED")) return true;
+      if (e.type === "railgunFired" && timeTuning.slowOnRailgun && areHostile(world, faction, e.faction) && slow("RAILGUN FIRE DETECTED")) return true;
     }
     if (timeTuning.slowOnThreatS > 0) {
       for (const t of world.torpedoes) {
@@ -208,8 +222,33 @@ export function createGame(scenario: Scenario): Game {
     }
   }
 
+  /** Predicted paths for the shots in the picture (each predicted once, from its shot),
+   *  and, for enemy shots, the danger point near one of our ships. */
+  function updateShotPaths() {
+    const live = new Set(game.picture.shots.map((s) => s.id));
+    for (const id of [...game.shotPaths.keys()]) if (!live.has(id)) game.shotPaths.delete(id);
+    for (const shot of game.picture.shots) {
+      let sp = game.shotPaths.get(shot.id);
+      if (!sp) {
+        sp = { points: predictSlugPath(world.bodies, shot.origin, shot.velocity, railgunTuning.slugMaxLifeS).points, danger: null };
+        game.shotPaths.set(shot.id, sp);
+      }
+      sp.danger = null;
+      if (shot.allegiance !== "hostile") continue;
+      const elapsed = (world.tick - shot.tick) * DT;
+      const ahead = sp.points.filter((p) => p.t >= elapsed).map((p) => ({ t: p.t - elapsed, position: p.position }));
+      if (ahead.length < 2) continue;
+      for (const s of game.picture.ownShips) {
+        const c = pathClosest(ahead, s.position, s.velocity);
+        if (c.dist <= railgunTuning.dangerRadius && (!sp.danger || c.t < sp.danger.t)) sp.danger = { position: c.position, t: c.t, shipId: s.id };
+      }
+    }
+  }
+
   // Alerts read the player's picture (CLAUDE.md rule 6): a hostile torpedo track not seen
-  // before is a detected launch.
+  // before is a detected launch; a hostile railgun shot not seen before is detected fire.
+  const knownHostileShots = new Set<string>();
+  let railgunAlertUntil = -Infinity;
   const knownHostileTorpedoes = new Set<string>();
   let launchAlertUntil = -Infinity;
   let alertsPrimed = false;
@@ -225,8 +264,18 @@ export function createGame(scenario: Scenario): Game {
       }
       if (t.impact?.targetId && own.has(t.impact.targetId)) impactIn = Math.min(impactIn ?? Infinity, t.impact.t);
     }
+    let slugImpactIn: number | null = null;
+    for (const shot of game.picture.shots) {
+      if (shot.allegiance !== "hostile") continue;
+      if (!knownHostileShots.has(shot.id)) {
+        knownHostileShots.add(shot.id);
+        if (alertsPrimed) railgunAlertUntil = realClock + timeTuning.launchAlertS;
+      }
+      const d = game.shotPaths.get(shot.id)?.danger;
+      if (d) slugImpactIn = Math.min(slugImpactIn ?? Infinity, d.t);
+    }
     alertsPrimed = true;
-    game.alerts = { launchDetected: realClock < launchAlertUntil, impactIn };
+    game.alerts = { launchDetected: realClock < launchAlertUntil, impactIn, railgunDetected: realClock < railgunAlertUntil, slugImpactIn };
   }
 
   function rebuildPicture(alpha: number) {
@@ -253,7 +302,8 @@ export function createGame(scenario: Scenario): Game {
     compressionIndex: 0,
     notice: null,
     predictions: new Map(),
-    alerts: { launchDetected: false, impactIn: null },
+    alerts: { launchDetected: false, impactIn: null, railgunDetected: false, slugImpactIn: null },
+    shotPaths: new Map(),
     torpedoPaths: new Map(),
     get simTime() {
       return world.tick * DT;
@@ -315,6 +365,7 @@ export function createGame(scenario: Scenario): Game {
       updateTorpedoPaths();
       rebuildPicture(accumulator);
       applyTorpedoPaths();
+      updateShotPaths();
       updateAlerts();
     },
   };

@@ -144,6 +144,66 @@ export function torpedoOverlays(
   return { lines, markers };
 }
 
+/** Railgun shot paths seen on the table, by shot id (predicted from the shot). */
+export interface ShotPathView {
+  points: { t: number; position: Vec3 }[];
+  danger: { position: Vec3; t: number } | null;
+}
+
+/** Where a predicted path is at time t (linear between samples). */
+function along(points: { t: number; position: Vec3 }[], t: number): Vec3 {
+  for (let i = 1; i < points.length; i++) {
+    if (points[i].t >= t) {
+      const a = points[i - 1], b = points[i];
+      const f = (t - a.t) / Math.max(1e-9, b.t - a.t);
+      return { x: a.position.x + (b.position.x - a.position.x) * f, y: a.position.y + (b.position.y - a.position.y) * f, z: a.position.z + (b.position.z - a.position.z) * f };
+    }
+  }
+  return points[points.length - 1].position;
+}
+
+/**
+ * Railgun shots on the table. A slug cannot be tracked, so each shot is drawn as its
+ * predicted path from where the slug should be now. Ours: up to what it was aimed at, with
+ * an X and countdown there, and a streak where the slug is. The enemy's: ahead for a
+ * minute, or up to where it passes close to one of our ships, marked with an X and the
+ * estimated time of impact.
+ */
+export function railShotOverlays(
+  picture: SensorPicture,
+  paths: ReadonlyMap<string, ShotPathView>,
+  simTick: number,
+  dt: number,
+): { lines: InterceptLine[]; streaks: InterceptLine[]; markers: PathMarker[] } {
+  const lines: InterceptLine[] = [];
+  const streaks: InterceptLine[] = [];
+  const markers: PathMarker[] = [];
+  for (const shot of picture.shots) {
+    const path = paths.get(shot.id);
+    if (!path || path.points.length < 2) continue;
+    const hostile = shot.allegiance === "hostile";
+    const elapsed = (simTick - shot.tick) * dt;
+    const now = shot.position ?? along(path.points, elapsed);
+    let end: number;
+    let mark: { position: Vec3; t: number } | null = null;
+    if (shot.aim) {
+      end = shot.aim.t + 3;
+      if (shot.aim.t > elapsed) mark = { position: shot.aim.point, t: shot.aim.t - elapsed };
+    } else if (path.danger) {
+      end = elapsed + path.danger.t + 3;
+      mark = path.danger;
+    } else {
+      end = elapsed + 60;
+    }
+    lines.push({ points: [now, ...path.points.filter((p) => p.t > elapsed && p.t <= end).map((p) => p.position)], hostile });
+    if (shot.position) streaks.push({ points: [along(path.points, Math.max(0, elapsed - 0.5)), shot.position], hostile });
+    if (mark) {
+      markers.push({ id: `rg:${shot.id}`, kind: "impact", position: mark.position, label: `RG T-${formatCountdown(mark.t)}`, allegiance: shot.allegiance });
+    }
+  }
+  return { lines, streaks, markers };
+}
+
 /** Below this speed a coasting object points along its heading instead of its velocity. */
 const MIN_POINTING_SPEED = 0.5; // m/s
 

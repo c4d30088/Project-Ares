@@ -8,6 +8,7 @@ import { clone, type Vec3 } from "../vec3";
 import { bodyMu } from "../gravity";
 import { predictImpact } from "../weapons/torpedo";
 import { mountDirection, pdcAims } from "../weapons/pdc";
+import { railgunSpec } from "../weapons/railgun";
 import { pdcTuning } from "../../data/weapons";
 import { loadouts } from "../../data/combat";
 import type { NavOrder, NavPhase } from "../commands";
@@ -38,6 +39,32 @@ export interface Track {
   impact?: { position: Vec3; t: number; targetId: string | null };
   /** Ships: where its PDCs are firing this tick (PDC fire is visible). */
   pdcFire?: Vec3[];
+}
+
+/**
+ * A railgun shot. A slug cannot be tracked in flight, so the picture holds the shot (seen
+ * when it was fired: where from, and how fast which way); its path is predicted from that.
+ * Our own shots also carry where the slug is now and what it was aimed at.
+ */
+export interface RailShot {
+  id: string;
+  allegiance: Allegiance;
+  /** Tick it was fired, and the slug's state as it left the gun. */
+  tick: number;
+  origin: Vec3;
+  velocity: Vec3;
+  /** Ours only. */
+  position?: Vec3;
+  aim?: { point: Vec3; t: number };
+}
+
+export interface OwnRailgun {
+  /** Seconds until a gun is ready (0 = ready now). */
+  rechargeS: number;
+  slugs: number;
+  slugsMax: number;
+  health: number;
+  spinal: boolean;
 }
 
 export interface OwnPdc {
@@ -74,6 +101,8 @@ export interface OwnShip {
   /** Half-angle of each PDC mount's arc, radians. */
   pdcArc: number;
   pdcBurst: { enabled: boolean; rounds: number; intervalS: number };
+  /** Null if the class carries no railgun. */
+  railgun: OwnRailgun | null;
   /** The orbit the ship is flying to or in. */
   orbit?: { bodyId: string; center: Vec3; radius: number; normal: Vec3; established: boolean; period: number; bodyRadius: number };
 }
@@ -94,6 +123,7 @@ export interface SensorPicture {
   tick: number;
   ownShips: OwnShip[];
   tracks: Track[];
+  shots: RailShot[];
   bodies: ChartedBody[];
 }
 
@@ -209,8 +239,28 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       })),
       pdcArc: (loadouts[s.shipClass].pdcArcDeg * Math.PI) / 180,
       pdcBurst: { ...s.weapons.pdcBurst },
+      railgun: s.weapons.railguns.length
+        ? {
+            rechargeS: Math.min(...s.weapons.railguns.map((g) => g.rechargeS)),
+            slugs: s.weapons.slugs,
+            slugsMax: railgunSpec(s.shipClass)!.ammo,
+            health: s.health.railgun ?? 0,
+            spinal: loadouts[s.shipClass].railgun === "spinal",
+          }
+        : null,
     })),
     tracks,
+    shots: world.slugs.map((sl) => {
+      const own = sl.faction === faction;
+      return {
+        id: sl.id,
+        allegiance: allegianceOf(sl.faction),
+        tick: sl.shot.tick,
+        origin: clone(sl.shot.origin),
+        velocity: clone(sl.shot.velocity),
+        ...(own ? { position: clone(sl.position), aim: { point: clone(sl.aim.point), t: sl.aim.t } } : {}),
+      };
+    }),
     bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position), gm: bodyMu(b) })),
   };
 }

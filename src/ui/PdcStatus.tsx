@@ -1,4 +1,5 @@
 import { hudActions, useHud } from "./store";
+import { railgunState } from "./RailgunBar";
 
 const group = (n: number) => n.toLocaleString("en-US");
 const BURST_ROUNDS = [5, 10, 20, 40, 80];
@@ -10,9 +11,10 @@ const step = (list: number[], now: number, dir: 1 | -1) => {
   return list[Math.max(0, Math.min(list.length - 1, at + dir))];
 };
 
-/** Left rail: rounds left in every PDC, and burst fire for mounts on Auto. */
+/** Left rail: the railgun, rounds left in every PDC, and burst fire for mounts on Auto. */
 export function PdcStatus() {
   const hud = useHud();
+  const rg = hud.railgun;
   const pdcs = hud.pdcs;
   const burst = hud.pdcBurst;
   if (!pdcs || !pdcs.length || !burst) return null;
@@ -21,6 +23,22 @@ export function PdcStatus() {
   const set = (b: Partial<typeof burst>) => hudActions.setPdcBurst({ ...burst, ...b });
   return (
     <div className="pdc-status">
+      {rg && (
+        <>
+          <div className="section-title">{rg.spinal ? "Spinal railgun" : "Railgun"}</div>
+          <div className={`data-row ${rg.health <= 0 || rg.slugs === 0 ? "bad" : rg.rechargeS > 0 ? "dim" : "live"}`}>
+            <span className="data-label">State</span>
+            <span className="data-value mono">{railgunState(rg)}</span>
+          </div>
+          <div className={`data-row ${rg.slugs < 0.25 * rg.slugsMax ? "warn" : ""}`}>
+            <span className="data-label">Slugs</span>
+            <span className="data-value mono">
+              {rg.slugs} / {rg.slugsMax}
+            </span>
+          </div>
+          <div style={{ height: 12 }} />
+        </>
+      )}
       <div className="section-title">PDC</div>
       {pdcs.map((m, i) => {
         const tone = m.health <= 0 || m.rounds === 0 ? "bad" : m.rounds < 0.25 * m.roundsMax ? "warn" : m.firing ? "live" : "";

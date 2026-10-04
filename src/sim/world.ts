@@ -75,6 +75,8 @@ export interface Slug {
   damageScale: number;
   /** The shot as it left the gun: the start of every prediction of its path. */
   shot: { tick: number; origin: Vec3; velocity: Vec3 };
+  /** What the gunner aimed at: the predicted meeting point and the flight time to it. */
+  aim: { point: Vec3; t: number };
   destroyed?: boolean;
 }
 

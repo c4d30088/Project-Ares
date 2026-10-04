@@ -10,6 +10,7 @@ import { NavStatus } from "./NavStatus";
 import { WeaponsBar } from "./WeaponsBar";
 import { PdcBar } from "./PdcBar";
 import { PdcStatus } from "./PdcStatus";
+import { RailgunBar } from "./RailgunBar";
 import { formatCountdown } from "./format";
 import { useHud } from "./store";
 
@@ -22,9 +23,13 @@ export function Hud() {
         {hud.impactIn !== null && (
           <span className="mono alert threat">IMPACT T-{formatCountdown(hud.impactIn)}</span>
         )}
+        {hud.slugImpactIn !== null && (
+          <span className="mono alert threat">SLUG T-{formatCountdown(hud.slugImpactIn)}</span>
+        )}
         {hud.launchDetected && <span className="mono alert threat blink">LAUNCH DETECTED</span>}
+        {hud.railgunDetected && <span className="mono alert threat blink">RAILGUN FIRE DETECTED</span>}
         {hud.notice && <span className="mono alert" style={{ color: palette.uncertain }}>{hud.notice}</span>}
-        {hud.impactIn === null && !hud.launchDetected && !hud.notice && (
+        {hud.impactIn === null && hud.slugImpactIn === null && !hud.launchDetected && !hud.railgunDetected && !hud.notice && (
           <span className="mono" style={{ color: palette.textDim }}>NO ALERTS</span>
         )}
       </Panel>
@@ -38,7 +43,10 @@ export function Hud() {
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
       <Panel className="bottom-bar">
         <OrderBar />
-        <TimeControls />
+        <div className="bottom-row">
+          <TimeControls />
+          <RailgunBar />
+        </div>
         <div className="bottom-row">
           <WeaponsBar />
           <PdcBar />

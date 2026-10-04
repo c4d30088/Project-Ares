@@ -180,6 +180,7 @@ export function fireRailgun(world: World, ship: Ship, target: Target, events: Si
     ageS: 0,
     damageScale: spec.damageScale,
     shot: { tick: world.tick, origin: clone(ship.position), velocity: clone(aim.velocity) },
+    aim: { point: clone(aim.aimPoint), t: aim.t },
   });
   events.push({ type: "railgunFired", ship: ship.id, faction: ship.faction, slug: id });
   return null;
