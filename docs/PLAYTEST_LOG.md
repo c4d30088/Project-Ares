@@ -15,30 +15,37 @@ Next session: (the one thing to fix or try first)
 
 ---
 
-## 2026-10-03, milestone M3 (in progress): second session handoff
-Done and committed:
-- Routing bug fixed (commit 2aa91d1). Routes leaving an orbit or a parked spot go around moons and asteroids. Detours follow the body's edge and take the side the ship is already moving toward. A last-moment safety layer swerves the ship at full thrust if its real motion would carry it into a body; the nav readout shows AVOID while that happens. Tests: `tests/routingDeparture.test.ts`.
-- M3 step 2, torpedoes in the sim (`src/sim/weapons/torpedo.ts`, `tests/torpedo.test.ts`): launch order and tubes firing in waves, hot and cold launch, guidance (boost onto a collision course leading the target's acceleration, dark coast, firm mid-course corrections only when needed, final homing on the reserve), seeker, mines at a point, proximity fuse (never on friendlies), hit direction. Torpedo numbers are in the debug panel under "Torpedoes".
-- Hit-or-miss table, one torpedo against a ship burning flat out across the line of fire for the whole flight (the hardest dodge):
+## 2026-10-04, milestone M3: build complete, ready for the checkpoint playtest
+Next session: start with the playtest. The owner plays the First fight 5 times and gives combat feedback; Claude Code writes the M3 playtest entry from it, then fixes or tunes what the owner reports. Do not start M4 until the checkpoint passes or the owner decides to move on.
 
-  | Range | Cruise 2 g | Combat 4 g | Max 6 g |
-  |---|---|---|---|
-  | 500 to 2,000 km | hit | hit | hit |
-  | 3,000 km | hit | hit | escapes |
-  | 5,000 km | hit | escapes | escapes |
+How to play the checkpoint
+- Run `npm run dev`, open http://localhost:5173/?scenario=first-fight (or pick "first-fight" in the debug panel, toggled with the backquote key). "restart scenario" at the top of the debug panel starts it again and keeps any tuning.
+- The fight: your frigate FF-1 WARDEN at rest; two enemy frigates (TRK-21, TRK-22) about 7,500 km out, above the plane, closing from two directions; the moon ORRAN and three asteroids in between. The enemies close at Cruise G, hold about 2,500 km, fire 4 torpedoes each every 90 s timed to arrive together, and close in with railguns once their torpedoes are spent. The first salvo lands about 16 minutes in; speed up with `]`, time drops to 1x on launches, threats inside 60 s, hits and flips.
+- Weapons: `L` torpedoes (then click a ship, object or place a point; salvo size and Hot/Cold in the bottom bar; range ring while aiming). `G` railgun (hover a ship to see its lead point and flight time, click to fire). `D` assigns every PDC to a target (click an incoming torpedo); the PDC row sets Auto / Manual / Hold for all, chips cycle one mount; burst fire for Auto is in the left rail.
+- Movement: `B` burn, `I` intercept, `P` fast pass, `M` match velocity, `K` station-keep, `O` orient (bring guns and the railgun arc to bear), `R` orbit, `C` coast; `1`/`2`/`3` Cruise/Combat/Max G (G-strain builds above Cruise).
+- The checkpoint (ROADMAP M3): use each target type at least once (a torpedo salvo at a ship, a railgun shot at a point where you expect an enemy, PDCs on Auto then Manual). At least once, the converging swarm should make you lean toward the screen. You should be able to say why each torpedo that hit you got through.
 
-  Escaping means burning hard for 5 minutes or more, which G-strain (step 6) will make costly.
-- M3 step 3, torpedo targeting and display: `L` then click a target or place a point; salvo size (1/2/4/6) and Hot/Cold in the bottom bar, with the magazine and ready tubes. Thin lines from each torpedo to its predicted impact X, one X per target with a countdown and salvo count (red for incoming). Alert strip: LAUNCH DETECTED, IMPACT T-mm:ss. Time drops to 1x on a detected launch and when an incoming torpedo is inside 60 s (toggles in `src/data/time.ts`).
-- Not yet playable against a shooting enemy: the scripted enemy is step 7.
-Auto mode blocked commands partway through both sessions today. If it happens again, switch to the default permission mode.
-- M3 step 4, PDCs: four mounts on the frigate, Auto (default) / Manual / Hold, domes to effective range, tracers, ammo. Starting kill rate 0.8/s: small salvos are stopped, 12 torpedoes inside 3 s leak about one. Enemy ships defend themselves too, so a 2-torpedo salvo at a lone frigate is usually shot down; bigger salvos are needed.
-- Also: torpedoes route around bodies (asteroids reliably; a target tucked close behind a big moon may be out of reach), intercept lines are dotted along the real path, and a torpedo range ring shows while aiming.
-- PDC extras: tracer rounds (green ours, yellow theirs), round counts in the left rail, burst fire for Auto, D + click to put every PDC on one torpedo. Weapon fire colors and neutral white are now in the design rules.
-- M3 step 5, railgun: G then click. Light turret on the frigate (20 km/s, 75 degree arc, 8 s recharge, 40 slugs). Slugs are untrackable: each side sees only the shot and its predicted path. Enemy fire raises RAILGUN FIRE DETECTED and, when the shot passes near us, SLUG T-mm:ss. No enemy fires a railgun on its own yet (step 7).
-- M3 step 6: G-strain (fills in ~10 min at Combat G, ~5 at Max G, drains at Cruise; at full strain crew efficiency halves, slowing turns and PDC fire, and holding it causes casualties). Left rail is now the ship status panel (strain bar, crew efficiency, subsystem grid, torpedoes, railgun, PDCs). Alert strip lists the three most urgent alerts (IMPACT, SLUG, HULL BREACH, CREW CASUALTIES, LAUNCH / RAILGUN FIRE DETECTED, PDC n OFFLINE, DRIVE, G-STRAIN). Time drops to 1x when we are hit. Combat stims later (parking lot).
-- M3 step 7: scripted enemy (src/sim/ai/scripted.ts; commands only, its own side's picture, deterministic). First fight scenario: two enemy frigates that close at Cruise G, hold 2,500 km, fire coordinated salvos of 4 every 90 s timed to arrive together, then close in with railguns when out of torpedoes. Restart button in the debug panel. ALL TARGETS DESTROYED / ALL OUR SHIPS LOST in the alert strip.
-- Tuning (headless, 8 seeds, a stand-in player that holds position, fires salvos of 6 and uses the railgun up close; never maneuvers): without salvo hold the player's torpedoes almost never get through (0 to 2 of 96) and the player loses 6 to 8 of 8. With salvo hold (torpedoes of a salvo wait and light together) 7 to 19 of 96 get through and the stand-in wins 3 of 8. Owner decision: salvo hold on (default; switch in the debug panel under Torpedoes), enemy salvos stay at 4.
-Next session: the M3 checkpoint (fight the First fight 5 times), then the M3 playtest entry.
+What to report (copy into the M3 entry above this one): played (how many fights, won or lost, how long), felt good, felt wrong (what you saw vs. what you expected), confusing, and the one thing to fix first. Useful specifics: was the incoming swarm tense; were your own salvos worth firing; did the railgun matter; was G-strain noticeable; could you read the table during the exchange; anything that felt unfair.
+
+What M3 built (all committed on branch claude/m3-game-dev-c8b8a5; 171 tests)
+- Torpedoes: hot and cold launch, tubes and magazine, salvo hold (a salvo bigger than the tubes lights together and arrives as one wave; owner decision), guidance that leads target acceleration, routes around bodies, a last-moment swerve, seeker, mines at a point, proximity fuse (never friendlies). Dotted intercept line along each torpedo's real predicted path, impact X with countdown and salvo count.
+- PDCs: 4 mounts with arcs (faint domes), Auto / Manual / Hold, 0.3 s switch, 3,000 rounds each at 50/s, burst fire for Auto, tracer rounds, kill rolls on the seeded RNG. Starting kill rate 0.8/s: 4 guns stop small salvos; 12 torpedoes inside 3 s leak about one.
+- Railgun: light turret (20 km/s, 75 degree arc, 8 s recharge, 40 slugs); spinal guns on cruisers and capital ships. Slugs cannot be tracked: each side sees the shot and its predicted path; enemy fire raises RAILGUN FIRE DETECTED and SLUG T-mm:ss. PDCs on Auto engage incoming slugs at 0.3 of their torpedo kill chance.
+- G-strain and crew efficiency, ship status panel (left rail), alert strip (three most urgent alerts), scripted enemy (src/sim/ai/scripted.ts), First fight and PDC test scenarios, restart.
+- Colors (owner decisions, in DESIGN.md and CLAUDE.md rule 7): weapon fire green for ours and yellow for theirs; neutral white; uncertain or warning orange on the table, amber in the HUD.
+- Owner tuning saved this milestone: torpedo symbols 20, torpedo drop lines 0.1, intercept lines 0.1, tracer streaks 0.01 s, fire lines 0.05, route lines 3 px / 0.25 burning and 1 px / 0.1 coasting with longer dashes.
+
+Headless tuning result (8 seeds, a stand-in player that holds position, fires salvos of 6 and uses the railgun up close, never maneuvers or touches the PDCs): with salvo hold it wins 3 of 8; 13 of 192 enemy torpedoes and 7 to 19 of 96 of ours get through. A real player who maneuvers, uses cover and manages the PDCs should do better; if not, the first knobs are enemy salvo size (scenario `ai` entries in src/data/scenarios/first-fight.json), PDC kill rate and torpedo numbers (debug panel).
+
+Known limits and open items
+- The enemy never evades and never uses cover; it is a fixed script, not the M5 AI captain.
+- Sensors are perfect until M4: you always see everything, including ships hidden behind bodies. Line-of-sight targeting (hidden ships hard to hit) is planned in M4 (owner request, recorded in the roadmap).
+- No win or loss screen yet (M5); the alert strip says ALL TARGETS DESTROYED or ALL OUR SHIPS LOST.
+- A torpedo aimed at a target tucked close behind a big moon may run out of fuel going around (it never hits the moon).
+- While a held salvo waits for its last torpedo, the early torpedoes' predicted paths are a little off for a few seconds.
+- Orbit rings use the coasting route settings, so they are now faint (owner tuning); can be split out if wanted.
+- Combat stims deferred (parking lot). Destructible asteroids in the parking lot.
+- Claude Code's auto mode blocked tools partway through sessions on 2026-10-03; the in-app browser pane could not be clicked by Claude, so visual checks used headless screenshots (npm run shot and small Playwright scripts).
 
 ---
 

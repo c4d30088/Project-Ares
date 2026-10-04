@@ -92,12 +92,14 @@ Session estimates assume a sitting of 1 to 3 hours with Claude Code. They are ro
 
 Build order (one commit per step):
 1. Loadouts, subsystem damage, hit detection, collisions with bodies. **Done.**
-2. Torpedoes in the sim: launch command and tube queue, guidance, fuel, seeker, mines, fuse and impact.
-3. Torpedo targeting UI, intercept lines with impact X and countdown, launch alert.
-4. PDCs and domes.
-5. Railgun.
-6. G-strain, left rail status panel, alert strip.
-7. Scripted enemy, First fight scenario, tuning.
+2. Torpedoes in the sim: launch command and tube queue, guidance, fuel, seeker, mines, fuse and impact. **Done.**
+3. Torpedo targeting UI, intercept lines with impact X and countdown, launch alert. **Done.**
+4. PDCs and domes. **Done** (plus tracer rounds, round counts, burst fire).
+5. Railgun. **Done** (slugs are untrackable: both sides see only the shot and its predicted path).
+6. G-strain, left rail status panel, alert strip. **Done** (combat stims deferred).
+7. Scripted enemy, First fight scenario, tuning. **Done** (salvo hold adopted).
+
+**Status (2026-10-04):** everything in the build list is in. Next: the owner plays the checkpoint (First fight, 5 times); M3 passes on that, or gets another round of tuning.
 
 ---
 
