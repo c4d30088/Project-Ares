@@ -59,6 +59,7 @@ export class Predictor {
       events: [],
       ships: source.ships.filter((s) => s.id === shipId || s.id === targetId),
       torpedoes: source.torpedoes.filter((t) => t.id === targetId),
+      slugs: [],
       stations: source.stations.filter((s) => s.id === targetId),
     });
     for (const s of world.ships) {

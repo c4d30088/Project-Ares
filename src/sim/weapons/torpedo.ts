@@ -7,6 +7,7 @@ import { torpedoTuning as TT } from "../../data/weapons";
 import { G0 } from "../../data/ships";
 import { interceptTime, routeAim, swerveDirection } from "../autopilot";
 import { initBurst, initPdcs } from "./pdc";
+import { initRailguns } from "./railgun";
 import { navTuning as N } from "../../data/nav";
 import { closestApproach } from "../collide";
 import { gravityAt } from "../gravity";
@@ -38,7 +39,7 @@ export function torpedoAccel(): number {
 
 export function initWeapons(cls: ShipClass): Weapons {
   const lo = loadouts[cls];
-  return { magazine: lo.magazine, tubeReload: new Array(lo.tubes).fill(0), launchQueue: [], launched: 0, pdcs: initPdcs(cls), pdcBurst: initBurst() };
+  return { magazine: lo.magazine, tubeReload: new Array(lo.tubes).fill(0), launchQueue: [], launched: 0, pdcs: initPdcs(cls), pdcBurst: initBurst(), ...initRailguns(cls) };
 }
 
 /** Queues torpedoes. Returns a reason if the order cannot be carried out. */

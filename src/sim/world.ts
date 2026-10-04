@@ -53,6 +53,29 @@ export interface Weapons {
   pdcs: PdcMount[];
   /** Burst fire for mounts on Auto: off fires continuously. */
   pdcBurst: { enabled: boolean; rounds: number; intervalS: number };
+  /** Railguns: seconds until each can fire again, and slugs left (shared magazine). */
+  railguns: { rechargeS: number }[];
+  slugs: number;
+  /** Slugs fired so far (for ids). */
+  slugsFired: number;
+}
+
+/**
+ * A railgun slug: no drive, no signature, no guidance. Nobody tracks it in flight; both
+ * sides know only the shot (where and how it was fired) and predict its path from that.
+ */
+export interface Slug {
+  id: string;
+  faction: FactionId;
+  launcher: string;
+  position: Vec3;
+  velocity: Vec3;
+  ageS: number;
+  /** Damage multiplier (spinal guns hit harder). */
+  damageScale: number;
+  /** The shot as it left the gun: the start of every prediction of its path. */
+  shot: { tick: number; origin: Vec3; velocity: Vec3 };
+  destroyed?: boolean;
 }
 
 export interface PdcMount {
@@ -136,6 +159,7 @@ export interface World {
   factions: Faction[];
   ships: Ship[];
   torpedoes: Torpedo[];
+  slugs: Slug[];
   stations: Station[];
   bodies: Body[];
 }

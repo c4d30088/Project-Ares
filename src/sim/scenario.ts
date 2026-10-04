@@ -145,6 +145,7 @@ export function loadScenario(scenario: Scenario): World {
     stations,
     bodies,
     torpedoes,
+    slugs: [],
   };
 }
 

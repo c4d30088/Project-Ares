@@ -4,7 +4,7 @@
 // Only PDCs have an automatic mode (CLAUDE.md rule 10).
 
 import { loadouts } from "../../data/combat";
-import { pdcTuning as PT } from "../../data/weapons";
+import { pdcTuning as PT, railgunTuning as RT } from "../../data/weapons";
 import type { SimEvent } from "../commands";
 import { applyHit, destroy } from "../damage";
 import { angleBetween } from "../physics";
@@ -43,6 +43,8 @@ export function pdcAims(world: World, ship: Ship): (Vec3 | null)[] {
   return ship.weapons.pdcs.map((m) => {
     if (!m.firing || !m.engaged) return null;
     if (m.engaged === "point") return m.assigned?.kind === "point" ? { ...m.assigned.position } : null;
+    const slug = world.slugs.find((s) => s.id === m.engaged);
+    if (slug) return { ...slug.position };
     const r = resolveTarget(world, { kind: "track", id: m.engaged }) ?? resolveTarget(world, { kind: "object", id: m.engaged });
     return r ? r.position : null;
   });
@@ -100,7 +102,7 @@ export function setPdcs(ship: Ship, mount: number | "all", mode: PdcMount["mode"
 }
 
 /** What a mount should be shooting at now: an entity id, or a point (barrage). */
-type Aim = { id: string; position: Vec3; kind: "torpedo" | "ship" | "object" } | { id: null; position: Vec3; kind: "point" };
+type Aim = { id: string; position: Vec3; kind: "torpedo" | "slug" | "ship" | "object" } | { id: null; position: Vec3; kind: "point" };
 
 function chooseAuto(world: World, ship: Ship, dir: Vec3, taken: Set<string>): Aim | null {
   // Nearest threat first: the incoming torpedo that will arrive soonest. Spread fire: a
@@ -116,6 +118,19 @@ function chooseAuto(world: World, ship: Ship, dir: Vec3, taken: Set<string>): Ai
       if (!best || key < best.eta) best = { t, eta: key };
     } else if (!fallback || key < fallback.eta) fallback = { t, eta: key };
   }
+  // Incoming slugs: nobody tracks a slug, but its path is known from the shot, so Auto
+  // fires where it will be. They arrive soonest of all, so they come first.
+  let slug: { id: string; position: Vec3; eta: number } | null = null;
+  for (const s of world.slugs) {
+    if (s.destroyed || !areHostile(world, ship.faction, s.faction) || taken.has(s.id) || !covers(ship, dir, s.position)) continue;
+    const r = sub(ship.position, s.position);
+    const d = length(r);
+    const vc = d > 0 ? dot(sub(s.velocity, ship.velocity), scale(r, 1 / d)) : 0;
+    if (vc <= 0) continue;
+    const eta = d / vc;
+    if (!slug || eta < slug.eta) slug = { id: s.id, position: s.position, eta };
+  }
+  if (slug) return { id: slug.id, position: slug.position, kind: "slug" };
   const pick = best ?? fallback;
   if (pick) return { id: pick.t.id, position: pick.t.position, kind: "torpedo" };
   if (PT.autoEngagesShips) {
@@ -205,6 +220,14 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
     if (roll(world, 1 - Math.exp(-pdcRate(r, PT.killRatePerS) * health * dt))) {
       destroy(world, t, "pdc");
       events.push({ type: "pdcKill", ship: ship.id, mount, torpedo: t.id });
+    }
+  } else if (aim.kind === "slug" && aim.id) {
+    const s = world.slugs.find((x) => x.id === aim.id);
+    if (!s || s.destroyed) return;
+    const r = length(sub(s.position, ship.position));
+    if (roll(world, 1 - Math.exp(-pdcRate(r, PT.killRatePerS * RT.pdcSlugFactor) * health * dt))) {
+      destroy(world, s, "pdc");
+      events.push({ type: "pdcKill", ship: ship.id, mount, torpedo: s.id });
     }
   } else if (aim.kind === "point") {
     // Barrage curtain: every hostile torpedo passing through it is at risk.

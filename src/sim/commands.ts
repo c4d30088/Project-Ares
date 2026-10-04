@@ -19,6 +19,8 @@ export type Command =
   | { type: "launchTorpedoes"; ship: string; target: Target; count: number; mode: LaunchMode }
   /** PDC mode for one mount (0-based) or all; Manual with a target assigns it. */
   | { type: "setPdcs"; ship: string; mount: number | "all"; mode: "auto" | "manual" | "hold"; target?: Target }
+  /** Fires one railgun slug at a target (a ship: at its lead point). Never automatic. */
+  | { type: "fireRailgun"; ship: string; target: Target }
   /** Burst fire for PDCs on Auto: rounds per burst and the pause between bursts. */
   | { type: "setPdcBurst"; ship: string; enabled: boolean; rounds: number; intervalS: number };
 
@@ -81,4 +83,6 @@ export type SimEvent =
   /** A torpedo removed without hitting anything: spent after a miss, or a mine timing out. */
   | { type: "torpedoExpired"; torpedo: string; reason: "spent" | "timeout" }
   | { type: "pdcKill"; ship: string; mount: number; torpedo: string }
-  | { type: "pdcAmmoOut"; ship: string; mount: number };
+  | { type: "pdcAmmoOut"; ship: string; mount: number }
+  | { type: "railgunFired"; ship: string; faction: string; slug: string }
+  | { type: "slugHit"; slug: string; faction: string; hit: string };

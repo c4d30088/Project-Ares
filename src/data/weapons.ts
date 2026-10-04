@@ -54,3 +54,21 @@ export const pdcTuning = {
   /** Auto also fires at enemy ships inside effective range. */
   autoEngagesShips: false,
 };
+
+// Railguns (DESIGN.md section 7). Light turrets (frigates, destroyers) cover an arc around
+// the bow; spinal guns (cruisers, capital ships) are fixed along the keel, so the ship must
+// point at the target. Fire only on the player's order (CLAUDE.md rule 10).
+export const railgunTuning = {
+  light: { slugSpeed: 20_000, rechargeS: 8, ammo: 40, arcDeg: 75, damageScale: 1 },
+  spinal: { slugSpeed: 25_000, rechargeS: 30, ammo: 20, arcDeg: 1, damageScale: 2 },
+  /** Slugs that hit nothing are removed after this long, s. */
+  slugMaxLifeS: 900,
+  /** A new slug cannot hit its own ship for this long, s. */
+  muzzleSafeS: 1,
+  /** PDC kill chance against a slug, as a fraction of that against a torpedo. */
+  pdcSlugFactor: 0.3,
+  /** Predicted slug paths: a point every this many seconds. */
+  pathSampleS: 2,
+  /** A predicted slug path passing this close to one of our ships counts as incoming. */
+  dangerRadius: 2_000,
+};

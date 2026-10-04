@@ -10,6 +10,7 @@ import { segmentHitsSphere } from "./collide";
 import { destroy } from "./damage";
 import { fuseTorpedoes, guideTorpedo, queueLaunch, runLaunchers } from "./weapons/torpedo";
 import { runPdcs, setBurst, setPdcs } from "./weapons/pdc";
+import { fireRailgun, moveSlugs, rechargeRailguns } from "./weapons/railgun";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -47,6 +48,12 @@ function applyCommand(world: World, q: QueuedCommand): void {
     case "setPdcs": {
       if (c.mode === "manual" && c.target && !resolveTarget(world, c.target)) return reject(world, q, "unknown target");
       const why = setPdcs(ship, c.mount, c.mode, c.target ?? null);
+      if (why) reject(world, q, why);
+      return;
+    }
+    case "fireRailgun": {
+      if (c.target.kind !== "point" && !resolveTarget(world, c.target)) return reject(world, q, "unknown target");
+      const why = fireRailgun(world, ship, c.target, world.events);
       if (why) reject(world, q, why);
       return;
     }
@@ -130,6 +137,7 @@ export function step(world: World): void {
   }
 
   runLaunchers(world, DT, events);
+  rechargeRailguns(world, DT);
   // Torpedoes steer on everyone's positions at the start of the tick, before anything
   // moves. (Steering after the ships moved would aim a tick's travel off the target.)
   for (const t of world.torpedoes) guideTorpedo(world, t, DT, events);
@@ -171,6 +179,7 @@ export function step(world: World): void {
     hitBodies(world, t, before);
   }
   fuseTorpedoes(world, torpedoesBefore, shipsBefore, events);
+  moveSlugs(world, DT, shipsBefore, events);
   // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 

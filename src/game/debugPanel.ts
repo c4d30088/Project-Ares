@@ -7,7 +7,7 @@ import { navTuning } from "../data/nav";
 import { bodyTuning } from "../data/bodies";
 import { physicsTuning } from "../data/physics";
 import { timeTuning } from "../data/time";
-import { pdcTuning, torpedoTuning } from "../data/weapons";
+import { pdcTuning, railgunTuning, torpedoTuning } from "../data/weapons";
 import { pathTuning } from "../data/paths";
 import { scenarios } from "../data/scenarios";
 
@@ -141,11 +141,23 @@ export function createDebugPanel(currentScenario: string): GUI {
   pdc.add(pathTuning, "pdcDomeOpacity", 0, 0.05, 0.001).name("dome opacity");
   pdc.close();
 
+  const rg = gui.addFolder("Railguns");
+  for (const kind of ["light", "spinal"] as const) {
+    rg.add(railgunTuning[kind], "slugSpeed", 2000, 60000, 500).name(`${kind}: slug speed (m/s)`);
+    rg.add(railgunTuning[kind], "rechargeS", 1, 120, 1).name(`${kind}: recharge (s)`);
+    rg.add(railgunTuning[kind], "ammo", 1, 200, 1).name(`${kind}: slugs`);
+    rg.add(railgunTuning[kind], "arcDeg", 0.5, 180, 0.5).name(`${kind}: arc (deg)`);
+    rg.add(railgunTuning[kind], "damageScale", 0.1, 5, 0.1).name(`${kind}: damage (x)`);
+  }
+  rg.add(railgunTuning, "pdcSlugFactor", 0, 1, 0.05).name("PDC vs slug (x torpedo)");
+  rg.add(railgunTuning, "dangerRadius", 100, 50000, 100).name("incoming if within (m)");
+  rg.close();
+
   // Copies all current values as JSON, to paste back into the src/data files.
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pdcTuning, pathTuning }, null, 2);
+        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pdcTuning, railgunTuning, pathTuning }, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },
