@@ -16,6 +16,9 @@ import { DT } from "./sim/sim";
 import { G0 } from "./data/ships";
 import { createOrderInput, type OrderKind, type SalvoSize } from "./game/input";
 import { createIconLayer } from "./render/icons";
+import { createImpactLayer } from "./render/impacts";
+import { impactsFromEvents } from "./render/impactModel";
+import { areHostile } from "./sim/world";
 import { createBodyLayer } from "./render/bodies";
 import { createDropLines } from "./render/dropLines";
 import { palette } from "./render/palette";
@@ -25,12 +28,16 @@ import { hudActions, hudStore } from "./ui/store";
 import { timeTuning } from "./data/time";
 import { defaultScenario, scenarios } from "./data/scenarios";
 import { effectsTuning } from "./data/effects";
+import { impactTuning } from "./data/impacts";
 
 // Scenario from the URL (?scenario=holotable-test), else the default.
 const scenarioName = new URLSearchParams(location.search).get("scenario") ?? defaultScenario;
 const game = createGame(scenarios[scenarioName] ?? scenarios[defaultScenario]);
 const view = createTableView(document.getElementById("table")!);
-createDebugPanel(scenarioName, () => game.restart());
+createDebugPanel(scenarioName, () => {
+  game.restart();
+  impacts.clear();
+});
 createRoot(document.getElementById("hud")!).render(createElement(Hud));
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.
@@ -50,8 +57,13 @@ const labelRoot = document.createElement("div");
 labelRoot.className = "obj-labels";
 view.overlay.appendChild(labelRoot);
 const icons = createIconLayer(labelRoot);
-view.onResize = (w, h) => icons.resize(w, h);
+const impacts = createImpactLayer(labelRoot);
+view.onResize = (w, h) => {
+  icons.resize(w, h);
+  impacts.resize(w, h);
+};
 icons.resize(view.dom.clientWidth, view.dom.clientHeight);
+impacts.resize(view.dom.clientWidth, view.dom.clientHeight);
 
 // The camera follows the focused object until the player pans away.
 let followId: string | null = null;
@@ -281,7 +293,15 @@ function frame(now: number) {
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);
-  view.render([[icons.scene, icons.camera]]);
+  // Explosions, sparks and hit text for what was hit since the last frame.
+  const fx = impactsFromEvents(game.takeEvents(), {
+    playerFaction: game.playerFaction,
+    hostile: (a, b) => areHostile(game.world, a, b),
+    factionOf: (id) => game.factionOf(id),
+  });
+  impacts.spawn(fx.effects, fx.texts);
+  impacts.update(dt, view.cam.focus, view.cam.camera, (id) => game.positionOf(id));
+  view.render([[icons.scene, icons.camera], [impacts.scene, impacts.camera]]);
   if (firstFrame) {
     firstFrame = false;
     // Signals the screenshot script that the scene has rendered.
@@ -292,4 +312,4 @@ function frame(now: number) {
 requestAnimationFrame(frame);
 
 // Debug handle for the browser console and inspection scripts (dev builds only).
-if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view };
+if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view, impacts, impactTuning };

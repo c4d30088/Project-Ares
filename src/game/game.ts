@@ -49,6 +49,10 @@ export interface Game {
   readonly simTime: number;
   readonly compression: number;
   positionOf(id: string): Vec3 | null;
+  /** Which side a ship is on, including one that has just been destroyed. */
+  factionOf(id: string): string | undefined;
+  /** Every sim event since the last call (the table's effects and the alert log read these). */
+  takeEvents(): SimEvent[];
   /** Submits a command as the player's faction. */
   issue(command: Command): void;
   setCompression(index: number): void;
@@ -85,7 +89,14 @@ export function createGame(scenario: Scenario): Game {
 
   // Positions before the most recent tick, for interpolation.
   const prev = new Map<string, Vec3>();
+  // Which side each ship is on, remembered while it is alive (it is gone by the time its
+  // destruction is reported).
+  const shipFaction = new Map<string, string>();
+  // Events since the last takeEvents(), capped so an ignored queue cannot grow forever.
+  let eventQueue: SimEvent[] = [];
+  const EVENT_QUEUE_MAX = 20000;
   const snapshotPrev = () => {
+    for (const s of world.ships) shipFaction.set(s.id, s.faction);
     for (const list of [world.ships, world.torpedoes, world.stations]) {
       for (const e of list) {
         const p = prev.get(e.id);
@@ -378,6 +389,14 @@ export function createGame(scenario: Scenario): Game {
         null
       );
     },
+    factionOf(id) {
+      return shipFaction.get(id);
+    },
+    takeEvents() {
+      const out = eventQueue;
+      eventQueue = [];
+      return out;
+    },
     issue(command) {
       submit(world, faction, command);
     },
@@ -391,6 +410,8 @@ export function createGame(scenario: Scenario): Game {
       world = loadScenario(scenario);
       game.world = world;
       prev.clear();
+      shipFaction.clear();
+      eventQueue = [];
       snapshotPrev();
       accumulator = 0;
       overloadFrames = 0;
@@ -425,6 +446,7 @@ export function createGame(scenario: Scenario): Game {
         for (let i = 0; i < ticks; i++) {
           snapshotPrev();
           step(world);
+          if (world.events.length && eventQueue.length < EVENT_QUEUE_MAX) eventQueue.push(...world.events);
           if (checkSlowdown(world.events)) {
             accumulator = 0;
             break;

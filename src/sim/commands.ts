@@ -82,7 +82,7 @@ export type SimEvent =
       type: "damage"; ship: string; faction: string; attacker: string; subsystem: string; side: string; cause: string;
       position: Vec3; hull: number; amount: number;
     }
-  | { type: "subsystemDestroyed"; ship: string; subsystem: string }
+  | { type: "subsystemDestroyed"; ship: string; subsystem: string; position: Vec3 }
   | { type: "destroyed"; id: string; cause: string; kind: "ship" | "torpedo" | "slug"; position: Vec3 }
   | { type: "torpedoLaunched"; ship: string; torpedo: string; faction: string; mode: LaunchMode }
   | { type: "torpedoDetonated"; torpedo: string; faction: string; hit: string; position: Vec3 }

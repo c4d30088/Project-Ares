@@ -78,7 +78,7 @@ export function applyHit(world: World, ship: Ship, from: Vec3, hull: number, sub
     const before = ship.health[struck];
     ship.health[struck] = Math.max(0, before - subsystem);
     world.events.push({ ...base, subsystem: struck, amount: before - ship.health[struck] });
-    if (before > 0 && ship.health[struck] === 0) world.events.push({ type: "subsystemDestroyed", ship: ship.id, subsystem: struck });
+    if (before > 0 && ship.health[struck] === 0) world.events.push({ type: "subsystemDestroyed", ship: ship.id, subsystem: struck, position: { ...ship.position } });
   } else {
     world.events.push({ ...base, subsystem: "hull", amount: 0 });
   }
