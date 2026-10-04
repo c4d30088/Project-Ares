@@ -59,7 +59,7 @@ function shapePaths(shape: SymbolShape): Pt[][] {
         [[-0.95, 1.07], [0.95, 1.07], [0.95, 1.31], [-0.95, 1.31]],
       ];
     case "station":
-      return []; // drawn as a wheel
+      return []; // drawn as a tri-arm hub
     case "unknown":
       return [[[0, -0.95], [0.95, 0], [0, 0.95], [-0.95, 0]]];
     case "torpedo":
@@ -100,26 +100,33 @@ function brackets(ctx: CanvasRenderingContext2D, half: number, arm: number) {
   ctx.stroke();
 }
 
-// A spin-habitat wheel: heavy rim, six spokes, small hub. Stations never move or turn on the
-// table, so it is drawn upright and the same whether or not "filled" is set. The rim grows
-// inward so the wheel keeps its outer size.
+// A tri-arm hub: a ring hub with three arms, each ending in a module. Stations never move or
+// turn on the table, so it is drawn upright and the same whether or not "filled" is set.
 function drawStation(ctx: CanvasRenderingContext2D) {
-  ctx.lineWidth = LINE * 1.8;
-  ctx.beginPath();
-  ctx.arc(0, 0, 0.97, 0, Math.PI * 2);
-  ctx.stroke();
   ctx.setLineDash([]);
-  ctx.lineWidth = LINE * 0.6;
+  ctx.lineWidth = LINE;
   ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 3;
-    ctx.moveTo(Math.cos(a) * 0.1, Math.sin(a) * 0.1);
-    ctx.lineTo(Math.cos(a) * 0.97, Math.sin(a) * 0.97);
-  }
+  ctx.arc(0, 0, 0.3, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, 0, 0.16, 0, Math.PI * 2);
-  ctx.fill();
+  for (const deg of [-90, 30, 150]) {
+    const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
+    // A point r along the arm, dx further along it and dy across it.
+    const at = (r: number, dx: number, dy: number): Pt => [c * (r + dx) - s * dy, s * (r + dx) + c * dy];
+    ctx.lineWidth = LINE * 0.9;
+    ctx.beginPath();
+    ctx.moveTo(...at(0.3, 0, 0));
+    ctx.lineTo(...at(0.72, 0, 0));
+    ctx.stroke();
+    ctx.lineWidth = LINE;
+    ctx.beginPath();
+    [[-0.2, -0.24], [0.2, -0.24], [0.2, 0.24], [-0.2, 0.24]].forEach(([dx, dy], i) => {
+      const [x, y] = at(0.98, dx, dy);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  }
 }
 
 function drawSymbol(ctx: CanvasRenderingContext2D, shape: SymbolShape, filled: boolean, treatment: Treatment) {

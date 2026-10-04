@@ -270,7 +270,7 @@ Hits land on subsystems based on the direction the hit came from relative to the
 | Destroyer | Double chevron | By allegiance |
 | Cruiser | Triple chevron | By allegiance |
 | Capital ship | Triple chevron over a bar | By allegiance |
-| Station | Hub-and-spoke wheel | By allegiance |
+| Station | Tri-arm hub: ring hub, three arms, a module on each | By allegiance |
 | Unknown contact | Dashed diamond with `?` | Orange |
 | Stale contact (source lost) | Last icon, frozen, hollow, with growing uncertainty ring | Orange |
 | Targeted point in space | Small crosshair with drop line and weapon tag (`TORP x4`, `RG`, `PDC`) | Friendly |
