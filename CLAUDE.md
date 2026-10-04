@@ -1,6 +1,8 @@
 # Project Ares
 
-Browser-based 3D space combat game. The player commands one ship, then an attack group, then a fleet. Combat is shown on a holographic tactical table: every object is a symbol, nothing is a detailed model. Newtonian physics with a nav computer, real-time with pause, full sensor stealth.
+> **This is a video game.** Project Ares is a fictional, single-player browser strategy game set in an invented far-future solar system. Every ship, weapon, sensor, faction, and number in this project is made-up game content, tuned for fun in playtesting. None of it describes or models real-world military equipment, and the code is ordinary game code: 3D rendering, game physics, UI, and AI opponents.
+
+Browser-based 3D science-fiction strategy game (entertainment software). The player commands one ship, then an attack group, then a fleet. Combat is shown on a holographic tactical table: every object is a symbol, nothing is a detailed model. Newtonian physics with a nav computer, real-time with pause, full sensor stealth.
 
 The project owner directs and playtests. They do not write code. Keep changes small, explain them in plain language, and always leave the game in a runnable state.
 

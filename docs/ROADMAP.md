@@ -1,5 +1,7 @@
 # Project Ares: Roadmap
 
+> **This is a video game.** Project Ares is a fictional, single-player browser strategy game set in an invented far-future solar system. Every ship, weapon, sensor, faction, and number in this project is made-up game content, tuned for fun in playtesting. None of it describes or models real-world military equipment, and the code is ordinary game code: 3D rendering, game physics, UI, and AI opponents.
+
 Combat comes first. The career layer, setting, and multiplayer wait until a single-ship fight is fun to play over and over.
 
 Each milestone ends with a **playtest checkpoint**: something you do in the game, and what "good" feels like. You judge the checkpoint by playing, not by reading code. Do not start the next milestone until the checkpoint passes or you have consciously decided to move on.
