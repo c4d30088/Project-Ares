@@ -268,7 +268,7 @@ Hits land on subsystems based on the direction the hit came from relative to the
 | Corvette | Single chevron | By allegiance |
 | Frigate | Solid wedge (triangle) | By allegiance |
 | Destroyer | Double chevron | By allegiance |
-| Cruiser | Elongated diamond | By allegiance |
+| Cruiser | Triple chevron | By allegiance |
 | Capital ship | Large diamond with center bar | By allegiance |
 | Station | Square | By allegiance |
 | Unknown contact | Dashed diamond with `?` | Orange |

@@ -211,10 +211,10 @@ const SHIPS = [
     note: "Differs from the corvette only by the second chevron. Check the two stay distinct when the ship is small on screen.",
   },
   {
-    key: "cruiser", name: "Cruiser", form: "Elongated diamond",
+    key: "cruiser", name: "Cruiser", form: "Triple chevron",
     used: "Hostile TRK-11 in the holotable test and TRK-30 in the PDC test",
     states: ["friendly", "neutral", "hostile"], rows: ["coast", "burn"],
-    note: "At game size it is only about 11 px wide, the narrowest symbol here. Shares the diamond family with the capital ship and the unknown contact. Compare the three in the family view above.",
+    note: "The destroyer's chevrons with a third added, spaced slightly wider. Check two and three stay easy to tell apart at game size.",
   },
   {
     key: "capital", name: "Capital ship", form: "Large diamond with a center bar",

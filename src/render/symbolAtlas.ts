@@ -49,7 +49,8 @@ function shapePaths(shape: SymbolShape): Pt[][] {
     case "destroyer":
       return [chevron(-1.0, 1.05, 0.36, 0.85), chevron(-0.25, 1.05, 0.36, 0.85)];
     case "cruiser":
-      return [[[0, -1.1], [0.45, 0], [0, 1.1], [-0.45, 0]]];
+      // The destroyer's chevrons with a third, spaced a little wider so all three stay countable.
+      return [chevron(-1.2, 1.05, 0.36, 0.85), chevron(-0.5, 1.05, 0.36, 0.85), chevron(0.2, 1.05, 0.36, 0.85)];
     case "capital":
       return [
         [[0, -1.15], [0.8, 0], [0, 1.15], [-0.8, 0]],
