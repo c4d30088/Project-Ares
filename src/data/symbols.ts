@@ -15,8 +15,8 @@ export const symbolTuning = {
   /** Global multiplier on all symbol sizes. */
   scale: 1,
   /** Hostile torpedoes pulse at this rate (Hz) between pulseMin and full brightness. */
-  torpedoPulseHz: 1.3,
-  pulseMin: 0.78,
+  torpedoPulseHz: 2.7,
+  pulseMin: 0.32,
   /** A body smaller than this on screen (radius, px) is drawn as a marker instead. */
   bodyMarkerBelowPx: 7,
   bodyMarkerSize: 22,
