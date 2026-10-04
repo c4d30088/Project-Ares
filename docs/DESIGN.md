@@ -338,7 +338,7 @@ Readability comes first. Every effect has an intensity slider in the debug panel
 
 - **Center:** the holotable
 - **Left rail:** own ship status: subsystems, ammunition, heat, G-strain, emissions state
-- **Right rail:** contact list: class, confidence, range, closing rate, time to closest approach
+- **Right rail:** the alert log (owner, 2026-10-04): every launch, hit, kill, loss and system failure with the time it happened, newest first; similar lines in quick succession merge ("8 torpedoes destroyed"). The contact list (class, confidence, range, closing rate, time to closest approach) returns here in M4, when sensors make contacts uncertain, probably as a second tab.
 - **Bottom bar:** order buttons, G setting, time compression controls
 - **Top strip:** alerts such as `LAUNCH DETECTED`, `LIDAR LOCK`, `IMPACT T-00:42`
 

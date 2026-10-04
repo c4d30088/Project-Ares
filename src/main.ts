@@ -206,6 +206,7 @@ function frame(now: number) {
       railgun: own ? own.railgun : null,
       railgunDetected: game.alerts.railgunDetected,
       alerts: game.alertList,
+      alertLog: game.alertLog,
       slugImpactIn: game.alerts.slugImpactIn,
       launchDetected: game.alerts.launchDetected,
       impactIn: game.alerts.impactIn,

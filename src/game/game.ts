@@ -15,6 +15,7 @@ import { pathClosest, predictSlugPath } from "../sim/weapons/railgun";
 import { railgunTuning } from "../data/weapons";
 import { crewTuning } from "../data/crew";
 import { TorpedoPredictor, type TorpedoPath } from "../sim/weapons/torpedoPredict";
+import { appendDraft, draftsFromEvents, type LogContext, type LogDraft, type LogEntry } from "./alertLog";
 
 /** Never run more than this many ticks in one frame, whatever the compression. */
 const MAX_TICKS_PER_FRAME = 4000;
@@ -43,6 +44,8 @@ export interface Game {
   alerts: { launchDetected: boolean; impactIn: number | null; railgunDetected: boolean; slugImpactIn: number | null };
   /** The alert strip, most urgent first. */
   alertList: Alert[];
+  /** Everything that has happened this fight, oldest first (the alert log). Replaced, never edited. */
+  alertLog: LogEntry[];
   /** Railgun shots in the picture with their predicted paths (from the shot) and, for an
    *  enemy shot, where it passes close to one of our ships. */
   shotPaths: Map<string, ShotPath>;
@@ -92,11 +95,15 @@ export function createGame(scenario: Scenario): Game {
   // Which side each ship is on, remembered while it is alive (it is gone by the time its
   // destruction is reported).
   const shipFaction = new Map<string, string>();
+  const shipNames = new Map<string, string>();
   // Events since the last takeEvents(), capped so an ignored queue cannot grow forever.
   let eventQueue: SimEvent[] = [];
   const EVENT_QUEUE_MAX = 20000;
   const snapshotPrev = () => {
-    for (const s of world.ships) shipFaction.set(s.id, s.faction);
+    for (const s of world.ships) {
+      shipFaction.set(s.id, s.faction);
+      shipNames.set(s.id, s.name);
+    }
     for (const list of [world.ships, world.torpedoes, world.stations]) {
       for (const e of list) {
         const p = prev.get(e.id);
@@ -117,6 +124,22 @@ export function createGame(scenario: Scenario): Game {
 
   const isOwn = (shipId: string) => world.ships.some((s) => s.id === shipId && s.faction === faction);
   const shipName = (shipId: string) => world.ships.find((s) => s.id === shipId)?.name ?? shipId;
+
+  // The alert log (see alertLog.ts). Times are sim time.
+  let nextLogId = 1;
+  const nowT = () => world.tick * DT;
+  function logLine(d: LogDraft) {
+    game.alertLog = appendDraft(game.alertLog, d, nowT(), () => nextLogId++);
+  }
+  const logContext: LogContext = {
+    playerFaction: faction,
+    hostile: (a, b) => areHostile(world, a, b),
+    factionOf: (id) => shipFaction.get(id),
+    nameOf: (id) => shipNames.get(id) ?? id,
+  };
+  // Where each of our ships is on the G-strain scale: 0 fine, 1 above the warning, 2 at the limit.
+  const strainBand = new Map<string, number>();
+  let endLogged = false;
 
   function setNotice(text: string) {
     game.notice = text;
@@ -300,7 +323,10 @@ export function createGame(scenario: Scenario): Game {
       if (!knownHostileTorpedoes.has(t.id)) {
         knownHostileTorpedoes.add(t.id);
         // Torpedoes already flying when the scenario starts are not launches.
-        if (alertsPrimed) launchAlertUntil = realClock + timeTuning.launchAlertS;
+        if (alertsPrimed) {
+          launchAlertUntil = realClock + timeTuning.launchAlertS;
+          logLine({ tone: "threat", key: "launch:hostile", tpl: "LAUNCH DETECTED: {n} {TORPEDO|TORPEDOES}" });
+        }
       }
       if (t.impact?.targetId && own.has(t.impact.targetId)) impactIn = Math.min(impactIn ?? Infinity, t.impact.t);
     }
@@ -309,7 +335,10 @@ export function createGame(scenario: Scenario): Game {
       if (shot.allegiance !== "hostile") continue;
       if (!knownHostileShots.has(shot.id)) {
         knownHostileShots.add(shot.id);
-        if (alertsPrimed) railgunAlertUntil = realClock + timeTuning.launchAlertS;
+        if (alertsPrimed) {
+          railgunAlertUntil = realClock + timeTuning.launchAlertS;
+          logLine({ tone: "threat", key: "rg:hostile", tpl: "RAILGUN FIRE DETECTED: {n} {SHOT|SHOTS}" });
+        }
       }
       const d = game.shotPaths.get(shot.id)?.danger;
       if (d) slugImpactIn = Math.min(slugImpactIn ?? Infinity, d.t);
@@ -344,6 +373,29 @@ export function createGame(scenario: Scenario): Game {
     if (!world.ships.some((s) => s.faction === faction)) list.unshift({ text: "ALL OUR SHIPS LOST", tone: "threat" });
     else if (startedWithHostiles && !world.ships.some((s) => areHostile(world, faction, s.faction))) list.unshift({ text: "ALL TARGETS DESTROYED", tone: "good" });
     game.alertList = list;
+
+    // Log the G-strain thresholds as they are crossed, and the end of the fight.
+    for (const s of world.ships) {
+      if (s.faction !== faction) continue;
+      const band = s.strain >= 1 ? 2 : s.strain > crewTuning.strainWarn ? 1 : 0;
+      const before = strainBand.get(s.id) ?? 0;
+      if (band !== before) {
+        const name = shipName(s.id);
+        if (band === 2) logLine({ tone: "threat", tpl: `${name}: G-STRAIN AT THE LIMIT, CREW AT RISK` });
+        else if (band === 1 && before === 0) logLine({ tone: "warn", tpl: `${name}: G-STRAIN ${Math.round(s.strain * 100)}%, CREW EFFICIENCY FALLING` });
+        else if (band === 0) logLine({ tone: "info", tpl: `${name}: G-STRAIN RECOVERED` });
+        strainBand.set(s.id, band);
+      }
+    }
+    if (!endLogged) {
+      if (!world.ships.some((s) => s.faction === faction)) {
+        endLogged = true;
+        logLine({ tone: "threat", tpl: "ALL OUR SHIPS LOST" });
+      } else if (startedWithHostiles && !world.ships.some((s) => areHostile(world, faction, s.faction))) {
+        endLogged = true;
+        logLine({ tone: "good", tpl: "ALL TARGETS DESTROYED" });
+      }
+    }
   }
 
   function rebuildPicture(alpha: number) {
@@ -372,6 +424,7 @@ export function createGame(scenario: Scenario): Game {
     predictions: new Map(),
     alerts: { launchDetected: false, impactIn: null, railgunDetected: false, slugImpactIn: null },
     alertList: [],
+    alertLog: [],
     shotPaths: new Map(),
     torpedoPaths: new Map(),
     get simTime() {
@@ -411,7 +464,11 @@ export function createGame(scenario: Scenario): Game {
       game.world = world;
       prev.clear();
       shipFaction.clear();
+      shipNames.clear();
       eventQueue = [];
+      game.alertLog = [];
+      strainBand.clear();
+      endLogged = false;
       snapshotPrev();
       accumulator = 0;
       overloadFrames = 0;
@@ -430,6 +487,7 @@ export function createGame(scenario: Scenario): Game {
       startedWithHostiles = world.ships.some((s) => areHostile(world, faction, s.faction));
       game.picture = buildPerfectPicture(world, faction);
       setNotice("SCENARIO RESTARTED");
+      logLine({ tone: "info", tpl: `${scenario.name.toUpperCase()}: RESTARTED` });
     },
     update(realDt) {
       realClock += realDt;
@@ -447,6 +505,7 @@ export function createGame(scenario: Scenario): Game {
           snapshotPrev();
           step(world);
           if (world.events.length && eventQueue.length < EVENT_QUEUE_MAX) eventQueue.push(...world.events);
+          for (const d of draftsFromEvents(world.events, logContext)) logLine(d);
           if (checkSlowdown(world.events)) {
             accumulator = 0;
             break;
@@ -473,5 +532,6 @@ export function createGame(scenario: Scenario): Game {
     },
   };
   startedWithHostiles = world.ships.some((s) => areHostile(world, faction, s.faction));
+  logLine({ tone: "info", tpl: `${scenario.name.toUpperCase()}: STARTED` });
   return game;
 }

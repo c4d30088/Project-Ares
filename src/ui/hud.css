@@ -229,3 +229,34 @@
   text-shadow: 0 0 6px currentColor, 0 0 2px #000;
   will-change: transform, opacity;
 }
+
+/* --- Right rail: the alert log, newest first --- */
+.alert-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 10px;
+  padding-right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--chrome) 60%, transparent) transparent;
+}
+.log-row {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 8px;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  animation: log-in 1.4s ease-out;
+}
+.log-time { color: var(--textDim); }
+.log-text { color: var(--text); overflow-wrap: anywhere; }
+.log-row.threat .log-text { color: var(--threat); }
+.log-row.warn .log-text { color: var(--uncertain); }
+.log-row.good .log-text { color: var(--fireFriendly); }
+@keyframes log-in {
+  from { background: color-mix(in srgb, var(--chrome) 35%, transparent); }
+  to { background: transparent; }
+}
