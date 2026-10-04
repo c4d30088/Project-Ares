@@ -109,7 +109,7 @@ function drawStation(ctx: CanvasRenderingContext2D) {
   ctx.arc(0, 0, 0.97, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.lineWidth = LINE;
+  ctx.lineWidth = LINE * 0.6;
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
     const a = -Math.PI / 2 + (i * Math.PI) / 3;
