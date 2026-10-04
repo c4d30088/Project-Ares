@@ -2,6 +2,7 @@
 // actions the HUD can call back into the game. main.ts wires the actions.
 
 import { useSyncExternalStore } from "react";
+import type { LogEntry } from "../game/alertLog";
 
 export interface ActiveShipInfo {
   name: string;
@@ -64,6 +65,8 @@ export interface RailgunInfo {
 export interface HudState {
   activeShip: ActiveShipInfo | null;
   alerts: AlertInfo[];
+  /** The alert log, oldest first. */
+  alertLog: LogEntry[];
   railgun: RailgunInfo | null;
   railgunDetected: boolean;
   slugImpactIn: number | null;
@@ -86,6 +89,7 @@ export interface HudState {
 let state: HudState = {
   activeShip: null,
   alerts: [],
+  alertLog: [],
   railgun: null,
   railgunDetected: false,
   slugImpactIn: null,

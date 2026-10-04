@@ -50,6 +50,19 @@ export const allegianceColor: Record<Allegiance, string> = {
   unknown: palette.uncertainMap,
 };
 
+/**
+ * Symbol color. A torpedo in flight is a fired weapon, so it takes the weapon-fire colors:
+ * green if it is ours, yellow if it is the enemy's (owner decision 2026-10-04). Everything
+ * else keeps its allegiance color.
+ */
+export function symbolColor(shape: string, allegiance: Allegiance): string {
+  if (shape === "torpedo") {
+    if (allegiance === "friendly") return palette.fireFriendly;
+    if (allegiance === "hostile") return palette.fireHostile;
+  }
+  return allegianceColor[allegiance];
+}
+
 const treatmentFor: Record<Allegiance, Treatment> = {
   friendly: "plain",
   neutral: "plain",
@@ -240,12 +253,9 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
           }
         }
 
-        let hex = allegianceColor[s.allegiance];
-        let alpha = 1;
-        if (s.shape === "torpedo" && s.allegiance === "hostile") {
-          hex = palette.threat;
-          alpha = pulse;
-        }
+        const hex = symbolColor(s.shape, s.allegiance);
+        // Enemy torpedoes pulse so a swarm reads as moving.
+        const alpha = s.shape === "torpedo" && s.allegiance === "hostile" ? pulse : 1;
         const treatment = s.shape === "torpedo" ? "plain" : treatmentFor[s.allegiance];
         push(sp.x, sp.y, size, angle, cellIndex(s.shape, s.filled, treatment), hex, alpha);
         // Thrust vector: a short bright line ahead of a burning ship.

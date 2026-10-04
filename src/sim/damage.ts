@@ -67,26 +67,29 @@ function pick(world: World, candidates: [string, number][]): string | null {
  * Applies a hit. `from` points from the ship toward where the hit came from. Hull takes
  * `hull` damage; one subsystem on that side takes `subsystem` damage.
  */
-export function applyHit(world: World, ship: Ship, from: Vec3, hull: number, subsystem: number, cause: string): void {
+export function applyHit(world: World, ship: Ship, from: Vec3, hull: number, subsystem: number, cause: string, attacker: string): void {
   if (ship.destroyed) return;
   const side = hitSide(ship, from);
   const struck = pick(world, sectorCandidates(ship, side));
-  ship.health.hull = Math.max(0, ship.health.hull - hull);
+  const hullBefore = ship.health.hull;
+  ship.health.hull = Math.max(0, hullBefore - hull);
+  const base = { type: "damage" as const, ship: ship.id, faction: ship.faction, attacker, side, cause, position: { ...ship.position }, hull: hullBefore - ship.health.hull };
   if (struck && struck !== "hull") {
     const before = ship.health[struck];
     ship.health[struck] = Math.max(0, before - subsystem);
-    world.events.push({ type: "damage", ship: ship.id, subsystem: struck, side, cause });
-    if (before > 0 && ship.health[struck] === 0) world.events.push({ type: "subsystemDestroyed", ship: ship.id, subsystem: struck });
+    world.events.push({ ...base, subsystem: struck, amount: before - ship.health[struck] });
+    if (before > 0 && ship.health[struck] === 0) world.events.push({ type: "subsystemDestroyed", ship: ship.id, subsystem: struck, position: { ...ship.position } });
   } else {
-    world.events.push({ type: "damage", ship: ship.id, subsystem: "hull", side, cause });
+    world.events.push({ ...base, subsystem: "hull", amount: 0 });
   }
   if (ship.health.hull <= 0 || ship.health.reactor <= 0) destroy(world, ship, ship.health.reactor <= 0 ? "reactor breach" : cause);
 }
 
-export function destroy(world: World, entity: { id: string; destroyed?: boolean }, cause: string): void {
+export function destroy(world: World, entity: { id: string; destroyed?: boolean; position: Vec3 }, cause: string): void {
   if (entity.destroyed) return;
   entity.destroyed = true;
-  world.events.push({ type: "destroyed", id: entity.id, cause });
+  const kind = world.ships.some((s) => s.id === entity.id) ? "ship" : world.torpedoes.some((t) => t.id === entity.id) ? "torpedo" : "slug";
+  world.events.push({ type: "destroyed", id: entity.id, cause, kind, position: { ...entity.position } });
 }
 
 /** Drive output fraction after damage. */

@@ -22,7 +22,7 @@ Reference images are in `UX reference/` and `The Expanse UI Reference/`. They ar
 - `npm run build`: type-check, then production build to `dist/`
 - `npm run shot`: headless screenshot of the current scene to `shots/latest.png` (options: `-- --wait 1500 --width 1600 --height 900`)
 
-Debug panel (lil-gui): press `` ` `` in the game. "copy values" puts all tunables on the clipboard as JSON.
+Debug panel (lil-gui): press `` ` `` in the game. The search box at the top finds a control by name or by what it does; every control has a one-line explanation under it ("show explanations" hides them). "copy values" puts all tunables on the clipboard as JSON.
 
 Table controls: drag to rotate, right-drag or Shift-drag to pan, scroll to zoom, click to select, double-click or `F` to focus the selection, `T` toggles top-down, `Esc` clears the selection or cancels an order.
 
@@ -40,8 +40,8 @@ Screenshot URL options (pass with `npm run shot -- --query "..."`): `scenario=<n
 4. SI units in the sim: meters, seconds, kilograms, m/s². Convert to km, g, and mm:ss only for display.
 5. Every player and AI action is a `Command` submitted to the sim. Nothing outside the sim mutates sim state.
 6. The renderer and HUD read the player's sensor picture, never ground truth. Ground truth is visible only through the debug "God view" toggle.
-7. Colors come from tokens in `src/render/palette.ts`. Red means hostile or danger and is never decorative. Uncertain or warning is orange on the 3D table and amber in the HUD panels. Weapons once fired are green (ours) and yellow (the enemy's). Neutral is white.
-8. Tunable numbers live in `src/data`, not in logic files. Expose new tunables in the lil-gui debug panel.
+7. Colors come from tokens in `src/render/palette.ts`. Red means hostile or danger and is never decorative. Uncertain or warning is orange on the 3D table and amber in the HUD panels. Weapons once fired (torpedoes in flight, PDC fire, slugs, impact effects) are green (ours) and yellow (the enemy's). Neutral is white.
+8. Tunable numbers live in `src/data`, not in logic files. Expose new tunables in the lil-gui debug panel, with a one-line explanation in `src/data/tuningNotes.ts` (a test fails without it).
 9. Large distances: camera-relative rendering (floating origin) and a logarithmic depth buffer. Never write raw positions near 1e8 m into float32 GPU buffers.
 10. Every weapon accepts a `Target` that is a track, an object, or a point in space. Only PDCs have an automatic mode. Never add auto-fire to torpedoes or railguns.
 11. Sensor data is built per ship and merged per datalink network. Every track records which ships contribute to it.

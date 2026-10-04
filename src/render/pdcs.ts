@@ -11,6 +11,7 @@ import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { pdcTuning } from "../data/weapons";
 import { pathTuning as T } from "../data/paths";
+import { leadShot } from "../sim/intercept";
 import type { Vec3 } from "../sim/vec3";
 import { toRender } from "./frame";
 import { palette } from "./palette";
@@ -65,37 +66,34 @@ export function createPdcLayer(scene: THREE.Scene) {
   const rounds: Round[] = [];
   const spawnDebt = new Map<string, number>();
 
-  /** New rounds from each firing gun, aimed where the target will be when they arrive. */
+  /**
+   * New rounds from each firing gun. A round leaves with the gun's velocity plus the
+   * muzzle velocity, aimed (in the gun's own frame) where the target will be when it
+   * arrives, so the stream stays true however fast the ship or its target is moving.
+   */
   function spawn(t: Tracer, simDt: number) {
     let debt = (spawnDebt.get(t.key) ?? Math.random()) + simDt * T.pdcRoundsDrawnPerS;
-    const relV = { x: t.toVelocity.x - t.fromVelocity.x, y: t.toVelocity.y - t.fromVelocity.y, z: t.toVelocity.z - t.fromVelocity.z };
+    // A target pulling away faster than a round flies cannot be caught: no stream.
+    const shot = leadShot(t.from, t.fromVelocity, t.to, t.toVelocity, T.pdcRoundSpeed);
+    if (!shot) {
+      spawnDebt.set(t.key, 0);
+      return;
+    }
+    const mx = (shot.velocity.x - t.fromVelocity.x) / T.pdcRoundSpeed;
+    const my = (shot.velocity.y - t.fromVelocity.y) / T.pdcRoundSpeed;
+    const mz = (shot.velocity.z - t.fromVelocity.z) / T.pdcRoundSpeed;
     while (debt >= 1 && rounds.length < MAX_ROUNDS) {
       debt -= 1;
-      // Intercept: |r + v·t| = speed·t, smallest positive t (an incoming target is met
-      // sooner than its range alone suggests).
-      const rx = t.to.x - t.from.x, ry = t.to.y - t.from.y, rz = t.to.z - t.from.z;
-      const qa = relV.x ** 2 + relV.y ** 2 + relV.z ** 2 - T.pdcRoundSpeed ** 2;
-      const qb = 2 * (rx * relV.x + ry * relV.y + rz * relV.z);
-      const qc = rx * rx + ry * ry + rz * rz;
-      const disc = qb * qb - 4 * qa * qc;
-      let tof = Math.sqrt(qc) / T.pdcRoundSpeed;
-      if (disc >= 0 && Math.abs(qa) > 1e-9) {
-        const roots = [(-qb - Math.sqrt(disc)) / (2 * qa), (-qb + Math.sqrt(disc)) / (2 * qa)].filter((x) => x > 0);
-        if (roots.length) tof = Math.min(...roots);
-      }
-      const aim = { x: t.to.x + relV.x * tof, y: t.to.y + relV.y * tof, z: t.to.z + relV.z * tof };
-      const dx = aim.x - t.from.x, dy = aim.y - t.from.y, dz = aim.z - t.from.z;
-      const d = Math.hypot(dx, dy, dz) || 1;
       // A little scatter, so the stream reads as rounds, not a beam.
       const j = 0.004;
-      const ux = dx / d + (Math.random() - 0.5) * j, uy = dy / d + (Math.random() - 0.5) * j, uz = dz / d + (Math.random() - 0.5) * j;
+      const ux = mx + (Math.random() - 0.5) * j, uy = my + (Math.random() - 0.5) * j, uz = mz + (Math.random() - 0.5) * j;
       // Rounds born part way through the frame start part way along.
-      const age = Math.random() * Math.min(simDt, tof);
+      const age = Math.random() * Math.min(simDt, shot.t);
       const vel = { x: ux * T.pdcRoundSpeed + t.fromVelocity.x, y: uy * T.pdcRoundSpeed + t.fromVelocity.y, z: uz * T.pdcRoundSpeed + t.fromVelocity.z };
       rounds.push({
         position: { x: t.from.x + vel.x * age, y: t.from.y + vel.y * age, z: t.from.z + vel.z * age },
         velocity: vel,
-        lifeS: tof - age,
+        lifeS: shot.t - age,
         hostile: t.hostile,
       });
     }

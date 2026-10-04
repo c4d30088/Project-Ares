@@ -45,7 +45,7 @@ describe("subsystem damage by hit direction", () => {
   it("a hit from behind damages hull and a rear subsystem", () => {
     const s = ship();
     const world = makeWorld([s]);
-    applyHit(world, s, v3(-1, 0, 0), 0.3, 0.5, "test");
+    applyHit(world, s, v3(-1, 0, 0), 0.3, 0.5, "test", "x");
     expect(s.health.hull).toBeCloseTo(0.7, 9);
     const rear = ["drive", "reactor", "radiators"].filter((id) => s.health[id] < 1);
     expect(rear).toHaveLength(1);
@@ -62,7 +62,7 @@ describe("subsystem damage by hit direction", () => {
   it("zero hull destroys the ship and removes it at the end of the tick", () => {
     const s = ship();
     const world = makeWorld([s, makeShip({ id: "b", faction: "red", position: v3(1e6, 0, 0) })]);
-    applyHit(world, s, v3(1, 0, 0), 1.0, 0.1, "test");
+    applyHit(world, s, v3(1, 0, 0), 1.0, 0.1, "test", "x");
     expect(s.destroyed).toBe(true);
     expect(world.events).toContainEqual(expect.objectContaining({ type: "destroyed", id: "a" }));
     step(world);
@@ -73,7 +73,7 @@ describe("subsystem damage by hit direction", () => {
     const run = () => {
       const s = ship();
       const world = makeWorld([s]);
-      for (let i = 0; i < 6; i++) applyHit(world, s, v3(0, 1, 0), 0.01, 0.2, "test");
+      for (let i = 0; i < 6; i++) applyHit(world, s, v3(0, 1, 0), 0.01, 0.2, "test", "x");
       return s.health;
     };
     expect(run()).toEqual(run());

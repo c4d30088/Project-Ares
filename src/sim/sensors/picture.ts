@@ -7,7 +7,7 @@
 import { clone, type Vec3 } from "../vec3";
 import { bodyMu } from "../gravity";
 import { predictImpact } from "../weapons/torpedo";
-import { mountDirection, pdcAims } from "../weapons/pdc";
+import { mountDirection, pdcAims, type PdcAim } from "../weapons/pdc";
 import { railgunSpec } from "../weapons/railgun";
 import { crewEfficiency } from "../crew";
 import { pdcTuning } from "../../data/weapons";
@@ -39,7 +39,7 @@ export interface Track {
   /** Torpedoes: predicted impact (seconds from now) and what it is aimed at, if known. */
   impact?: { position: Vec3; t: number; targetId: string | null };
   /** Ships: where its PDCs are firing this tick (PDC fire is visible). */
-  pdcFire?: Vec3[];
+  pdcFire?: PdcAim[];
 }
 
 /**
@@ -72,7 +72,7 @@ export interface OwnPdc {
   mode: "auto" | "manual" | "hold";
   firing: boolean;
   /** Where it is firing, if it is, and at what (null for a barrage at a point). */
-  aimAt: Vec3 | null;
+  aimAt: PdcAim | null;
   aimId: string | null;
   /** Mount direction in world space (center of its arc). */
   direction: Vec3;

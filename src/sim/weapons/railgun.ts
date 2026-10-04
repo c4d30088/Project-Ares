@@ -10,6 +10,7 @@ import type { SimEvent } from "../commands";
 import { closestApproach, segmentHitsSphere } from "../collide";
 import { applyHit, destroy } from "../damage";
 import { gravityAt, type MassiveBody } from "../gravity";
+import { projectileFlightTime } from "../intercept";
 import { angleBetween } from "../physics";
 import { resolveTarget, type Target } from "../target";
 import { add, clone, length, normalize, scale, sub, type Vec3 } from "../vec3";
@@ -106,10 +107,15 @@ function pathsClosest(a: { t: number; position: Vec3 }[], b: { t: number; positi
 }
 
 /**
- * Where to point the railgun to hit a target. A ship: the lead point, assuming it keeps
- * coasting (falling under gravity like everything else). A point or a body: straight at it.
- * Both corrected for the slug's own fall. Returns the slug's launch velocity, the predicted
- * time to the target and the predicted meeting point.
+ * Where to point the railgun to hit a target. A slug leaves with the ship's velocity plus
+ * the gun's muzzle velocity, so the aim is worked out in the ship's own frame: the target's
+ * motion relative to the ship says which way the muzzle velocity must point, and the ship's
+ * drift is cancelled by that (not by aiming at the lead point in space, which would throw
+ * the shot sideways whenever the ship is moving). A ship target is led assuming it keeps
+ * coasting (falling under gravity like everything else); a point or a body is aimed at
+ * directly. The result is corrected for the slug's own fall past bodies. Returns the slug's
+ * launch velocity, the predicted time to the target and the predicted meeting point; null
+ * if the target is getting away faster than the slug can close.
  */
 export function aimRailgun(world: World, ship: Ship, target: Target): { velocity: Vec3; t: number; aimPoint: Vec3 } | null {
   const spec = railgunSpec(ship.shipClass);
@@ -118,29 +124,31 @@ export function aimRailgun(world: World, ship: Ship, target: Target): { velocity
   const speed = spec.slugSpeed;
   const moving = target.kind === "track";
   const tv = moving ? tgt.velocity : { x: 0, y: 0, z: 0 };
-  // First guess: straight-line intercept relative to the ship (the slug inherits its motion).
-  const rel = sub(tv, ship.velocity);
+  // In the ship's frame: where the target is and how it moves.
   const r = sub(tgt.position, ship.position);
-  let tof = length(r) / speed;
-  for (let i = 0; i < 4; i++) tof = length(add(r, scale(rel, tof))) / speed;
-  let aimPoint = add(tgt.position, scale(tv, tof));
-  let velocity = add(ship.velocity, scale(normalize(sub(aimPoint, ship.position)), speed));
-  // Fly the shot (and, for a ship, the target's coast) and nudge the aim by the miss.
-  let meet = aimPoint;
-  for (let i = 0; i < 6; i++) {
+  const rel = sub(tv, ship.velocity);
+  const tof0 = projectileFlightTime(r, rel, speed);
+  if (tof0 === null) return null;
+  const launch = (relativeAim: Vec3) => add(ship.velocity, scale(normalize(relativeAim), speed));
+
+  let tof = Math.max(tof0, 0.02);
+  let velocity = launch(add(r, scale(rel, tof)));
+  let best = { velocity, t: tof, meet: add(tgt.position, scale(tv, tof)), miss: Infinity };
+  // Fly the shot (and, for a ship, the target's coast) and turn the muzzle velocity by the
+  // miss spread over the flight, keeping its length.
+  for (let i = 0; i < 8; i++) {
     const horizon = tof * 1.3 + 5;
     const dt = Math.max(0.02, tof / 300);
     const shot = predictSlugPath(world.bodies, ship.position, velocity, horizon, dt).points;
     const them = moving ? predictSlugPath(world.bodies, tgt.position, tv, horizon, dt).points : shot.map((p) => ({ t: p.t, position: tgt.position }));
     const c = pathsClosest(shot, them);
-    tof = c.t;
-    meet = c.other;
     const miss = sub(c.other, c.position);
+    if (length(miss) < best.miss) best = { velocity, t: c.t, meet: c.other, miss: length(miss) };
     if (length(miss) < 1) break;
-    aimPoint = add(aimPoint, miss);
-    velocity = add(ship.velocity, scale(normalize(sub(aimPoint, ship.position)), speed));
+    tof = Math.max(c.t, 0.02);
+    velocity = launch(add(sub(velocity, ship.velocity), scale(miss, 1 / tof)));
   }
-  return { velocity, t: tof, aimPoint: meet };
+  return { velocity: best.velocity, t: best.t, aimPoint: best.meet };
 }
 
 /** Why a railgun shot cannot be made now (null if it can), for the command and the HUD. */
@@ -207,9 +215,9 @@ export function moveSlugs(world: World, dt: number, shipsBefore: Map<string, Vec
       const s0 = shipsBefore.get(ship.id) ?? ship.position;
       if (closestApproach(before, s.position, s0, ship.position).dist > C.hitRadius[ship.shipClass]) continue;
       const from = scale(sub(s.velocity, ship.velocity), -1);
-      events.push({ type: "slugHit", slug: s.id, faction: s.faction, hit: ship.id });
+      events.push({ type: "slugHit", slug: s.id, faction: s.faction, hit: ship.id, position: { ...s.position } });
       destroy(world, s, "hit");
-      applyHit(world, ship, from, C.slugHull * s.damageScale, Math.min(1, C.slugSubsystem * s.damageScale), "railgun");
+      applyHit(world, ship, from, C.slugHull * s.damageScale, Math.min(1, C.slugSubsystem * s.damageScale), "railgun", s.faction);
       break;
     }
     if (s.destroyed) continue;
