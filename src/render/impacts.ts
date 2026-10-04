@@ -6,6 +6,7 @@
 
 import * as THREE from "three";
 import { impactTuning as T } from "../data/impacts";
+import { hitTextLinePx } from "./labelStyle";
 import { hitTextLines, mergeHitText, type HitText, type ImpactEffect } from "./impactModel";
 import type { Vec3 } from "../sim/vec3";
 import { toRender } from "./frame";
@@ -226,7 +227,7 @@ export function createImpactLayer(textRoot: HTMLElement): ImpactLayer {
     el.textContent = lines.join("\n");
     layer.appendChild(el);
     // Labels for the same ship that start together are stacked above each other.
-    const slot = popups.filter((p) => p.data.shipId === t.shipId && p.ageS < 0.6).reduce((sum, p) => sum + hitTextLines(p.data).length * 13 + 3, 0);
+    const slot = popups.filter((p) => p.data.shipId === t.shipId && p.ageS < 0.6).reduce((sum, p) => sum + hitTextLines(p.data).length * hitTextLinePx() + 3, 0);
     popups.push({ data: t, el, ageS: 0, slot });
   }
 

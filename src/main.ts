@@ -5,6 +5,7 @@ import { createDebugPanel } from "./game/debugPanel";
 import { createGame } from "./game/game";
 import { buildDisplayList, pathMarkers, railShotOverlays, torpedoOverlays } from "./render/displayList";
 import { aimRailgun, railgunBlocked } from "./sim/weapons/railgun";
+import { applyLabelStyle } from "./render/labelStyle";
 import { createPathLayer } from "./render/paths";
 import { createInterceptLayer } from "./render/intercepts";
 import { createRangeRingLayer } from "./render/rangeRings";
@@ -165,6 +166,7 @@ let lastRenderTime = game.renderTime;
 let firstFrame = true;
 let hudTimer = 0;
 function frame(now: number) {
+  applyLabelStyle();
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   game.update(dt);

@@ -11,14 +11,17 @@ import { pdcTuning, railgunTuning, torpedoTuning } from "../data/weapons";
 import { crewTuning } from "../data/crew";
 import { pathTuning } from "../data/paths";
 import { impactTuning } from "../data/impacts";
+import { labelTuning } from "../data/labels";
 import { scenarios } from "../data/scenarios";
 import { tuningRoots } from "../data/tuningRoots";
 import { decoratePanel } from "./panelSearch";
+import { applyPanelStyle, loadPanelStyle, panelFonts, panelStyle, resetPanelStyle } from "./panelStyle";
 
 // Debug panel. Toggle with the backquote key (`).
 // Controls edit the tunable objects in src/data directly; code reads them every frame.
 export function createDebugPanel(currentScenario: string, restart: () => void): GUI {
-  const gui = new GUI({ title: "Debug  [ ` ]", width: 340 });
+  loadPanelStyle();
+  const gui = new GUI({ title: "Debug  [ ` ]", width: panelStyle.widthPx });
   gui.hide();
 
   // Scenario picker: reloads the page with ?scenario=...
@@ -34,6 +37,25 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
     .name("show explanations")
     .onChange((on: boolean) => gui.domElement.classList.toggle("ares-hide-notes", !on));
   gui.add(physicsTuning, "gravityEnabled").name("gravity");
+
+  // The panel's own look: type scale, explanation size, width, font. Remembered across reloads.
+  const look = gui.addFolder("Panel text");
+  const restyle = () => applyPanelStyle(gui);
+  look.add(panelStyle, "textPx", 8, 22, 1).name("text size (px)").onChange(restyle);
+  look.add(panelStyle, "notePx", 7, 18, 1).name("explanation size (px)").onChange(restyle);
+  look.add(panelStyle, "widthPx", 260, 760, 10).name("panel width (px)").onChange(restyle);
+  look.add(panelStyle, "font", Object.keys(panelFonts)).name("font").onChange(restyle);
+  look.add(
+    {
+      resetLook: () => {
+        resetPanelStyle();
+        look.controllersRecursive().forEach((c) => c.updateDisplay());
+        restyle();
+      },
+    },
+    "resetLook",
+  ).name("reset panel text");
+  look.close();
 
   const time = gui.addFolder("Time");
   time.add(timeTuning, "slowOnFlip").name("slow to 1x on flip");
@@ -101,6 +123,17 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   sym.add(symbolTuning, "bodyOpacity", 0, 1, 0.01);
   sym.add(symbolTuning, "labelOpacity", 0, 1, 0.01);
   sym.close();
+
+  // Text drawn on the table itself: ship labels, countdowns, names, axis and ring labels.
+  const text = gui.addFolder("Table text");
+  text.add(labelTuning, "shipPx", 7, 24, 1).name("ship labels (px)");
+  text.add(labelTuning, "markerPx", 7, 24, 1).name("countdown labels (px)");
+  text.add(labelTuning, "bodyPx", 7, 24, 1).name("planet and moon names (px)");
+  text.add(labelTuning, "axisPx", 7, 28, 1).name("X Y Z letters (px)");
+  text.add(labelTuning, "ringPx", 7, 24, 1).name("ring distances (px)");
+  text.add(labelTuning, "scaleReadoutPx", 7, 24, 1).name("scale readout (px)");
+  text.add(labelTuning, "hitTextPx", 7, 24, 1).name("hit text (px)");
+  text.close();
 
   const bodies = gui.addFolder("Bodies");
   bodies.add(bodyTuning, "contourCount", 2, 40, 1);
@@ -219,6 +252,7 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   ).name("copy values");
 
   decoratePanel(gui);
+  applyPanelStyle(gui);
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "`") gui.show(gui._hidden);

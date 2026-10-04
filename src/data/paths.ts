@@ -3,7 +3,7 @@
 export const pathTuning = {
   burnWidthPx: 3,
   coastWidthPx: 1,
-  burnOpacity: 0.25,
+  burnOpacity: 0.1,
   coastOpacity: 0.1,
   /** Dash length as a fraction of camera distance. */
   dashScale: 0.013,
