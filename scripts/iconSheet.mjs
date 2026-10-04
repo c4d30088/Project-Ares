@@ -6,6 +6,8 @@
 // colors come from src/data/symbols.ts and src/render/palette.ts.
 //
 // Usage: npm run icons
+//        npm run icons -- --standalone   also saves docs/icon-review/icon-sheet.html, a plain
+//                                        page for the project (review controls hidden)
 // Optional context images: shots/sheet-holotable.png and shots/sheet-firstfight.png
 // (made with npm run shot -- --query "scenario=holotable-test&paused=1" --out sheet-holotable).
 
@@ -516,7 +518,7 @@ const shots =
 
 const total = SHIPS.length + OVERLAYS.length + 1;
 const strokes = SHIPS.map((s) => ({ name: s.name, w: measure(s.key).stroke })).sort((a, b) => a.w - b.w);
-const strokeNote = `Line weight scales with the icon, from ${px(strokes[0].w)} px on the ${strokes[0].name.toLowerCase()} to ${px(strokes.at(-1).w)} px on the ${strokes.at(-1).name.toLowerCase()}. Quads run from 20 to 50 px.`;
+const strokeNote = `Line weight scales with the icon, from ${px(strokes[0].w)} px on the ${strokes[0].name.toLowerCase()} to ${px(strokes.at(-1).w)} px on the ${strokes.at(-1).name.toLowerCase()}. Quads run from ${Math.min(...SHIPS.map((x) => Q[x.key]))} to ${Math.max(...SHIPS.map((x) => Q[x.key]))} px.`;
 
 const html = `<title>Project Ares Icon Sheet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -853,3 +855,23 @@ button { font: inherit; }
 mkdirSync("shots", { recursive: true });
 writeFileSync("shots/icon-sheet.html", html);
 console.log(`Saved shots/icon-sheet.html (${Math.round(html.length / 1024)} KB, ${total} icons)`);
+
+// A reference copy for the repo: a normal HTML document, with the controls that only work
+// inside the review page (verdicts, comments, the tally) hidden.
+if (process.argv.includes("--standalone")) {
+  const cut = html.indexOf("</style>") + "</style>".length;
+  const intro = "A snapshot of the icon sheet, kept for reference. It shows every symbol as the game draws it. The review version had comment and verdict controls and ran as a claude.ai page.";
+  const page = html
+    .replace(/<p class="lede">[\s\S]*?<\/p>/, `<p class="lede">${intro}</p>`)
+    .slice(0, cut);
+  const rest = html
+    .replace(/<p class="lede">[\s\S]*?<\/p>/, `<p class="lede">${intro}</p>`)
+    .slice(cut);
+  const doc =
+    `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n` +
+    `<style>[hidden]{display:none!important}body{margin:0}.review,.how,.tally,#hint{display:none!important}</style>\n` +
+    `${page}\n</head>\n<body>${rest}</body>\n</html>\n`;
+  mkdirSync("docs/icon-review", { recursive: true });
+  writeFileSync("docs/icon-review/icon-sheet.html", doc);
+  console.log(`Saved docs/icon-review/icon-sheet.html (${Math.round(doc.length / 1024)} KB)`);
+}
