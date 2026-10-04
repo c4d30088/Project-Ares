@@ -24,9 +24,9 @@ export const torpedoTuning = {
   /** Seconds for a tube to reload. */
   tubeReloadS: 12,
   /** Hot salvos bigger than the tubes: the first torpedoes out wait beside the ship, drive
-   *  dark, until the last is out, then all light together and arrive as one wave. Off: each
-   *  wave of tubes lights as it leaves (12 s apart). Under evaluation (M3 step 7). */
-  salvoHold: false,
+   *  dark, until the last is out, then all light together and arrive as one wave (owner
+   *  decision, M3 step 7). Off: each wave of tubes lights as it leaves (12 s apart). */
+  salvoHold: true,
   /** Range ring shown while aiming torpedoes, m: about where a single torpedo still hits a
    *  ship burning hard (Combat G) across its path the whole way. Display only. */
   effectiveRange: 3_000_000,

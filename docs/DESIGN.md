@@ -121,6 +121,7 @@ The prediction is produced by running the same autopilot forward on a copy of th
 - Self-guided missiles with their own drive. Starting values: 30 g acceleration, 15 km/s delta-v budget, with part of it reserved for terminal homing.
 - Launch modes: **Hot** (drive lights at launch, fast and visible) or **Cold** (ejected and coasting, drive lights late, hard to detect).
 - Salvo size and spread are player choices. Small salvos are easy to stop. Large salvos empty the magazine.
+- A salvo bigger than the ship's tubes still arrives as one wave: the first torpedoes out wait beside the ship, drive dark, until the last leaves its tube, then all light together (decided 2026-10-03; without it a two-tube ship's salvo arrived in pairs and four PDCs stopped every pair).
 - A salvo can be split across several targets or points.
 - When torpedoes are in flight, the table draws thin converging lines from each one to the predicted impact point, marked with an X and a countdown.
 - Hostile torpedoes are bright red dots. A swarm closing on one blue wedge is the signature image of the game.
