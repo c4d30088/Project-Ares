@@ -429,9 +429,10 @@ function specList(rows) {
   return `<dl class="spec">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
 }
 
-function card({ id, title, sub, body }) {
+function card({ id, title, sub, body, kind = "" }) {
+  const [yes, mid, no] = kind === "proposal" ? ["Add", "Revise", "Pass"] : ["Keep", "Revise", "Cut"];
   return `
-  <article class="card" id="icon-${id}" data-icon="${id}" data-comment-target>
+  <article class="card ${kind}" id="icon-${id}" data-icon="${id}" data-comment-target>
     <div class="card-in">
       <header class="card-head">
         <div><h3>${title}</h3><p class="form">${sub}</p></div>
@@ -440,14 +441,104 @@ function card({ id, title, sub, body }) {
       ${body}
       <footer class="review">
         <div class="verdict" role="group" aria-label="Verdict for ${title}">
-          <button type="button" class="vbtn" data-v="keep" aria-pressed="false">Keep</button>
-          <button type="button" class="vbtn" data-v="revise" aria-pressed="false">Revise</button>
-          <button type="button" class="vbtn" data-v="cut" aria-pressed="false">Cut</button>
+          <button type="button" class="vbtn" data-v="keep" aria-pressed="false">${yes}</button>
+          <button type="button" class="vbtn" data-v="revise" aria-pressed="false">${mid}</button>
+          <button type="button" class="vbtn" data-v="cut" aria-pressed="false">${no}</button>
         </div>
         <button type="button" class="cbtn" hidden>Comment</button>
       </footer>
     </div>
   </article>`;
+}
+
+// ---- Proposals: alternative station symbols -------------------------------------------
+// Not in the game. Drawn in the atlas's own units (symbol radius 1, line weight 0.15) so a
+// chosen one can be ported into symbolAtlas.ts as it is.
+
+const LW = 0.15;
+const pStroke = (d, w = LW) => `<path d="${d}" fill="none" stroke="currentColor" stroke-width="${f(w)}" stroke-linejoin="miter" stroke-miterlimit="10"/>`;
+const pSolid = (d) => `<path d="${d}" fill="currentColor" stroke="none"/>`;
+const rectD = (x0, y0, x1, y1) => `M${x0} ${y0}L${x1} ${y0}L${x1} ${y1}L${x0} ${y1}Z`;
+const lineD = (x0, y0, x1, y1) => `M${x0} ${y0}L${x1} ${y1}`;
+const ellD = (rx, ry) => `M${-rx} 0A${rx} ${ry} 0 1 1 ${rx} 0A${rx} ${ry} 0 1 1 ${-rx} 0Z`;
+const polyD = (pts) => pts.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join("") + "Z";
+const bracketsD = (half = 1.45, arm = 0.42) =>
+  [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => `M${f(sx * half)} ${f(sy * (half - arm))}L${f(sx * half)} ${f(sy * half)}L${f(sx * (half - arm))} ${f(sy * half)}`).join("");
+const rawIcon = (inner, q, color) =>
+  `<svg class="ico" style="--q:${q};color:${color}" viewBox="${f(-QUAD)} ${f(-QUAD)} ${f(2 * QUAD)} ${f(2 * QUAD)}" aria-hidden="true">${inner}</svg>`;
+
+const PROPOSALS = [
+  {
+    key: "ring-axle", name: "Ring on an axle", form: "Tilted ring around a docking spar",
+    draw: () =>
+      pStroke(lineD(0, -1.2, 0, 1.2), LW * 0.6) +
+      pStroke(lineD(-0.24, -1.2, 0.24, -1.2), LW * 1.3) + pStroke(lineD(-0.24, 1.2, 0.24, 1.2), LW * 1.3) +
+      pStroke(ellD(1.0, 0.38), LW * 1.6) + pSolid(rectD(-0.15, -0.3, 0.15, 0.3)),
+    note: "Keeps the spinning-ring idea but seen at an angle, so it reads as a structure in space rather than a wheel. The spar gives it a long axis and docking ends.",
+  },
+  {
+    key: "truss-panels", name: "Truss and solar panels", form: "Core module, cross truss, four panels",
+    draw: () =>
+      pStroke(rectD(-0.16, -0.95, 0.16, 0.95)) + pStroke(lineD(-1.15, -0.15, 1.15, -0.15), LW * 0.6) +
+      [-1, 1].map((sx) => pStroke(rectD(sx * 0.26, -0.62, sx * 0.66, 0.32)) + pStroke(rectD(sx * 0.72, -0.62, sx * 1.12, 0.32))).join(""),
+    note: "The most familiar space-station silhouette: a central module with solar wings. Widest of the three, so it reads as large.",
+  },
+  {
+    key: "tri-hub", name: "Tri-arm hub", form: "Ring hub with three arms and modules",
+    draw: () => {
+      const at = (deg, r, dx = 0, dy = 0) => {
+        const a = (deg * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+        return [f(c * r + c * dx - sn * dy), f(sn * r + sn * dx + c * dy)];
+      };
+      let out = pStroke(ellD(0.3, 0.3));
+      for (const deg of [-90, 30, 150]) {
+        const [x0, y0] = at(deg, 0.3), [x1, y1] = at(deg, 0.72);
+        out += pStroke(lineD(x0, y0, x1, y1), LW * 0.9);
+        out += pStroke(polyD([at(deg, 0.98, -0.2, -0.24), at(deg, 0.98, 0.2, -0.24), at(deg, 0.98, 0.2, 0.24), at(deg, 0.98, -0.2, 0.24)]));
+      }
+      return out;
+    },
+    note: "A Y-shaped base: a ring hub with three arms ending in modules, like docking pods. Clearly built rather than natural, and unlike every ship shape. Has the least in common with the wheel.",
+  },
+];
+
+function proposalIcon(o, a, q = Q.station) {
+  const inner = o.draw() + (a === "hostile" ? pStroke(bracketsD()) : "");
+  return rawIcon(inner, q, ALLEG[a].color);
+}
+
+function proposalCard(o) {
+  const q = Q.station;
+  const states = ["friendly", "neutral", "hostile"];
+  const head = `<div class="mh"></div>` + states.map((a) => `<div class="mh">${ALLEG[a].label}</div>`).join("");
+  const row = `<div class="mr">Coasting</div>` + states.map((a) => `<div class="mc">${proposalIcon(o, a)}</div>`).join("");
+  return card({
+    id: `station-${o.key}`,
+    kind: "proposal",
+    title: o.name,
+    sub: o.form,
+    body: `
+      <div class="stage matrix sp" style="--q:${q};--cols:3">${head}${row}</div>
+      <div class="gs-row"><span class="lab">At game size</span><div class="stage gs" style="--q:${q}">${states.map((a) => proposalIcon(o, a)).join("")}</div></div>
+      ${specList([["Quad", `${q} px`], ["Status", "Proposal, not in the game"]])}
+      <p class="note">${o.note}</p>`,
+  });
+}
+
+function stationCompare() {
+  const q = Q.station;
+  const states = ["friendly", "neutral", "hostile"];
+  const options = [{ name: "Current wheel", wheel: true }, ...PROPOSALS];
+  const one = (o, a) => (o.wheel ? icon(cellIndex("station", false, treatmentFor("station", a)), q, ALLEG[a].color) : proposalIcon(o, a));
+  return `
+  <div class="family">
+    <div class="stage specimens sp" style="--q:${q}">
+      ${options.map((o) => `<figure>${one(o, "friendly")}<figcaption>${o.name}</figcaption></figure>`).join("")}
+    </div>
+    <div class="gs-row wide"><span class="lab">At game size</span>
+      <div class="stage gs" style="--q:${q}">${options.map((o) => states.map((a) => one(o, a)).join("")).join('<i class="sep"></i>')}</div>
+    </div>
+  </div>`;
 }
 
 // ---- Family view ----------------------------------------------------------------------
@@ -637,6 +728,8 @@ h2::after { content: ""; flex: 1; height: 6px; align-self: center; min-width: 20
 .card[data-verdict="keep"] .pill { color: var(--keep); } .card[data-verdict="keep"] .pill::before { content: "Keep"; }
 .card[data-verdict="revise"] .pill { color: var(--revise); } .card[data-verdict="revise"] .pill::before { content: "Revise"; }
 .card[data-verdict="cut"] .pill { color: var(--cut); } .card[data-verdict="cut"] .pill::before { content: "Cut"; }
+.proposal[data-verdict="keep"] .pill::before { content: "Add"; }
+.proposal[data-verdict="cut"] .pill::before { content: "Pass"; }
 .card[data-verdict="cut"] .stage { opacity: .55; }
 
 .matrix { display: grid; grid-template-columns: 74px repeat(var(--cols), minmax(0, 1fr)); }
@@ -714,7 +807,7 @@ button { font: inherit; }
   <div class="intro">
     <p class="eyebrow">Project Ares · Holotable symbology</p>
     <h1>Icon sheet</h1>
-    <p class="lede">Every symbol the table draws, ${total} in all, rendered from the game's own drawing code. Mark each one Keep, Revise or Cut, and say what you want changed in a comment on that icon.</p>
+    <p class="lede">Every symbol the table draws, ${total} in all, rendered from the game's own drawing code. Mark each one Keep, Revise or Cut, and say what you want changed in a comment on that icon. Station options at the bottom are proposals that are not in the game yet.</p>
     <ol class="how">
       <li><b>Look</b>Large on the left of each card, then at the size the player actually sees. The bloom switch above shows them with and without glow.</li>
       <li><b>Comment</b>Press Comment on a card and describe the change: shape, weight, size, color, meaning. Be as specific or loose as you like.</li>
@@ -749,6 +842,13 @@ button { font: inherit; }
     <div class="cards">${OVERLAYS.map(overlayCard).join("")}${footCard()}</div>
   </section>
 
+  <section id="proposals">
+    <h2>Station options <span class="count">${PROPOSALS.length} proposals</span></h2>
+    <p class="section-note">Not in the game. Three alternatives to the wheel, drawn at the same size and line weight as the real symbols, so any of them can move in as it is. Mark each Add, Revise or Pass; they are not part of the counts above. Every station shares one symbol today, so using more than one means deciding what tells stations apart: size, role or faction.</p>
+    ${stationCompare()}
+    <div class="cards">${PROPOSALS.map(proposalCard).join("")}</div>
+  </section>
+
   <div class="foot">
     <p><b>Not on this sheet.</b> The HUD buttons are text only today, so there are no HUD icons to review yet. Route lines, range rings, PDC tracers and the holotable frame are line work rather than icons.</p>
     <p>The atlas also draws dashed versions of every ship class that nothing uses today, because only the unknown contact is dashed. They would come into play for stale contacts, and the dashes break up badly on the small chevrons.</p>
@@ -771,12 +871,12 @@ button { font: inherit; }
       const v = verdicts.get(c.dataset.icon) || "";
       c.dataset.verdict = v;
       for (const b of $$(".vbtn", c)) b.setAttribute("aria-pressed", String(b.dataset.v === v));
-      if (v) n[v]++;
+      if (v && !c.classList.contains("proposal")) n[v]++;
     }
     $("#n-keep").textContent = n.keep;
     $("#n-revise").textContent = n.revise;
     $("#n-cut").textContent = n.cut;
-    $("#n-open").textContent = cards.length - n.keep - n.revise - n.cut;
+    $("#n-open").textContent = cards.filter((c) => !c.classList.contains("proposal")).length - n.keep - n.revise - n.cut;
   }
   paint();
 
