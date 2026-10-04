@@ -50,6 +50,9 @@ export interface Game {
    *  enemy shot, where it passes close to one of our ships. */
   shotPaths: Map<string, ShotPath>;
   readonly simTime: number;
+  /** Sim seconds as the interpolated picture shows them: smooth between ticks. Effects that
+   *  move with the picture (tracer rounds) advance by changes in this. */
+  readonly renderTime: number;
   readonly compression: number;
   positionOf(id: string): Vec3 | null;
   /** Which side a ship is on, including one that has just been destroyed. */
@@ -429,6 +432,10 @@ export function createGame(scenario: Scenario): Game {
     torpedoPaths: new Map(),
     get simTime() {
       return world.tick * DT;
+    },
+    get renderTime() {
+      // The picture blends the last two ticks by the leftover fraction of a tick.
+      return (world.tick - 1 + accumulator) * DT;
     },
     get compression() {
       return timeTuning.compressionSteps[game.compressionIndex];
