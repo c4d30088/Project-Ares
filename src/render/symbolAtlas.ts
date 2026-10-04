@@ -52,12 +52,14 @@ function shapePaths(shape: SymbolShape): Pt[][] {
       // The destroyer's chevrons with a third, spaced a little wider so all three stay countable.
       return [chevron(-1.2, 1.05, 0.36, 0.85), chevron(-0.5, 1.05, 0.36, 0.85), chevron(0.2, 1.05, 0.36, 0.85)];
     case "capital":
+      // Three chevrons over a bar, wider and flatter than the cruiser's so the stack and bar
+      // still fit inside the hostile brackets with a clear gap between every line.
       return [
-        [[0, -1.15], [0.8, 0], [0, 1.15], [-0.8, 0]],
-        [[-1.1, -0.1], [1.1, -0.1], [1.1, 0.1], [-1.1, 0.1]],
+        chevron(-1.3, 0.85, 0.34, 0.95), chevron(-0.68, 0.85, 0.34, 0.95), chevron(-0.06, 0.85, 0.34, 0.95),
+        [[-0.95, 1.07], [0.95, 1.07], [0.95, 1.31], [-0.95, 1.31]],
       ];
     case "station":
-      return [[[-0.72, -0.72], [0.72, -0.72], [0.72, 0.72], [-0.72, 0.72]]];
+      return []; // drawn as a wheel
     case "unknown":
       return [[[0, -0.95], [0.95, 0], [0, 0.95], [-0.95, 0]]];
     case "torpedo":
@@ -94,8 +96,34 @@ function brackets(ctx: CanvasRenderingContext2D, half: number, arm: number) {
   ctx.stroke();
 }
 
+// A spin-habitat wheel: heavy rim, six spokes, solid hub. Stations never move or turn on the
+// table, so it is drawn upright and the same whether or not "filled" is set.
+function drawStation(ctx: CanvasRenderingContext2D) {
+  ctx.lineWidth = LINE * 1.4;
+  ctx.beginPath();
+  ctx.arc(0, 0, 1.0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineWidth = LINE;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 3;
+    ctx.moveTo(Math.cos(a) * 0.3, Math.sin(a) * 0.3);
+    ctx.lineTo(Math.cos(a) * 1.0, Math.sin(a) * 1.0);
+  }
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, 0.32, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawSymbol(ctx: CanvasRenderingContext2D, shape: SymbolShape, filled: boolean, treatment: Treatment) {
   ctx.setLineDash(treatment === "dashed" ? [0.32, 0.2] : []);
+  if (shape === "station") {
+    drawStation(ctx);
+    if (treatment === "brackets") brackets(ctx, 1.45, 0.42);
+    return;
+  }
   if (shape === "torpedo") {
     ctx.beginPath();
     ctx.arc(0, 0, 0.75, 0, Math.PI * 2);

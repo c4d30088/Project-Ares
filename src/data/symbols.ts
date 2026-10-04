@@ -8,7 +8,7 @@ export const symbolTuning = {
     destroyer: 36,
     cruiser: 40,
     capital: 50,
-    station: 30,
+    station: 44,
     unknown: 36,
     torpedo: 20,
   },

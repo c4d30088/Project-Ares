@@ -269,8 +269,8 @@ Hits land on subsystems based on the direction the hit came from relative to the
 | Frigate | Solid wedge (triangle) | By allegiance |
 | Destroyer | Double chevron | By allegiance |
 | Cruiser | Triple chevron | By allegiance |
-| Capital ship | Large diamond with center bar | By allegiance |
-| Station | Square | By allegiance |
+| Capital ship | Triple chevron over a bar | By allegiance |
+| Station | Hub-and-spoke wheel | By allegiance |
 | Unknown contact | Dashed diamond with `?` | Orange |
 | Stale contact (source lost) | Last icon, frozen, hollow, with growing uncertainty ring | Orange |
 | Targeted point in space | Small crosshair with drop line and weapon tag (`TORP x4`, `RG`, `PDC`) | Friendly |

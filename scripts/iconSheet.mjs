@@ -217,16 +217,16 @@ const SHIPS = [
     note: "The destroyer's chevrons with a third added, spaced slightly wider. Check two and three stay easy to tell apart at game size.",
   },
   {
-    key: "capital", name: "Capital ship", form: "Large diamond with a center bar",
+    key: "capital", name: "Capital ship", form: "Three chevrons over a bar",
     used: "Hostile TRK-12 in the holotable test",
     states: ["friendly", "neutral", "hostile"], rows: ["coast", "burn"],
-    note: "The center bar is wider than the diamond. Check it does not read as a separate object.",
+    note: "The cruiser's three chevrons with a base bar, drawn wider and flatter so the whole stack fits inside the hostile brackets. Hollow, the lines sit close together: check three chevrons still count at game size.",
   },
   {
-    key: "station", name: "Station", form: "Square, never rotates",
+    key: "station", name: "Station", form: "Wheel with six spokes and a hub",
     used: "TALLOW RELAY (neutral) in the holotable test",
     states: ["friendly", "neutral", "hostile"], rows: ["coast"],
-    note: "Stations do not burn or turn, so there is no filled version in play.",
+    note: "A spin-habitat wheel with a heavy rim, drawn upright. It never rotates and never burns, so there is no filled version in play. At 44 px it is the second-largest quad after the capital ship.",
   },
   {
     key: "unknown", name: "Unknown contact", form: "Dashed diamond with a ?",
@@ -349,12 +349,17 @@ const OVERLAYS = [
   },
   {
     key: "thrust", name: "Thrust line", form: "Short line ahead of the icon",
-    q: Q.frigate * 1.5,
+    q: Q.capital * 1.5,
     stages: () => {
-      const tq = Q.frigate * 1.5;
+      const burning = (shape, a, label) => {
+        const q = Q[shape], tq = q * 1.5, color = allegianceColor(shape, a);
+        return { label, html: stack([icon(cellIndex(shape, true, treatmentFor(shape, a)), q, color), icon(EXTRA_CELLS.thrust, tq, color, { opacity: 0.9 })], tq) };
+      };
       return [
-        { label: "Friendly frigate", html: stack([icon(frigateFilled("friendly"), Q.frigate, P.friendly), icon(EXTRA_CELLS.thrust, tq, P.friendly, { opacity: 0.9 })], tq) },
-        { label: "Hostile frigate", html: stack([icon(frigateFilled("hostile"), Q.frigate, P.hostile), icon(EXTRA_CELLS.thrust, tq, P.hostile, { opacity: 0.9 })], tq) },
+        burning("frigate", "friendly", "Friendly frigate"),
+        burning("frigate", "hostile", "Hostile frigate"),
+        burning("cruiser", "friendly", "Friendly cruiser"),
+        burning("capital", "friendly", "Friendly capital ship"),
       ];
     },
     spec: [["Quad", "1.5 × the ship's"], ["Stroke", "round caps"]],
@@ -502,7 +507,7 @@ function shot(file, caption) {
   return `<figure class="shot"><img src="data:image/png;base64,${b64}" alt="${caption}" loading="lazy"><figcaption>${caption}</figcaption></figure>`;
 }
 const shots =
-  shot("shots/sheet-holotable.png", "Holotable test. Capital ship, corvette, destroyer, cruiser and frigates, the unknown contact (orange), the station (white square), flip and arrival markers, foot rings, and the selected frigate with its reticle.") +
+  shot("shots/sheet-holotable.png", "Holotable test. Capital ship, corvette, destroyer, cruiser and frigates, the unknown contact (orange), the station (white wheel), flip and arrival markers, foot rings, and the selected frigate with its reticle.") +
   shot("shots/sheet-firstfight.png", "First fight, before the shooting starts. Two hostile frigates with their corner brackets, and your selected frigate.");
 
 // ---------------------------------------------------------------------------------------
