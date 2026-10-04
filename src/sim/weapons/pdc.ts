@@ -221,7 +221,7 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
     const r = length(sub(t.position, ship.position));
     if (roll(world, 1 - Math.exp(-pdcRate(r, PT.killRatePerS) * health * dt))) {
       destroy(world, t, "pdc");
-      events.push({ type: "pdcKill", ship: ship.id, mount, torpedo: t.id });
+      events.push({ type: "pdcKill", ship: ship.id, faction: ship.faction, mount, torpedo: t.id, target: "torpedo", position: { ...t.position } });
     }
   } else if (aim.kind === "slug" && aim.id) {
     const s = world.slugs.find((x) => x.id === aim.id);
@@ -229,7 +229,7 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
     const r = length(sub(s.position, ship.position));
     if (roll(world, 1 - Math.exp(-pdcRate(r, PT.killRatePerS * RT.pdcSlugFactor) * health * dt))) {
       destroy(world, s, "pdc");
-      events.push({ type: "pdcKill", ship: ship.id, mount, torpedo: s.id });
+      events.push({ type: "pdcKill", ship: ship.id, faction: ship.faction, mount, torpedo: s.id, target: "slug", position: { ...s.position } });
     }
   } else if (aim.kind === "point") {
     // Barrage curtain: every hostile torpedo passing through it is at risk.
@@ -239,7 +239,7 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
       const r = length(sub(t.position, ship.position));
       if (roll(world, 1 - Math.exp(-pdcRate(r, PT.killRatePerS) * health * dt))) {
         destroy(world, t, "pdc");
-        events.push({ type: "pdcKill", ship: ship.id, mount, torpedo: t.id });
+        events.push({ type: "pdcKill", ship: ship.id, faction: ship.faction, mount, torpedo: t.id, target: "torpedo", position: { ...t.position } });
       }
     }
   } else if (aim.kind === "ship" && aim.id) {
@@ -247,7 +247,7 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
     if (!s || s.destroyed) return;
     const r = length(sub(s.position, ship.position));
     if (roll(world, 1 - Math.exp(-pdcRate(r, PT.shipHitsPerS) * health * dt))) {
-      applyHit(world, s, normalize(sub(ship.position, s.position)), PT.shipHull, PT.shipSubsystem, "pdc");
+      applyHit(world, s, normalize(sub(ship.position, s.position)), PT.shipHull, PT.shipSubsystem, "pdc", ship.faction);
     }
   }
   // Objects: bodies and stations take no damage yet (fire is still shown).

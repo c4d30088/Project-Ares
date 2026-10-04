@@ -395,9 +395,9 @@ export function fuseTorpedoes(world: World, torpedoesBefore: Map<string, Vec3>, 
       // The hit comes from the direction the torpedo is coming from, relative to the ship.
       const rel = sub(t.velocity, s.velocity);
       const from = length(rel) > 1 ? scale(rel, -1) : sub(t.position, s.position);
-      events.push({ type: "torpedoDetonated", torpedo: t.id, faction: t.faction, hit: s.id });
+      events.push({ type: "torpedoDetonated", torpedo: t.id, faction: t.faction, hit: s.id, position: { ...t.position } });
       destroy(world, t, "detonated");
-      applyHit(world, s, from, C.torpedoHull, C.torpedoSubsystem, "torpedo");
+      applyHit(world, s, from, C.torpedoHull, C.torpedoSubsystem, "torpedo", t.faction);
       break;
     }
   }

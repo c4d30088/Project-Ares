@@ -207,9 +207,9 @@ export function moveSlugs(world: World, dt: number, shipsBefore: Map<string, Vec
       const s0 = shipsBefore.get(ship.id) ?? ship.position;
       if (closestApproach(before, s.position, s0, ship.position).dist > C.hitRadius[ship.shipClass]) continue;
       const from = scale(sub(s.velocity, ship.velocity), -1);
-      events.push({ type: "slugHit", slug: s.id, faction: s.faction, hit: ship.id });
+      events.push({ type: "slugHit", slug: s.id, faction: s.faction, hit: ship.id, position: { ...s.position } });
       destroy(world, s, "hit");
-      applyHit(world, ship, from, C.slugHull * s.damageScale, Math.min(1, C.slugSubsystem * s.damageScale), "railgun");
+      applyHit(world, ship, from, C.slugHull * s.damageScale, Math.min(1, C.slugSubsystem * s.damageScale), "railgun", s.faction);
       break;
     }
     if (s.destroyed) continue;

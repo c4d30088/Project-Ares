@@ -75,16 +75,23 @@ export type SimEvent =
   | { type: "flipStart"; ship: string }
   | { type: "orderComplete"; ship: string; order: NavOrder["type"] }
   | { type: "commandRejected"; faction: string; command: Command; reason: string }
-  | { type: "damage"; ship: string; subsystem: string; side: string; cause: string }
+  /** A hit on a ship. `hull` and `amount` are the fractions of hull and of the struck
+   *  subsystem lost (amount is 0 when only the hull was struck); `attacker` is the faction
+   *  that fired. The effects and the alert log read these. */
+  | {
+      type: "damage"; ship: string; faction: string; attacker: string; subsystem: string; side: string; cause: string;
+      position: Vec3; hull: number; amount: number;
+    }
   | { type: "subsystemDestroyed"; ship: string; subsystem: string }
-  | { type: "destroyed"; id: string; cause: string }
+  | { type: "destroyed"; id: string; cause: string; kind: "ship" | "torpedo" | "slug"; position: Vec3 }
   | { type: "torpedoLaunched"; ship: string; torpedo: string; faction: string; mode: LaunchMode }
-  | { type: "torpedoDetonated"; torpedo: string; faction: string; hit: string }
+  | { type: "torpedoDetonated"; torpedo: string; faction: string; hit: string; position: Vec3 }
   /** A torpedo removed without hitting anything: spent after a miss, or a mine timing out. */
   | { type: "torpedoExpired"; torpedo: string; reason: "spent" | "timeout" }
-  | { type: "pdcKill"; ship: string; mount: number; torpedo: string }
+  /** A PDC destroyed an incoming torpedo or slug (`torpedo` holds its id either way). */
+  | { type: "pdcKill"; ship: string; faction: string; mount: number; torpedo: string; target: "torpedo" | "slug"; position: Vec3 }
   | { type: "pdcAmmoOut"; ship: string; mount: number }
   | { type: "railgunFired"; ship: string; faction: string; slug: string }
-  | { type: "slugHit"; slug: string; faction: string; hit: string }
+  | { type: "slugHit"; slug: string; faction: string; hit: string; position: Vec3 }
   /** Crew losses from holding full G-strain. */
   | { type: "crewCasualties"; ship: string };
