@@ -12,11 +12,13 @@ import { crewTuning } from "../data/crew";
 import { pathTuning } from "../data/paths";
 import { impactTuning } from "../data/impacts";
 import { scenarios } from "../data/scenarios";
+import { tuningRoots } from "../data/tuningRoots";
+import { decoratePanel } from "./panelSearch";
 
 // Debug panel. Toggle with the backquote key (`).
 // Controls edit the tunable objects in src/data directly; code reads them every frame.
 export function createDebugPanel(currentScenario: string, restart: () => void): GUI {
-  const gui = new GUI({ title: "Debug  [ ` ]" });
+  const gui = new GUI({ title: "Debug  [ ` ]", width: 340 });
   gui.hide();
 
   // Scenario picker: reloads the page with ?scenario=...
@@ -28,6 +30,9 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   });
 
   gui.add({ restart }, "restart").name("restart scenario");
+  gui.add({ showNotes: true }, "showNotes")
+    .name("show explanations")
+    .onChange((on: boolean) => gui.domElement.classList.toggle("ares-hide-notes", !on));
   gui.add(physicsTuning, "gravityEnabled").name("gravity");
 
   const time = gui.addFolder("Time");
@@ -206,12 +211,14 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pdcTuning, railgunTuning, crewTuning, pathTuning, impactTuning }, null, 2);
+        const json = JSON.stringify(tuningRoots, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },
     "copyValues",
   ).name("copy values");
+
+  decoratePanel(gui);
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "`") gui.show(gui._hidden);
