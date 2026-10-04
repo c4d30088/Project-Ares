@@ -72,6 +72,13 @@ export const tuningNotes: Record<string, string> = {
   "holotableTuning.dashScale": "Length of the dashes on drop lines below the plane, as a fraction of camera distance.",
 
   // --- Symbols ---
+  "labelTuning.shipPx": "Size of the text next to each ship and track: name, speed and so on.",
+  "labelTuning.markerPx": "Size of the countdown text on the table: flip and arrival times, impact times, and the label on a point you are placing.",
+  "labelTuning.bodyPx": "Size of planet, moon and asteroid names on the table.",
+  "labelTuning.axisPx": "Size of the X, Y and Z letters on the table frame.",
+  "labelTuning.ringPx": "Size of the distance labels on the range rings.",
+  "labelTuning.scaleReadoutPx": "Size of the grid scale readout at the bottom of the table.",
+  "labelTuning.hitTextPx": "Size of the damage and kill text that floats above a ship that was hit.",
   "symbolTuning.scale": "Multiplier on the size of every ship and torpedo symbol.",
   "symbolTuning.size.corvette": "On-screen size of corvette symbols (px).",
   "symbolTuning.size.frigate": "On-screen size of frigate symbols (px).",

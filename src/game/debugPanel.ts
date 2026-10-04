@@ -11,6 +11,7 @@ import { pdcTuning, railgunTuning, torpedoTuning } from "../data/weapons";
 import { crewTuning } from "../data/crew";
 import { pathTuning } from "../data/paths";
 import { impactTuning } from "../data/impacts";
+import { labelTuning } from "../data/labels";
 import { scenarios } from "../data/scenarios";
 import { tuningRoots } from "../data/tuningRoots";
 import { decoratePanel } from "./panelSearch";
@@ -122,6 +123,17 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   sym.add(symbolTuning, "bodyOpacity", 0, 1, 0.01);
   sym.add(symbolTuning, "labelOpacity", 0, 1, 0.01);
   sym.close();
+
+  // Text drawn on the table itself: ship labels, countdowns, names, axis and ring labels.
+  const text = gui.addFolder("Table text");
+  text.add(labelTuning, "shipPx", 7, 24, 1).name("ship labels (px)");
+  text.add(labelTuning, "markerPx", 7, 24, 1).name("countdown labels (px)");
+  text.add(labelTuning, "bodyPx", 7, 24, 1).name("planet and moon names (px)");
+  text.add(labelTuning, "axisPx", 7, 28, 1).name("X Y Z letters (px)");
+  text.add(labelTuning, "ringPx", 7, 24, 1).name("ring distances (px)");
+  text.add(labelTuning, "scaleReadoutPx", 7, 24, 1).name("scale readout (px)");
+  text.add(labelTuning, "hitTextPx", 7, 24, 1).name("hit text (px)");
+  text.close();
 
   const bodies = gui.addFolder("Bodies");
   bodies.add(bodyTuning, "contourCount", 2, 40, 1);

@@ -3,6 +3,7 @@
 // Also positions the name labels and answers "what is under this pixel?" for picking.
 
 import * as THREE from "three";
+import { labelTuning as L } from "../data/labels";
 import { symbolTuning as T } from "../data/symbols";
 import type { Allegiance } from "../sim/sensors/picture";
 import type { Vec3 } from "../sim/vec3";
@@ -170,8 +171,13 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
   // one already placed is hidden. Lower priority number wins.
   interface LabelCandidate { el: HTMLDivElement; x: number; y: number; w: number; priority: number }
   const candidates: LabelCandidate[] = [];
-  const LABEL_H = 12;
-  const CHAR_W = 6.4;
+  // Label box estimates for decluttering; they follow the label font size (see data/labels.ts).
+  const labelHeight = (el: HTMLElement) => (parseFloat(el.style.fontSize) || 10) * 1.2;
+  const charW = (px: number) => px * 0.64;
+  const labelSize = (el: HTMLElement, px: number) => {
+    el.style.fontSize = `${px}px`;
+    return px;
+  };
   const labelPriority: Record<Allegiance, number> = { friendly: 1, hostile: 2, unknown: 3, neutral: 4 };
 
   return {
@@ -213,7 +219,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         el.style.opacity = b.kind === "asteroid" ? "0.6" : "0.9";
         const off = Math.max(rPx, (T.bodyMarkerSize * T.scale) / 3);
         candidates.push({
-          el, x: sp.x + off * 0.72 + 4, y: sp.y + off * 0.72, w: b.name.length * CHAR_W,
+          el, x: sp.x + off * 0.72 + 4, y: sp.y + off * 0.72, w: b.name.length * charW(labelSize(el, L.bodyPx)),
           priority: b.kind === "asteroid" ? 6 : 5,
         });
       }
@@ -233,7 +239,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
             el.style.color = allegianceColor[s.allegiance];
             el.style.opacity = String(T.labelOpacity);
             candidates.push({
-              el, x: sp.x + size * 0.42, y: sp.y - 6, w: s.label.length * CHAR_W,
+              el, x: sp.x + size * 0.42, y: sp.y - 6, w: s.label.length * charW(labelSize(el, L.shipPx)),
               priority: s.isOwn ? 0 : labelPriority[s.allegiance],
             });
           }
@@ -281,9 +287,9 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         if (m.kind === "impact") {
           // Below the X, clear of the label of the ship it is about to hit; incoming
           // impacts outrank everything but the selection.
-          candidates.push({ el, x: sp.x - size * 0.3, y: sp.y + size * 0.7, w: m.label.length * CHAR_W, priority: m.allegiance === "hostile" ? -0.5 : 0.5 });
+          candidates.push({ el, x: sp.x - size * 0.3, y: sp.y + size * 0.7, w: m.label.length * charW(labelSize(el, L.markerPx)), priority: m.allegiance === "hostile" ? -0.5 : 0.5 });
         } else {
-          candidates.push({ el, x: sp.x + size * 0.5, y: sp.y + 2, w: m.label.length * CHAR_W, priority: 0.5 });
+          candidates.push({ el, x: sp.x + size * 0.5, y: sp.y + 2, w: m.label.length * charW(labelSize(el, L.markerPx)), priority: 0.5 });
         }
       }
 
@@ -299,7 +305,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         el.textContent = w.label;
         el.style.color = wColor;
         el.style.opacity = "1";
-        candidates.push({ el, x: sp.x + 16, y: sp.y - 16, w: w.label.length * CHAR_W, priority: -1 });
+        candidates.push({ el, x: sp.x + 16, y: sp.y - 16, w: w.label.length * charW(labelSize(el, L.markerPx)), priority: -1 });
       }
 
       // Selection reticle on top.
@@ -314,7 +320,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
       const placed: LabelCandidate[] = [];
       for (const c of candidates) {
         const overlaps = placed.some(
-          (p) => c.x < p.x + p.w && p.x < c.x + c.w && c.y < p.y + LABEL_H && p.y < c.y + LABEL_H,
+          (p) => c.x < p.x + p.w && p.x < c.x + c.w && c.y < p.y + labelHeight(p.el) && p.y < c.y + labelHeight(c.el),
         );
         if (overlaps) {
           c.el.style.display = "none";
