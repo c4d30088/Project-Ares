@@ -132,6 +132,7 @@ The prediction is produced by running the same autopilot forward on a copy of th
 
 - Kinetic guns firing a slug at about 20 km/s. Frigates and destroyers carry a light railgun on a limited turret. Cruisers and capital ships carry heavy spinal railguns fixed along the keel, so the whole ship must turn to aim.
 - A lidar lock gives the best firing solution and shows the lead point on the table. Without a lock, you can still fire at a track's estimated position or at a point, with lower accuracy.
+- A projectile leaves with the firing ship's velocity plus the gun's muzzle velocity (owner, 2026-10-04): slugs and torpedoes, and the PDC tracer rounds, all inherit the ship's motion. Aim is worked out in the ship's own frame, so a fast-moving ship cancels its own drift when it leads a target, and a target that is outrunning the muzzle speed gives "no firing solution" instead of a wasted shot.
 - Slugs are hard to see coming: they have no drive plume, and the target only gets warning if its radar picks them up.
 - Long flight times mean a maneuvering target can dodge at range. Effective range against an evading target is low hundreds of km. Against a coasting target it is much longer. This punishes coasting dark near enemies.
 - Limited ammunition and a recharge time between shots. Spinal guns hit much harder and recharge much slower.

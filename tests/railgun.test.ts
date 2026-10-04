@@ -154,3 +154,87 @@ describe("slug hits", () => {
     expect(run()).toBe(run());
   });
 });
+
+// A slug leaves with the ship's velocity plus the gun's muzzle velocity, so the aim has to
+// cancel the ship's own drift: the gun points where the target will be relative to the
+// moving ship, not at the lead point in space.
+describe("railgun fired from a fast-moving ship", () => {
+  /** A frigate at the origin moving at shipV and a red frigate; the bow turned to the shot. */
+  function movingShooter(shipV: Vec3, tgtPos: Vec3, tgtV = v3(0, 0, 0)): World {
+    // Copies: the sim moves ships by editing their vectors, and these lists are reused.
+    const sv = { ...shipV };
+    const world = makeWorld([makeShip({ id: "ff", velocity: sv }), makeShip({ id: "tgt", faction: "red", position: { ...tgtPos }, velocity: { ...tgtV } })]);
+    const aim = aimRailgun(world, world.ships[0], { kind: "track", id: "tgt" });
+    if (aim) world.ships[0].heading = normalize(sub(aim.velocity, sv));
+    return world;
+  }
+
+  const SHOOTER_VELOCITIES: [string, Vec3][] = [
+    ["at rest", v3(0, 0, 0)],
+    ["3 km/s sideways", v3(0, 3000, 0)],
+    ["10 km/s toward the target", v3(10_000, 0, 0)],
+    ["10 km/s sideways", v3(0, 10_000, 0)],
+    ["15 km/s climbing", v3(0, 0, 15_000)],
+    ["12 km/s away from the target", v3(-12_000, 0, 0)],
+    ["30 km/s toward the target", v3(30_000, 0, 0)],
+  ];
+  const TARGETS: [string, Vec3, Vec3][] = [
+    ["a ship ahead at rest", v3(1_000_000, 0, 0), v3(0, 0, 0)],
+    ["a crossing ship", v3(1_000_000, 100_000, 0), v3(-500, 1500, 0)],
+    ["a ship off to one side", v3(700_000, 500_000, 80_000), v3(-800, 0, 200)],
+  ];
+
+  it("fires at exactly the muzzle speed relative to the ship, whatever the ship's speed", () => {
+    for (const [name, sv] of SHOOTER_VELOCITIES) {
+      const world = movingShooter(sv, v3(1_000_000, 0, 0));
+      fire(world);
+      step(world);
+      const slug = world.slugs[0];
+      expect(slug, name).toBeDefined();
+      expect(length(sub(slug.shot.velocity, sv)), name).toBeCloseTo(RT.light.slugSpeed, 3);
+    }
+  });
+
+  it("hits, at every speed and heading the ship can have", () => {
+    for (const [sname, sv] of SHOOTER_VELOCITIES) {
+      for (const [tname, tp, tv] of TARGETS) {
+        const world = movingShooter(sv, tp, tv);
+        fire(world);
+        const ev = runFor(world, 400, (e) => e.some((x) => x.type === "slugHit" || x.type === "commandRejected"));
+        const rejected = ev.find((e) => e.type === "commandRejected");
+        expect(rejected && rejected.type === "commandRejected" ? rejected.reason : null, `${sname} -> ${tname}`).toBeNull();
+        expect(ev.find((e) => e.type === "slugHit"), `${sname} -> ${tname}`).toMatchObject({ hit: "tgt" });
+      }
+    }
+  });
+
+  it("still allows for a moon's gravity while the ship moves fast", () => {
+    const moon: Body = { id: "moon", name: "MOON", kind: "moon", position: v3(1_500_000, 900_000, 0), radius: 600_000 };
+    for (const sv of [v3(0, 8000, 0), v3(6000, -6000, 0)]) {
+      const world = movingShooter(sv, v3(3_000_000, 0, 0), v3(0, 500, 0));
+      world.bodies.push(moon);
+      const aim = aimRailgun(world, world.ships[0], { kind: "track", id: "tgt" })!;
+      world.ships[0].heading = normalize(sub(aim.velocity, sv));
+      fire(world);
+      const ev = runFor(world, 400, (e) => e.some((x) => x.type === "slugHit" || x.type === "commandRejected"));
+      expect(ev.find((e) => e.type === "slugHit"), JSON.stringify(sv)).toMatchObject({ hit: "tgt" });
+    }
+  });
+
+  it("the lead point and flight time it reports are where and when the slug really arrives", () => {
+    const world = movingShooter(v3(0, 9000, 0), v3(1_000_000, 0, 0), v3(-300, 800, 100));
+    const aim = aimRailgun(world, world.ships[0], { kind: "track", id: "tgt" })!;
+    fire(world);
+    const ev = runFor(world, 400, (e) => e.some((x) => x.type === "slugHit"));
+    const hit = ev.find((e) => e.type === "slugHit")!;
+    expect(Math.abs(hit.t - DT - aim.t)).toBeLessThan(0.2);
+  });
+
+  it("says there is no firing solution for a target that is outrunning the slug", () => {
+    // Sideways at 30 km/s, faster than the 20 km/s muzzle speed can cancel.
+    const world = movingShooter(v3(0, 30_000, 0), v3(1_000_000, 0, 0));
+    fire(world);
+    expect(runFor(world, 0.1).find((e) => e.type === "commandRejected")).toMatchObject({ reason: "no firing solution" });
+    expect(world.slugs).toHaveLength(0);
+  });
+});
