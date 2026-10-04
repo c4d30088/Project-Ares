@@ -235,10 +235,10 @@ const SHIPS = [
     note: "The ? is knocked out of the fill when the contact is burning. Always orange and dashed, and does not rotate.",
   },
   {
-    key: "torpedo", name: "Torpedo", form: "Dot, ring when coasting",
+    key: "torpedo", name: "Torpedo", form: "Slim body, pointed nose, tail fins",
     used: "Enemy salvos in the first fight, the holotable test salvo, and anything you launch",
     states: ["friendly", "hostile"], rows: ["coast", "burn"],
-    note: "Hostile torpedoes use the brighter threat red and pulse, as in the specimen. They never get corner brackets.",
+    note: "Points the way it flies. Filled while its drive burns, outlined while coasting after a cold launch. Hostile torpedoes use the brighter threat red and pulse, as in the specimen. They never get corner brackets.",
   },
 ];
 

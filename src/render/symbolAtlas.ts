@@ -63,7 +63,11 @@ function shapePaths(shape: SymbolShape): Pt[][] {
     case "unknown":
       return [[[0, -0.95], [0.95, 0], [0, 0.95], [-0.95, 0]]];
     case "torpedo":
-      return []; // drawn as a circle
+      // Slim body, pointed nose, swept tail fins. Smaller than any ship so a salvo stays readable.
+      return [[
+        [0, -0.95], [0.14, -0.72], [0.26, -0.38], [0.26, 0.3], [0.52, 0.82], [0.52, 0.95], [0.2, 0.95],
+        [-0.2, 0.95], [-0.52, 0.95], [-0.52, 0.82], [-0.26, 0.3], [-0.26, -0.38], [-0.14, -0.72],
+      ]];
   }
 }
 
@@ -122,18 +126,6 @@ function drawSymbol(ctx: CanvasRenderingContext2D, shape: SymbolShape, filled: b
   if (shape === "station") {
     drawStation(ctx);
     if (treatment === "brackets") brackets(ctx, 1.45, 0.42);
-    return;
-  }
-  if (shape === "torpedo") {
-    ctx.beginPath();
-    ctx.arc(0, 0, 0.75, 0, Math.PI * 2);
-    if (filled) ctx.fill();
-    else {
-      ctx.lineWidth = LINE * 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, 0.65, 0, Math.PI * 2);
-      ctx.stroke();
-    }
     return;
   }
   for (const path of shapePaths(shape)) {

@@ -126,7 +126,7 @@ The prediction is produced by running the same autopilot forward on a copy of th
 - A salvo bigger than the ship's tubes still arrives as one wave: the first torpedoes out wait beside the ship, drive dark, until the last leaves its tube, then all light together (decided 2026-10-03; without it a two-tube ship's salvo arrived in pairs and four PDCs stopped every pair).
 - A salvo can be split across several targets or points.
 - When torpedoes are in flight, the table draws thin converging lines from each one to the predicted impact point, marked with an X and a countdown.
-- Hostile torpedoes are bright red dots. A swarm closing on one blue wedge is the signature image of the game.
+- Hostile torpedoes are bright red torpedo shapes, each pointing the way it flies. A swarm closing on one blue wedge is the signature image of the game.
 
 ### Railguns
 
@@ -274,7 +274,7 @@ Hits land on subsystems based on the direction the hit came from relative to the
 | Unknown contact | Dashed diamond with `?` | Orange |
 | Stale contact (source lost) | Last icon, frozen, hollow, with growing uncertainty ring | Orange |
 | Targeted point in space | Small crosshair with drop line and weapon tag (`TORP x4`, `RG`, `PDC`) | Friendly |
-| Torpedo | Small dot (hostile dots pulse) | By allegiance |
+| Torpedo | Small torpedo shape: pointed nose, tail fins, points along its flight (hostile ones pulse) | By allegiance |
 | Torpedo intercept line and impact X | Thin dotted path along the torpedo's predicted flight, X and countdown | Weapon fire: green ours, yellow theirs |
 | Railgun slug | Short streak, only when tracked | Weapon fire: green ours, yellow theirs |
 | PDC fire | Tracer rounds (short streaks) over a faint line from gun to target | Weapon fire: green ours, yellow theirs |
