@@ -16,6 +16,9 @@ import { DT } from "./sim/sim";
 import { G0 } from "./data/ships";
 import { createOrderInput, type OrderKind, type SalvoSize } from "./game/input";
 import { createIconLayer } from "./render/icons";
+import { createImpactLayer } from "./render/impacts";
+import { impactsFromEvents } from "./render/impactModel";
+import { areHostile } from "./sim/world";
 import { createBodyLayer } from "./render/bodies";
 import { createDropLines } from "./render/dropLines";
 import { palette } from "./render/palette";
@@ -25,12 +28,16 @@ import { hudActions, hudStore } from "./ui/store";
 import { timeTuning } from "./data/time";
 import { defaultScenario, scenarios } from "./data/scenarios";
 import { effectsTuning } from "./data/effects";
+import { tuningRoots } from "./data/tuningRoots";
 
 // Scenario from the URL (?scenario=holotable-test), else the default.
 const scenarioName = new URLSearchParams(location.search).get("scenario") ?? defaultScenario;
 const game = createGame(scenarios[scenarioName] ?? scenarios[defaultScenario]);
 const view = createTableView(document.getElementById("table")!);
-createDebugPanel(scenarioName, () => game.restart());
+createDebugPanel(scenarioName, () => {
+  game.restart();
+  impacts.clear();
+});
 createRoot(document.getElementById("hud")!).render(createElement(Hud));
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.
@@ -50,8 +57,13 @@ const labelRoot = document.createElement("div");
 labelRoot.className = "obj-labels";
 view.overlay.appendChild(labelRoot);
 const icons = createIconLayer(labelRoot);
-view.onResize = (w, h) => icons.resize(w, h);
+const impacts = createImpactLayer(labelRoot);
+view.onResize = (w, h) => {
+  icons.resize(w, h);
+  impacts.resize(w, h);
+};
 icons.resize(view.dom.clientWidth, view.dom.clientHeight);
+impacts.resize(view.dom.clientWidth, view.dom.clientHeight);
 
 // The camera follows the focused object until the player pans away.
 let followId: string | null = null;
@@ -149,7 +161,7 @@ view.cam.setView({ yawDeg: num("yaw"), pitchDeg: q.has("top") ? 89.9 : num("pitc
 if (q.has("paused")) game.paused = true;
 
 let last = performance.now();
-let lastSimTime = game.simTime;
+let lastRenderTime = game.renderTime;
 let firstFrame = true;
 let hudTimer = 0;
 function frame(now: number) {
@@ -194,6 +206,7 @@ function frame(now: number) {
       railgun: own ? own.railgun : null,
       railgunDetected: game.alerts.railgunDetected,
       alerts: game.alertList,
+      alertLog: game.alertLog,
       slugImpactIn: game.alerts.slugImpactIn,
       launchDetected: game.alerts.launchDetected,
       impactIn: game.alerts.impactIn,
@@ -262,26 +275,35 @@ function frame(now: number) {
   const domes: PdcDome[] = [];
   const tracers: Tracer[] = [];
   const still = { x: 0, y: 0, z: 0 };
-  const velocityOf = (id: string | null) => (id && game.picture.tracks.find((t) => t.id === id)?.velocity) || still;
   for (const s of game.picture.ownShips) {
     s.pdcs.forEach((m, i) => {
       if (m.health <= 0) return;
       domes.push({ key: `${s.id}:${i}`, center: s.position, direction: m.direction, arc: s.pdcArc, firing: m.firing });
-      const to = (m.aimId && game.positionOf(m.aimId)) || m.aimAt;
-      if (m.firing && to) tracers.push({ key: `${s.id}:${i}`, from: s.position, fromVelocity: s.velocity, to, toVelocity: velocityOf(m.aimId), hostile: false });
+      const to = (m.aimId && game.positionOf(m.aimId)) || m.aimAt?.position;
+      if (m.firing && to) tracers.push({ key: `${s.id}:${i}`, from: s.position, fromVelocity: s.velocity, to, toVelocity: m.aimAt?.velocity ?? still, hostile: false });
     });
   }
   for (const t of game.picture.tracks) {
-    (t.pdcFire ?? []).forEach((to, j) =>
-      tracers.push({ key: `${t.id}:${j}`, from: t.position, fromVelocity: t.velocity, to, toVelocity: still, hostile: t.allegiance === "hostile" }),
+    (t.pdcFire ?? []).forEach((aim, j) =>
+      tracers.push({ key: `${t.id}:${j}`, from: t.position, fromVelocity: t.velocity, to: aim.position, toVelocity: aim.velocity, hostile: t.allegiance === "hostile" }),
     );
   }
-  pdcLayer.update(domes, tracers, view.cam.focus, game.simTime - lastSimTime);
-  lastSimTime = game.simTime;
+  // Rounds move on the same smooth clock as the interpolated ships, so a stream does not
+  // step at the sim's 20 Hz while the ship it leaves glides.
+  pdcLayer.update(domes, tracers, view.cam.focus, Math.max(0, game.renderTime - lastRenderTime));
+  lastRenderTime = game.renderTime;
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);
-  view.render([[icons.scene, icons.camera]]);
+  // Explosions, sparks and hit text for what was hit since the last frame.
+  const fx = impactsFromEvents(game.takeEvents(), {
+    playerFaction: game.playerFaction,
+    hostile: (a, b) => areHostile(game.world, a, b),
+    factionOf: (id) => game.factionOf(id),
+  });
+  impacts.spawn(fx.effects, fx.texts);
+  impacts.update(dt, view.cam.focus, view.cam.camera, (id) => game.positionOf(id));
+  view.render([[icons.scene, icons.camera], [impacts.scene, impacts.camera]]);
   if (firstFrame) {
     firstFrame = false;
     // Signals the screenshot script that the scene has rendered.
@@ -292,4 +314,4 @@ function frame(now: number) {
 requestAnimationFrame(frame);
 
 // Debug handle for the browser console and inspection scripts (dev builds only).
-if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view };
+if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view, impacts, tuning: tuningRoots };

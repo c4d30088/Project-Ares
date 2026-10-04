@@ -10,12 +10,15 @@ import { timeTuning } from "../data/time";
 import { pdcTuning, railgunTuning, torpedoTuning } from "../data/weapons";
 import { crewTuning } from "../data/crew";
 import { pathTuning } from "../data/paths";
+import { impactTuning } from "../data/impacts";
 import { scenarios } from "../data/scenarios";
+import { tuningRoots } from "../data/tuningRoots";
+import { decoratePanel } from "./panelSearch";
 
 // Debug panel. Toggle with the backquote key (`).
 // Controls edit the tunable objects in src/data directly; code reads them every frame.
 export function createDebugPanel(currentScenario: string, restart: () => void): GUI {
-  const gui = new GUI({ title: "Debug  [ ` ]" });
+  const gui = new GUI({ title: "Debug  [ ` ]", width: 340 });
   gui.hide();
 
   // Scenario picker: reloads the page with ?scenario=...
@@ -27,6 +30,9 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   });
 
   gui.add({ restart }, "restart").name("restart scenario");
+  gui.add({ showNotes: true }, "showNotes")
+    .name("show explanations")
+    .onChange((on: boolean) => gui.domElement.classList.toggle("ares-hide-notes", !on));
   gui.add(physicsTuning, "gravityEnabled").name("gravity");
 
   const time = gui.addFolder("Time");
@@ -153,6 +159,32 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   pdc.add(pathTuning, "pdcDomeOpacity", 0, 0.05, 0.001).name("dome opacity");
   pdc.close();
 
+  const hit = gui.addFolder("Impact effects");
+  hit.add(impactTuning, "enabled").name("explosions and sparks");
+  hit.add(impactTuning, "showHitText").name("hit text");
+  hit.add(impactTuning, "hitTextOnOwn").name("hit text on our ships");
+  hit.add(impactTuning, "bloomMinPx", 10, 300, 1).name("explosion min size (px)");
+  hit.add(impactTuning, "bloomMaxPx", 50, 600, 5).name("explosion max size (px)");
+  hit.add(impactTuning, "bloomRadiusM", 10, 5000, 10).name("explosion radius (m)");
+  hit.add(impactTuning, "bloomDurationS", 0.2, 5, 0.05).name("explosion time (s)");
+  hit.add(impactTuning, "bloomShipKillScale", 1, 6, 0.1).name("ship kill size (x)");
+  hit.add(impactTuning, "bloomCoreHeat", 0, 1, 0.05).name("white-hot core");
+  hit.add(impactTuning, "bloomRingOpacity", 0, 1, 0.05).name("shock ring");
+  hit.add(impactTuning, "sparkCount", 3, 60, 1).name("sparks per burst");
+  hit.add(impactTuning, "sparkSpeedPx", 20, 600, 5).name("spark speed (px/s)");
+  hit.add(impactTuning, "sparkLengthPx", 3, 60, 1).name("spark length (px)");
+  hit.add(impactTuning, "sparkDurationS", 0.1, 3, 0.05).name("spark time (s)");
+  hit.add(impactTuning.sparkScale, "pdcKill", 0.1, 3, 0.05).name("PDC kill burst (x)");
+  hit.add(impactTuning.sparkScale, "pdcHit", 0.1, 3, 0.05).name("PDC hit burst (x)");
+  hit.add(impactTuning.sparkScale, "slugHit", 0.1, 3, 0.05).name("slug hit burst (x)");
+  hit.add(impactTuning, "textRisePx", 0, 120, 1).name("hit text rise (px)");
+  hit.add(impactTuning, "textDurationS", 0.3, 8, 0.1).name("hit text time (s)");
+  hit.add(impactTuning, "textMergeS", 0, 2, 0.05).name("hit text merge (s)");
+  hit.add(impactTuning, "maxBlooms", 1, 100, 1).name("most explosions at once");
+  hit.add(impactTuning, "maxSparks", 20, 2000, 10).name("most sparks at once");
+  hit.add(impactTuning, "maxTexts", 1, 40, 1).name("most hit texts at once");
+  hit.close();
+
   const crew = gui.addFolder("G-strain");
   crew.add(crewTuning, "strainFillS", 30, 3600, 10).name("fill time at 2x cruise (s)");
   crew.add(crewTuning, "strainRecoverS", 30, 3600, 10).name("drain time (s)");
@@ -179,12 +211,14 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   gui.add(
     {
       copyValues: () => {
-        const json = JSON.stringify({ cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning, physicsTuning, torpedoTuning, pdcTuning, railgunTuning, crewTuning, pathTuning }, null, 2);
+        const json = JSON.stringify(tuningRoots, null, 2);
         void navigator.clipboard.writeText(json);
       },
     },
     "copyValues",
   ).name("copy values");
+
+  decoratePanel(gui);
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "`") gui.show(gui._hidden);

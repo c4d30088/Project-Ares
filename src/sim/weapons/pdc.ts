@@ -39,15 +39,21 @@ export function pdcRate(r: number, full: number): number {
   return (full * (PT.maxRange - r)) / (PT.maxRange - PT.effectiveRange);
 }
 
+/** What a firing mount is aimed at: where it is and how it moves (the tracers lead it). */
+export interface PdcAim {
+  position: Vec3;
+  velocity: Vec3;
+}
+
 /** Where each of a ship's mounts is firing this tick (null if it is not), for display. */
-export function pdcAims(world: World, ship: Ship): (Vec3 | null)[] {
+export function pdcAims(world: World, ship: Ship): (PdcAim | null)[] {
   return ship.weapons.pdcs.map((m) => {
     if (!m.firing || !m.engaged) return null;
-    if (m.engaged === "point") return m.assigned?.kind === "point" ? { ...m.assigned.position } : null;
+    if (m.engaged === "point") return m.assigned?.kind === "point" ? { position: { ...m.assigned.position }, velocity: { x: 0, y: 0, z: 0 } } : null;
     const slug = world.slugs.find((s) => s.id === m.engaged);
-    if (slug) return { ...slug.position };
+    if (slug) return { position: { ...slug.position }, velocity: { ...slug.velocity } };
     const r = resolveTarget(world, { kind: "track", id: m.engaged }) ?? resolveTarget(world, { kind: "object", id: m.engaged });
-    return r ? r.position : null;
+    return r ? { position: r.position, velocity: r.velocity } : null;
   });
 }
 
@@ -221,7 +227,7 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
     const r = length(sub(t.position, ship.position));
     if (roll(world, 1 - Math.exp(-pdcRate(r, PT.killRatePerS) * health * dt))) {
       destroy(world, t, "pdc");
-      events.push({ type: "pdcKill", ship: ship.id, mount, torpedo: t.id });
+      events.push({ type: "pdcKill", ship: ship.id, faction: ship.faction, mount, torpedo: t.id, target: "torpedo", position: { ...t.position } });
     }
   } else if (aim.kind === "slug" && aim.id) {
     const s = world.slugs.find((x) => x.id === aim.id);
@@ -229,7 +235,7 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
     const r = length(sub(s.position, ship.position));
     if (roll(world, 1 - Math.exp(-pdcRate(r, PT.killRatePerS * RT.pdcSlugFactor) * health * dt))) {
       destroy(world, s, "pdc");
-      events.push({ type: "pdcKill", ship: ship.id, mount, torpedo: s.id });
+      events.push({ type: "pdcKill", ship: ship.id, faction: ship.faction, mount, torpedo: s.id, target: "slug", position: { ...s.position } });
     }
   } else if (aim.kind === "point") {
     // Barrage curtain: every hostile torpedo passing through it is at risk.
@@ -239,7 +245,7 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
       const r = length(sub(t.position, ship.position));
       if (roll(world, 1 - Math.exp(-pdcRate(r, PT.killRatePerS) * health * dt))) {
         destroy(world, t, "pdc");
-        events.push({ type: "pdcKill", ship: ship.id, mount, torpedo: t.id });
+        events.push({ type: "pdcKill", ship: ship.id, faction: ship.faction, mount, torpedo: t.id, target: "torpedo", position: { ...t.position } });
       }
     }
   } else if (aim.kind === "ship" && aim.id) {
@@ -247,7 +253,7 @@ function fire(world: World, ship: Ship, i: number, aim: Aim, health: number, dt:
     if (!s || s.destroyed) return;
     const r = length(sub(s.position, ship.position));
     if (roll(world, 1 - Math.exp(-pdcRate(r, PT.shipHitsPerS) * health * dt))) {
-      applyHit(world, s, normalize(sub(ship.position, s.position)), PT.shipHull, PT.shipSubsystem, "pdc");
+      applyHit(world, s, normalize(sub(ship.position, s.position)), PT.shipHull, PT.shipSubsystem, "pdc", ship.faction);
     }
   }
   // Objects: bodies and stations take no damage yet (fire is still shown).

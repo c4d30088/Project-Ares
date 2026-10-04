@@ -17,6 +17,19 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-04, milestone M3: first playtest notes (all fixed)
+Played: First fight (the owner; number of fights and results not recorded).
+Felt wrong (owner), all done this session:
+- Torpedo symbols were red (enemy) and blue (ours). Now green ours, yellow theirs, like the rest of the weapon fire. The "red swarm" in the docs is now a yellow swarm.
+- Nothing showed when a weapon hit. Now: a spherical bloom for torpedo hits (bigger for a ship kill), sparks for PDC and railgun hits, and floating hit text above the struck ship (HULL -35%, SENSORS -70%, RAILGUN OFFLINE, DESTROYED). The text shows above any ship that is hit; "hit text on our ships" in the debug panel limits it to the enemy.
+- Hard to keep track of a long fight. The alert log (right panel, replacing the Contacts placeholder) lists everything with its time, newest first, merging quick repeats ("8 torpedoes destroyed"). The top strip still shows the live countdowns. The contact list returns in M4.
+- Debug panel: a search box at the top and a one-line explanation under every control (145 of them).
+Saved tuning: torpedo symbols pulse 2.7 Hz down to 0.32 brightness.
+Claude Code's own smoke run of the First fight (not a real playtest): sat still with PDCs on Auto, fired one 2-torpedo salvo (shot down by the enemy PDCs) and one railgun shot; lost to the third torpedo wave at 20:34 (wave 1 of 8 leaked 1, wave 2 leaked 0, wave 3 killed a ship already at 65% hull). Time dropped back to 1x on every enemy launch wave and again inside 60 s of impact, so most of the fight was at 1x. It was hard to tell from the table why wave 3 got through; the hit text and log now show what each hit took, but not yet which PDC missed which torpedo.
+Next session: the owner plays the First fight with the new effects and log and reports the usual: was the swarm tense, were your salvos worth it, did the railgun matter, could you read the table, anything unfair. Tune from there.
+
+---
+
 ## 2026-10-04, milestone M3: build complete, ready for the checkpoint playtest
 Next session: start with the playtest. The owner plays the First fight 5 times and gives combat feedback; Claude Code writes the M3 playtest entry from it, then fixes or tunes what the owner reports. Do not start M4 until the checkpoint passes or the owner decides to move on.
 

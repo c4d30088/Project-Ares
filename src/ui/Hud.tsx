@@ -12,6 +12,7 @@ import { PdcBar } from "./PdcBar";
 import { PdcStatus } from "./PdcStatus";
 import { RailgunBar } from "./RailgunBar";
 import { ShipStatus } from "./ShipStatus";
+import { AlertLog } from "./AlertLog";
 import { formatCountdown } from "./format";
 import { useHud } from "./store";
 
@@ -39,8 +40,8 @@ export function Hud() {
         <ShipStatus />
         <PdcStatus />
       </Panel>
-      <Panel className="rail-right" title="Contacts">
-        <div className="panel-empty">Contact list offline</div>
+      <Panel className="rail-right" title="Alert log">
+        <AlertLog />
       </Panel>
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
       <Panel className="bottom-bar">

@@ -78,7 +78,7 @@ Session estimates assume a sitting of 1 to 3 hours with Claude Code. They are ro
 - A scripted enemy that approaches and fires salvos on a timer
 - Unit tests for intercept prediction and PDC saturation
 
-**Checkpoint:** Fight the scripted enemy 5 times. Use each target type at least once: a torpedo salvo at the ship, a railgun shot at a point where you expect it to be, PDCs set to Auto and then switched to Manual. At least once, a red swarm closing on your ship should make you lean toward the screen. You should be able to say why each torpedo that hit you got through.
+**Checkpoint:** Fight the scripted enemy 5 times. Use each target type at least once: a torpedo salvo at the ship, a railgun shot at a point where you expect it to be, PDCs set to Auto and then switched to Manual. At least once, a yellow swarm closing on your ship should make you lean toward the screen. You should be able to say why each torpedo that hit you got through.
 
 **Stop rule:** If the torpedo and PDC exchange is not tense after three rounds of tuning, stop and rethink the weapons interaction before building sensors. Sensors make a good fight better. They will not rescue a flat one.
 
@@ -100,6 +100,7 @@ Build order (one commit per step):
 5. Railgun. **Done** (slugs are untrackable: both sides see only the shot and its predicted path).
 6. G-strain, left rail status panel, alert strip. **Done** (combat stims deferred).
 7. Scripted enemy, First fight scenario, tuning. **Done** (salvo hold adopted).
+8. Playtest fixes after the owner's first fights (2026-10-04): torpedo colors, impact effects and hit text, alert log, debug panel search and explanations. **Done.**
 
 **Status (2026-10-04):** everything in the build list is in. Next: the owner plays the checkpoint (First fight, 5 times); M3 passes on that, or gets another round of tuning.
 
@@ -112,6 +113,7 @@ Build order (one commit per step):
 - Telescope, radar, lidar with ranges and costs from the design table
 - Line of sight blocked by bodies; sensor shadow volumes on the table
 - Weapons target by line of sight (owner, 2026-10-03): a ship hidden behind an asteroid or moon is hard to hit, harder the deeper it hides. A torpedo's seeker needs line of sight; when its target slips out of view it flies on the last position and motion it saw (its intercept line turns amber) and reacquires only if it comes back into view with fuel to correct. Firing at a hidden ship aims at its stale track.
+- Contact list returns to the right rail (the alert log took its place in M3): class, confidence, range, closing rate
 - Local picture per ship and shared picture per datalink network, with contributors recorded on every track
 - Tracks with uncertainty regions and classification confidence
 - Stale tracks: when the only ship seeing a contact is lost, the track freezes, turns amber, and fades

@@ -6,7 +6,7 @@ Status: draft v0.1, combat-first. Numbers in this document are starting values f
 
 ## 1. Pitch
 
-You command warships in a hard-ish Newtonian solar system, seen through a holographic tactical table. You never see a ship model. You see wedges, chevrons, glowing trajectory arcs, swarms of red dots, and the translucent domes of point defense. Combat is about where things are going, what you can see, and what can see you.
+You command warships in a hard-ish Newtonian solar system, seen through a holographic tactical table. You never see a ship model. You see wedges, chevrons, glowing trajectory arcs, swarms of yellow dots, and the translucent domes of point defense. Combat is about where things are going, what you can see, and what can see you.
 
 You start as captain of one frigate. Earn rank and you command an attack group. Earn more and you command a fleet. The verbs carry up from ship to fleet; each tier adds new ones.
 
@@ -126,12 +126,13 @@ The prediction is produced by running the same autopilot forward on a copy of th
 - A salvo bigger than the ship's tubes still arrives as one wave: the first torpedoes out wait beside the ship, drive dark, until the last leaves its tube, then all light together (decided 2026-10-03; without it a two-tube ship's salvo arrived in pairs and four PDCs stopped every pair).
 - A salvo can be split across several targets or points.
 - When torpedoes are in flight, the table draws thin converging lines from each one to the predicted impact point, marked with an X and a countdown.
-- Hostile torpedoes are bright red dots. A swarm closing on one blue wedge is the signature image of the game.
+- Torpedoes in flight take the weapon-fire colors: green if ours, yellow if the enemy's (decided 2026-10-04). Enemy torpedoes pulse. A swarm of yellow dots closing on one blue wedge is the signature image of the game.
 
 ### Railguns
 
 - Kinetic guns firing a slug at about 20 km/s. Frigates and destroyers carry a light railgun on a limited turret. Cruisers and capital ships carry heavy spinal railguns fixed along the keel, so the whole ship must turn to aim.
 - A lidar lock gives the best firing solution and shows the lead point on the table. Without a lock, you can still fire at a track's estimated position or at a point, with lower accuracy.
+- A projectile leaves with the firing ship's velocity plus the gun's muzzle velocity (owner, 2026-10-04): slugs and torpedoes, and the PDC tracer rounds, all inherit the ship's motion. Aim is worked out in the ship's own frame, so a fast-moving ship cancels its own drift when it leads a target, and a target that is outrunning the muzzle speed gives "no firing solution" instead of a wasted shot.
 - Slugs are hard to see coming: they have no drive plume, and the target only gets warning if its radar picks them up.
 - Long flight times mean a maneuvering target can dodge at range. Effective range against an evading target is low hundreds of km. Against a coasting target it is much longer. This punishes coasting dark near enemies.
 - Limited ammunition and a recharge time between shots. Spinal guns hit much harder and recharge much slower.
@@ -299,8 +300,8 @@ Drop lines from objects below the reference plane are dashed; from objects above
 | `friendly` | Player and own forces | `#39C6FF` |
 | `neutral` | Neutral: independent ships and stations | White `#F2F5F7` |
 | `hostile` | Enemy ships, locks, strike zones | `#FF3344` |
-| `threat` | Incoming torpedoes (the symbols) | `#FF5A4A`, pulsing |
-| `fireFriendly` | Our weapons once fired: PDC fire, torpedo intercept lines and impact marks, slugs | Green `#3DF56B` |
+| `threat` | Danger text in the HUD panels (alerts, breaches, offline systems) | `#FF5A4A` |
+| `fireFriendly` | Our weapons once fired: torpedoes in flight, PDC fire, intercept lines and impact marks, slugs, hit effects | Green `#3DF56B` |
 | `fireHostile` | Enemy weapons once fired, the same items | Yellow `#FFE433` |
 | `uncertainMap` | On the 3D table: unknown and jammed tracks, ghosts, probability cones, warnings | Orange `#FF7A1A` |
 | `uncertain` | In the HUD panels: warnings and uncertain values | Amber `#FFB020` |
@@ -309,7 +310,7 @@ Drop lines from objects below the reference plane are dashed; from objects above
 
 Rule: red is never decorative. The reference images use a lot of red UI. We do not, because in this game a red pixel always means danger.
 
-Weapon fire has its own colors, separate from allegiance (decided 2026-10-03): once a weapon is fired, what it puts in the air is green if it is ours and yellow if it is the enemy's. The ships and torpedo symbols themselves keep allegiance colors. Uncertain or warning is orange on the table and amber in the panels, so neither is mistaken for enemy fire.
+Weapon fire has its own colors, separate from allegiance (decided 2026-10-03): once a weapon is fired, what it puts in the air is green if it is ours and yellow if it is the enemy's. Torpedoes in flight count as fired weapons (decided 2026-10-04), so their symbols and drop lines take these colors too. Ships keep allegiance colors. Uncertain or warning is orange on the table and amber in the panels, so neither is mistaken for enemy fire.
 
 ### Line language
 
@@ -338,7 +339,7 @@ Readability comes first. Every effect has an intensity slider in the debug panel
 
 - **Center:** the holotable
 - **Left rail:** own ship status: subsystems, ammunition, heat, G-strain, emissions state
-- **Right rail:** contact list: class, confidence, range, closing rate, time to closest approach
+- **Right rail:** the alert log (owner, 2026-10-04): every launch, hit, kill, loss and system failure with the time it happened, newest first; similar lines in quick succession merge ("8 torpedoes destroyed"). The contact list (class, confidence, range, closing rate, time to closest approach) returns here in M4, when sensors make contacts uncertain, probably as a second tab.
 - **Bottom bar:** order buttons, G setting, time compression controls
 - **Top strip:** alerts such as `LAUNCH DETECTED`, `LIDAR LOCK`, `IMPACT T-00:42`
 
