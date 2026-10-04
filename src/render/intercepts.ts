@@ -1,5 +1,5 @@
 // Torpedo intercept lines: a thin dotted line along the path each torpedo in flight will
-// fly to its impact (DESIGN.md section 7). Red for hostile torpedoes, blue for our own.
+// fly to its impact (DESIGN.md section 7). Yellow for the enemy's, green for our own.
 // Rebuilt every frame relative to the camera focus (floating origin).
 
 import * as THREE from "three";
@@ -21,8 +21,8 @@ export function createInterceptLayer(scene: THREE.Scene) {
     scene.add(line);
     return line;
   };
-  const own = make(palette.friendly);
-  const hostile = make(palette.threat);
+  const own = make(palette.fireFriendly);
+  const hostile = make(palette.fireHostile);
   const a = new THREE.Vector3();
   const b = new THREE.Vector3();
 

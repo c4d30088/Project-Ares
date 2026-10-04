@@ -268,11 +268,13 @@ Hits land on subsystems based on the direction the hit came from relative to the
 | Cruiser | Elongated diamond | By allegiance |
 | Capital ship | Large diamond with center bar | By allegiance |
 | Station | Square | By allegiance |
-| Unknown contact | Dashed diamond with `?` | Amber |
-| Stale contact (source lost) | Last icon, frozen, hollow, with growing uncertainty ring | Amber |
+| Unknown contact | Dashed diamond with `?` | Orange |
+| Stale contact (source lost) | Last icon, frozen, hollow, with growing uncertainty ring | Orange |
 | Targeted point in space | Small crosshair with drop line and weapon tag (`TORP x4`, `RG`, `PDC`) | Friendly |
 | Torpedo | Small dot (hostile dots pulse) | By allegiance |
-| Railgun slug | Short streak, only when tracked | By allegiance |
+| Torpedo intercept line and impact X | Thin dotted path along the torpedo's predicted flight, X and countdown | Weapon fire: green ours, yellow theirs |
+| Railgun slug | Short streak, only when tracked | Weapon fire: green ours, yellow theirs |
+| PDC fire | Tracer rounds (short streaks) over a faint line from gun to target | Weapon fire: green ours, yellow theirs |
 | PDC coverage | Translucent dome or cone | By allegiance, low opacity |
 | Celestial body | Dim wireframe sphere with name label | Neutral gray |
 | Sensor shadow | Faint dark volume behind a body | Neutral gray |
@@ -292,14 +294,19 @@ Drop lines from objects below the reference plane are dashed; from objects above
 | `bg` | Background | `#05080C` |
 | `grid` | Holotable grid and axes | `#1E4A5A` at low opacity |
 | `friendly` | Player and own forces | `#39C6FF` |
-| `neutral` | Neutral and allied | `#4BE39A` |
+| `neutral` | Neutral: independent ships and stations | White `#F2F5F7` |
 | `hostile` | Enemy ships, locks, strike zones | `#FF3344` |
-| `threat` | Incoming munitions | `#FF5A4A`, pulsing |
-| `uncertain` | Jammed tracks, ghosts, probability cones, warnings | `#FFB020` |
+| `threat` | Incoming torpedoes (the symbols) | `#FF5A4A`, pulsing |
+| `fireFriendly` | Our weapons once fired: PDC fire, torpedo intercept lines and impact marks, slugs | Green `#3DF56B` |
+| `fireHostile` | Enemy weapons once fired, the same items | Yellow `#FFE433` |
+| `uncertainMap` | On the 3D table: unknown and jammed tracks, ghosts, probability cones, warnings | Orange `#FF7A1A` |
+| `uncertain` | In the HUD panels: warnings and uncertain values | Amber `#FFB020` |
 | `chrome` | Panel borders and UI frame | Desaturated steel `#7C93A0` |
 | `text` | Labels and data | Off-white `#DCE6EA` |
 
 Rule: red is never decorative. The reference images use a lot of red UI. We do not, because in this game a red pixel always means danger.
+
+Weapon fire has its own colors, separate from allegiance (decided 2026-10-03): once a weapon is fired, what it puts in the air is green if it is ours and yellow if it is the enemy's. The ships and torpedo symbols themselves keep allegiance colors. Uncertain or warning is orange on the table and amber in the panels, so neither is mistaken for enemy fire.
 
 ### Line language
 
@@ -309,9 +316,9 @@ Rule: red is never decorative. The reference images use a lot of red UI. We do n
 | Dashed arc | Predicted path while coasting |
 | Rotating-arrows glyph + countdown | Flip point |
 | Ring + ETA | Arrival point |
-| Thin converging red lines + X + countdown | Torpedo intercept and predicted impact |
-| Amber fan of lines | Possible trajectories of an uncertain or jammed track |
-| Amber particle cloud | Uncertain position |
+| Thin dotted converging lines + X + countdown (yellow incoming, green ours) | Torpedo predicted path and impact |
+| Orange fan of lines | Possible trajectories of an uncertain or jammed track |
+| Orange particle cloud | Uncertain position |
 | Thin pulsing line between ships | Lidar lock (red when someone locks you) |
 | Faint dotted line between friendly ships | Datalink connection (breaks visibly when cut) |
 

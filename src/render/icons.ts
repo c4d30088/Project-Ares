@@ -47,7 +47,7 @@ export const allegianceColor: Record<Allegiance, string> = {
   friendly: palette.friendly,
   neutral: palette.neutral,
   hostile: palette.hostile,
-  unknown: palette.uncertain,
+  unknown: palette.uncertainMap,
 };
 
 const treatmentFor: Record<Allegiance, Treatment> = {
@@ -262,7 +262,8 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
         if (!visible) continue;
         const size = m.kind === "flip" ? 22 : m.kind === "impact" ? 18 : 26;
         const cell = m.kind === "flip" ? EXTRA_CELLS.flip : m.kind === "impact" ? EXTRA_CELLS.impact : EXTRA_CELLS.arrival;
-        const mColor = m.kind === "impact" && m.allegiance === "hostile" ? palette.threat : allegianceColor[m.allegiance];
+        // Impact marks belong to weapons in flight: green for ours, yellow for theirs.
+        const mColor = m.kind === "impact" ? (m.allegiance === "hostile" ? palette.fireHostile : palette.fireFriendly) : allegianceColor[m.allegiance];
         if (m.kind !== "range") push(sp.x, sp.y, size * T.scale, 0, cell, mColor, 0.95);
         el.textContent = m.label;
         el.style.color = mColor;
@@ -280,7 +281,7 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
       for (const w of list.waypoints) {
         toRender(w.position, focus, v);
         if (!project(v, cam, sp)) continue;
-        const wColor = w.warn ? palette.uncertain : palette.friendly;
+        const wColor = w.warn ? palette.uncertainMap : palette.friendly;
         push(sp.x, sp.y, 26 * T.scale, 0, EXTRA_CELLS.waypoint, wColor, 1);
         const el = labelFor(w.id);
         seen.add(w.id);

@@ -1,8 +1,8 @@
 // PDC coverage and fire (DESIGN.md sections 7 and 12). Each of our ships' mounts is drawn
 // as a translucent dome out to effective range, centered on the mount's direction and as
 // wide as its arc; a mount that is firing brightens. Firing guns spray tracer rounds,
-// short streaks flying out to where the target will be (outgoing in blue, incoming enemy
-// fire in red), over a faint line from gun to target. The rounds are for show: the sim
+// short streaks flying out to where the target will be (ours in green, the enemy's in
+// yellow), over a faint line from gun to target. The rounds are for show: the sim
 // decides kills.
 
 import * as THREE from "three";
@@ -58,10 +58,10 @@ export function createPdcLayer(scene: THREE.Scene) {
     scene.add(l);
     return l;
   };
-  const ownLines = make(tracerMat(palette.friendly));
-  const hostileLines = make(tracerMat(palette.threat));
-  const ownRounds = make(tracerMat(palette.friendly));
-  const hostileRounds = make(tracerMat(palette.threat));
+  const ownLines = make(tracerMat(palette.fireFriendly));
+  const hostileLines = make(tracerMat(palette.fireHostile));
+  const ownRounds = make(tracerMat(palette.fireFriendly));
+  const hostileRounds = make(tracerMat(palette.fireHostile));
   const rounds: Round[] = [];
   const spawnDebt = new Map<string, number>();
 
