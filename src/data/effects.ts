@@ -3,13 +3,13 @@
 
 export const effectsTuning = {
   enabled: true,
-  bloomStrength: 0.2,
-  bloomRadius: 0.2,
-  bloomThreshold: 0.26,
+  bloomStrength: 0.1,
+  bloomRadius: 0.15,
+  bloomThreshold: 0.02,
   /** Constant horizontal red/blue split, in pixels. */
-  chromaticPx: 1,
+  chromaticPx: 0.25,
   /** Extra split toward the screen edges, in pixels at the corners. */
-  chromaticRadialPx: 1,
+  chromaticRadialPx: 0.1,
   /** Faint floating dust for depth. 0 hides it. */
   dustOpacity: 0.27,
 };

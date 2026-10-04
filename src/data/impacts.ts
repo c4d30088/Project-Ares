@@ -17,9 +17,9 @@ export const impactTuning = {
   bloomMaxPx: 220,
   /** The stylized blast radius in meters; sets how big it gets once zoomed in. */
   bloomRadiusM: 300,
-  bloomDurationS: 1.2,
+  bloomDurationS: 2,
   /** A destroyed ship's explosion is this many times bigger. */
-  bloomShipKillScale: 2.4,
+  bloomShipKillScale: 4,
   /** How white the hot center is, 0 to 1. */
   bloomCoreHeat: 0.85,
   /** Brightness of the expanding shock ring, 0 to 1. */
@@ -36,7 +36,7 @@ export const impactTuning = {
 
   /** Hit text rises this far (px) over its life. */
   textRisePx: 38,
-  textDurationS: 1.8,
+  textDurationS: 2,
   /** Hits on the same ship within this time add into one label. */
   textMergeS: 0.4,
 

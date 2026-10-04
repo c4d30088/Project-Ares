@@ -3,14 +3,14 @@
 
 export const symbolTuning = {
   size: {
-    corvette: 30,
-    frigate: 34,
-    destroyer: 36,
-    cruiser: 40,
-    capital: 50,
-    station: 44,
-    unknown: 36,
-    torpedo: 24,
+    corvette: 32,
+    frigate: 32,
+    destroyer: 32,
+    cruiser: 32,
+    capital: 34,
+    station: 32,
+    unknown: 32,
+    torpedo: 16,
   },
   /** Global multiplier on all symbol sizes. */
   scale: 1,

@@ -2,14 +2,14 @@
 
 export const bodyTuning = {
   /** Contour lines across the full height range. Every fifth line is brighter. */
-  contourCount: 10,
-  contourOpacity: 0.55,
-  rimOpacity: 0.5,
+  contourCount: 8,
+  contourOpacity: 0.12,
+  rimOpacity: 0.18,
   /** Surface relief as a fraction of radius. */
-  moonRoughness: 0.02,
-  asteroidRoughness: 0.28,
+  moonRoughness: 0.045,
+  asteroidRoughness: 0.22,
   /** Asteroids are stretched up to this much along their axes (0 = round). */
   asteroidStretch: 0.35,
   /** Noise scale: higher = smaller bumps. */
-  noiseFrequency: 1.2,
+  noiseFrequency: 2,
 };
