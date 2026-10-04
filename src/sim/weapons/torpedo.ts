@@ -39,7 +39,7 @@ export function torpedoAccel(): number {
 
 export function initWeapons(cls: ShipClass): Weapons {
   const lo = loadouts[cls];
-  return { magazine: lo.magazine, tubeReload: new Array(lo.tubes).fill(0), launchQueue: [], launched: 0, pdcs: initPdcs(cls), pdcBurst: initBurst(), ...initRailguns(cls) };
+  return { magazine: lo.magazine, tubeReload: new Array(lo.tubes).fill(0), launchQueue: [], launched: 0, salvos: 0, pdcs: initPdcs(cls), pdcBurst: initBurst(), ...initRailguns(cls) };
 }
 
 /** Queues torpedoes. Returns a reason if the order cannot be carried out. */
@@ -51,7 +51,8 @@ export function queueLaunch(world: World, ship: Ship, target: Target, count: num
   const n = Math.min(Math.floor(count), w.magazine);
   if (n <= 0) return w.magazine <= 0 ? "magazine empty" : "no torpedoes ordered";
   w.magazine -= n;
-  for (let i = 0; i < n; i++) w.launchQueue.push({ target: structuredClone(target), mode });
+  w.salvos++;
+  for (let i = 0; i < n; i++) w.launchQueue.push({ target: structuredClone(target), mode, salvo: w.salvos });
   return null;
 }
 
@@ -66,6 +67,11 @@ export function runLaunchers(world: World, dt: number, events: SimEvent[]): void
       if (w.tubeReload[i] > 0 || !w.launchQueue.length || health <= 0) continue;
       const order = w.launchQueue.shift()!;
       const t = launch(world, ship, i, order.target, order.mode);
+      // Salvo hold: wait, dark, for the rest of the salvo (see guideTorpedo).
+      if (TT.salvoHold && order.mode === "hot" && w.launchQueue.some((q) => q.salvo === order.salvo)) {
+        t.guidance!.stage = "cold";
+        t.guidance!.holdSalvo = order.salvo;
+      }
       w.tubeReload[i] = TT.tubeReloadS / Math.max(0.25, health);
       events.push({ type: "torpedoLaunched", ship: ship.id, torpedo: t.id, faction: ship.faction, mode: order.mode });
     }
@@ -124,7 +130,7 @@ function zeroEffortMiss(r: Vec3, v: Vec3, aT: Vec3, tgo: number): Vec3 {
 }
 
 /** Time to cover distance d closing at vc, still burning boostLeft m/s at a first. */
-function timeToGo(d: number, vc: number, a: number, boostLeft: number): number {
+export function timeToGo(d: number, vc: number, a: number, boostLeft: number): number {
   const tb = boostLeft / a;
   const dBoost = vc * tb + 0.5 * a * tb * tb;
   if (d <= dBoost) return (-vc + Math.sqrt(vc * vc + 2 * a * d)) / a;
@@ -224,7 +230,15 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
   // A torpedo aimed at a body may fly into it; every other body is in the way.
   const skip = g.target.kind === "object" ? g.target.id : undefined;
 
-  if (g.stage === "cold") {
+  if (g.stage === "cold" && g.holdSalvo !== undefined) {
+    // Holding for the rest of the salvo: light together once the last is out of its tube
+    // (or the launcher is gone).
+    const launcher = world.ships.find((s) => s.id === g.launcher);
+    if (!launcher || !launcher.weapons.launchQueue.some((q) => q.salvo === g.holdSalvo)) {
+      g.stage = "flight";
+      delete g.holdSalvo;
+    }
+  } else if (g.stage === "cold") {
     // Coast dark; light the drive inside ignition range, or once the range starts opening.
     if (tgt) {
       const r = sub(tgt.position, t.position);

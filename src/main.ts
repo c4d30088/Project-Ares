@@ -30,7 +30,7 @@ import { effectsTuning } from "./data/effects";
 const scenarioName = new URLSearchParams(location.search).get("scenario") ?? defaultScenario;
 const game = createGame(scenarios[scenarioName] ?? scenarios[defaultScenario]);
 const view = createTableView(document.getElementById("table")!);
-createDebugPanel(scenarioName);
+createDebugPanel(scenarioName, () => game.restart());
 createRoot(document.getElementById("hud")!).render(createElement(Hud));
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.

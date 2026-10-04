@@ -43,6 +43,8 @@ export function makeWorld(ships: Ship[]): World {
     ships,
     torpedoes: [],
     slugs: [],
+    ai: [],
+    aiGroups: {},
     stations: [],
     bodies: [],
   };

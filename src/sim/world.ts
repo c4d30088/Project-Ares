@@ -49,8 +49,10 @@ export interface Weapons {
   magazine: number;
   /** Seconds until each tube can fire again (0 = ready). */
   tubeReload: number[];
-  /** Torpedoes ordered but not yet out of a tube, in order. */
-  launchQueue: { target: Target; mode: LaunchMode }[];
+  /** Torpedoes ordered but not yet out of a tube, in order, with their salvo number. */
+  launchQueue: { target: Target; mode: LaunchMode; salvo: number }[];
+  /** Salvos ordered so far (numbers them). */
+  salvos: number;
   /** Torpedoes launched so far (for ids). */
   launched: number;
   /** Point defense mounts, in the order of pdc1..pdcN. */
@@ -132,6 +134,8 @@ export interface TorpedoGuidance {
   reserve: number;
   /** Seconds spent searching; at the mine lifetime the torpedo self-destructs. */
   searchS: number;
+  /** Salvo hold: waiting, dark, for the rest of this salvo to leave the tubes. */
+  holdSalvo?: number;
 }
 
 export interface Station {
@@ -168,6 +172,30 @@ export interface World {
   slugs: Slug[];
   stations: Station[];
   bodies: Body[];
+  /** Scripted ships (src/sim/ai). They act only through commands. */
+  ai: AiScript[];
+  /** Shared state of scripted ships acting together, by group name. */
+  aiGroups: Record<string, { nextSalvoS: number; salvoAtS: number | null }>;
+}
+
+/** A scripted ship and its settings (scenario `ai` entries). */
+export interface AiScript {
+  ship: string;
+  behavior: "skirmisher";
+  /** Ships with the same group share a salvo clock and time their salvos to arrive together. */
+  group?: string;
+  /** Holds about this far from its target, m. */
+  engageRange: number;
+  /** Fires torpedo salvos inside this range, m, this many at a time, this often, s. */
+  launchRange: number;
+  salvoSize: number;
+  salvoIntervalS: number;
+  /** Every Nth salvo is launched cold (0 = never). */
+  coldEvery: number;
+  /** Fires its railgun inside this range, m (0 = never). */
+  railgunRange: number;
+  /** Script state. */
+  state: { nextThinkTick: number; salvos: number; navIssuedS: number; launchAtS: number | null };
 }
 
 export function areHostile(world: World, a: FactionId, b: FactionId): boolean {

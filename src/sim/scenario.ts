@@ -7,7 +7,7 @@ import { freshNavState, type Command } from "./commands";
 import { TICK_RATE } from "./sim";
 import { initHealth } from "./damage";
 import { initWeapons } from "./weapons/torpedo";
-import type { Body, Faction, GSetting, Ship, Station, Torpedo, World } from "./world";
+import type { AiScript, Body, Faction, GSetting, Ship, Station, Torpedo, World } from "./world";
 
 export interface SalvoSpec {
   idPrefix: string;
@@ -47,6 +47,8 @@ export interface Scenario {
   bodies?: Body[];
   torpedoes?: Torpedo[];
   salvos?: SalvoSpec[];
+  /** Scripted ships and their settings (see src/sim/ai/scripted.ts). */
+  ai?: Omit<AiScript, "state">[];
   /** Orders given by the scenario: at the start, or `atS` seconds in. */
   commands?: { faction: string; command: Command; atS?: number }[];
 }
@@ -148,6 +150,11 @@ export function loadScenario(scenario: Scenario): World {
     bodies,
     torpedoes,
     slugs: [],
+    ai: (scenario.ai ?? []).map((a) => {
+      if (!ships.some((s) => s.id === a.ship)) throw new Error(`Scenario: ai for unknown ship "${a.ship}"`);
+      return { ...a, state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null } };
+    }),
+    aiGroups: {},
   };
 }
 

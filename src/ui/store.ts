@@ -23,7 +23,7 @@ export interface ActiveShipInfo {
 
 export interface AlertInfo {
   text: string;
-  tone: "threat" | "warn";
+  tone: "threat" | "warn" | "good";
   blink?: boolean;
   countdown?: number;
 }

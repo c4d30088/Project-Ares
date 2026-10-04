@@ -1,0 +1,42 @@
+{
+  "name": "First fight",
+  "seed": 4242,
+  "playerFaction": "blue",
+  "factions": [
+    { "id": "blue", "name": "Own forces", "hostileTo": ["red"] },
+    { "id": "red", "name": "Opposing forces", "hostileTo": ["blue"] }
+  ],
+  "ships": [
+    {
+      "id": "blue-ff1", "name": "FF-1 WARDEN", "faction": "blue", "shipClass": "frigate",
+      "position": { "x": 0, "y": 0, "z": 0 }, "velocity": { "x": 0, "y": 0, "z": 0 },
+      "heading": { "x": 1, "y": 0, "z": 0 }
+    },
+    {
+      "id": "red-ff1", "name": "TRK-21 FRIGATE", "faction": "red", "shipClass": "frigate",
+      "position": { "x": 7000000, "y": 3000000, "z": 1200000 }, "velocity": { "x": -600, "y": -250, "z": -100 },
+      "heading": { "x": -0.9, "y": -0.4, "z": -0.15 }
+    },
+    {
+      "id": "red-ff2", "name": "TRK-22 FRIGATE", "faction": "red", "shipClass": "frigate",
+      "position": { "x": 6500000, "y": -3500000, "z": 900000 }, "velocity": { "x": -550, "y": 300, "z": -80 },
+      "heading": { "x": -0.85, "y": 0.5, "z": -0.12 }
+    }
+  ],
+  "bodies": [
+    { "id": "moon-1", "name": "ORRAN", "kind": "moon",
+      "position": { "x": 3500000, "y": 4500000, "z": -400000 }, "radius": 900000 },
+    { "id": "ast-1", "name": "AST-5021", "kind": "asteroid",
+      "position": { "x": 2500000, "y": -800000, "z": 200000 }, "radius": 12000 },
+    { "id": "ast-2", "name": "AST-5034", "kind": "asteroid",
+      "position": { "x": 4200000, "y": 600000, "z": 600000 }, "radius": 7000 },
+    { "id": "ast-3", "name": "AST-5047", "kind": "asteroid",
+      "position": { "x": 1200000, "y": 1800000, "z": -300000 }, "radius": 9000 }
+  ],
+  "ai": [
+    { "ship": "red-ff1", "behavior": "skirmisher", "group": "red-pair", "engageRange": 2500000, "launchRange": 3000000,
+      "salvoSize": 4, "salvoIntervalS": 90, "coldEvery": 3, "railgunRange": 400000 },
+    { "ship": "red-ff2", "behavior": "skirmisher", "group": "red-pair", "engageRange": 2500000, "launchRange": 3000000,
+      "salvoSize": 4, "salvoIntervalS": 90, "coldEvery": 3, "railgunRange": 400000 }
+  ]
+}

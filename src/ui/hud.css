@@ -214,3 +214,4 @@
 .subsystem.bad .data-value { color: var(--threat); }
 .alert.warn { color: var(--uncertain); }
 .alert-strip { width: min(760px, 56vw); }
+.alert.good { color: var(--friendly); }

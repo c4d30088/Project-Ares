@@ -53,14 +53,16 @@ export interface Game {
   issue(command: Command): void;
   setCompression(index: number): void;
   togglePause(): void;
+  /** Starts the scenario again from the beginning (tuning in the debug panel is kept). */
+  restart(): void;
   /** Advances the sim by real seconds (scaled by compression) and rebuilds the picture. */
   update(realDt: number): void;
 }
 
 export interface Alert {
   text: string;
-  /** threat: danger (red); warn: warning (amber). */
-  tone: "threat" | "warn";
+  /** threat: danger (red); warn: warning (amber); good: the fight is won. */
+  tone: "threat" | "warn" | "good";
   /** Blinks while new. */
   blink?: boolean;
   /** Seconds to impact, for the countdown alerts (the HUD formats them). */
@@ -76,7 +78,9 @@ export interface ShotPath {
 }
 
 export function createGame(scenario: Scenario): Game {
-  const world = loadScenario(scenario);
+  let world = loadScenario(scenario);
+  // Ships each side had at the start, for the end-of-fight message.
+  let startedWithHostiles = false;
   const faction = scenario.playerFaction;
 
   // Positions before the most recent tick, for interpolation.
@@ -325,6 +329,9 @@ export function createGame(scenario: Scenario): Game {
       if (ship.strain >= 1) list.push({ text: "G-STRAIN MAX", tone: "threat" });
       else if (ship.strain > crewTuning.strainWarn) list.push({ text: `G-STRAIN ${Math.round(ship.strain * 100)}%`, tone: "warn" });
     }
+    // End of the fight (proper win and loss screens come in M5).
+    if (!world.ships.some((s) => s.faction === faction)) list.unshift({ text: "ALL OUR SHIPS LOST", tone: "threat" });
+    else if (startedWithHostiles && !world.ships.some((s) => areHostile(world, faction, s.faction))) list.unshift({ text: "ALL TARGETS DESTROYED", tone: "good" });
     game.alertList = list;
   }
 
@@ -380,6 +387,29 @@ export function createGame(scenario: Scenario): Game {
     togglePause() {
       game.paused = !game.paused;
     },
+    restart() {
+      world = loadScenario(scenario);
+      game.world = world;
+      prev.clear();
+      snapshotPrev();
+      accumulator = 0;
+      overloadFrames = 0;
+      lastHullHit = lastCasualties = -Infinity;
+      railgunAlertUntil = launchAlertUntil = -Infinity;
+      alertsPrimed = false;
+      for (const set of [threatWarned, knownHostileShots, knownHostileTorpedoes]) set.clear();
+      runs.clear();
+      torpedoRuns.clear();
+      game.predictions.clear();
+      game.torpedoPaths.clear();
+      game.shotPaths.clear();
+      game.selectedId = game.activeShipId = world.ships.find((s) => s.faction === faction)?.id ?? null;
+      game.compressionIndex = 0;
+      game.paused = false;
+      startedWithHostiles = world.ships.some((s) => areHostile(world, faction, s.faction));
+      game.picture = buildPerfectPicture(world, faction);
+      setNotice("SCENARIO RESTARTED");
+    },
     update(realDt) {
       realClock += realDt;
       if (game.notice && realClock > noticeUntil) game.notice = null;
@@ -420,5 +450,6 @@ export function createGame(scenario: Scenario): Game {
       updateAlerts();
     },
   };
+  startedWithHostiles = world.ships.some((s) => areHostile(world, faction, s.faction));
   return game;
 }

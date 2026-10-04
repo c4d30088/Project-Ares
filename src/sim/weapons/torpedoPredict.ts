@@ -43,6 +43,8 @@ export class TorpedoPredictor {
       ships: source.ships.filter((s) => s.id === targetId),
       torpedoes: [torpedo],
       slugs: [],
+      ai: [],
+      aiGroups: {},
       stations: source.stations.filter((s) => s.id === targetId),
     });
     for (const s of world.ships) {
