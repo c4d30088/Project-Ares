@@ -541,6 +541,20 @@ function stationCompare() {
   </div>`;
 }
 
+// Real-game renders of each station option (shots/mock-<key>.png), when they exist.
+function stationMockups() {
+  const items = [["wheel", "Current wheel"], ["ring-axle", "Ring on an axle"], ["truss-panels", "Truss and solar panels"], ["tri-hub", "Tri-arm hub"]];
+  const figs = items
+    .filter(([k]) => existsSync(`shots/mock-${k}.png`))
+    .map(([k, name]) => `<figure class="shot"><img src="data:image/png;base64,${readFileSync(`shots/mock-${k}.png`).toString("base64")}" alt="${name} in the game" loading="lazy"><figcaption><b>${name}</b></figcaption></figure>`)
+    .join("");
+  if (!figs) return "";
+  return `
+  <h3 class="lab" style="margin:10px 0 -6px">Mocked up in the game</h3>
+  <p class="section-note" style="margin-top:0">Each option running in the real game on the holotable, top-down, at true size. A friendly, neutral and hostile station sit in the top row. Below, for scale: corvette, destroyer, your frigate (selected), cruiser and capital ship.</p>
+  <div class="mock-grid">${figs}</div>`;
+}
+
 // ---- Family view ----------------------------------------------------------------------
 
 function family() {
@@ -693,6 +707,9 @@ h2::after { content: ""; flex: 1; height: 6px; align-self: center; min-width: 20
 .shots { display: grid; gap: 16px; }
 .shot { margin: 0; border: 1px solid var(--line); background: var(--stage); }
 .shot img { display: block; width: 100%; height: auto; }
+/* Each render is shown at its real pixel size (853 CSS px wide), shrinking only on narrow screens. */
+.mock-grid { display: grid; grid-template-columns: minmax(0, 853px); gap: 16px; }
+.mock-grid .shot figcaption { color: var(--text); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
 .shot figcaption { padding: 10px 14px; color: var(--dim); font-size: 12.5px; border-top: 1px solid var(--line-soft); }
 
 /* Stage: a patch of holotable */
@@ -846,6 +863,7 @@ button { font: inherit; }
     <h2>Station options <span class="count">${PROPOSALS.length} proposals</span></h2>
     <p class="section-note">Not in the game. Three alternatives to the wheel, drawn at the same size and line weight as the real symbols, so any of them can move in as it is. Mark each Add, Revise or Pass; they are not part of the counts above. Every station shares one symbol today, so using more than one means deciding what tells stations apart: size, role or faction.</p>
     ${stationCompare()}
+    ${stationMockups()}
     <div class="cards">${PROPOSALS.map(proposalCard).join("")}</div>
   </section>
 
