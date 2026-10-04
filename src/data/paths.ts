@@ -36,6 +36,6 @@ export const pathTuning = {
    *  flight), and the faint line under the stream. */
   pdcRoundSpeed: 6000,
   pdcRoundsDrawnPerS: 14,
-  pdcStreakS: 0.08,
-  pdcLineOpacity: 0.15,
+  pdcStreakS: 0.01,
+  pdcLineOpacity: 0.05,
 };
