@@ -1,12 +1,12 @@
 // Predicted path tunables.
 
 export const pathTuning = {
-  burnWidthPx: 2,
-  coastWidthPx: 1.5,
-  burnOpacity: 0.95,
-  coastOpacity: 0.7,
+  burnWidthPx: 3,
+  coastWidthPx: 1,
+  burnOpacity: 0.25,
+  coastOpacity: 0.1,
   /** Dash length as a fraction of camera distance. */
-  dashScale: 0.008,
+  dashScale: 0.013,
   /** Predict at most this far ahead, seconds of sim time. */
   maxPredictS: 6 * 3600,
   /** Time budget per frame for running predictions, milliseconds. */
