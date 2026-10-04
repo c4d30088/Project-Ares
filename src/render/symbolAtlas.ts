@@ -100,24 +100,25 @@ function brackets(ctx: CanvasRenderingContext2D, half: number, arm: number) {
   ctx.stroke();
 }
 
-// A spin-habitat wheel: heavy rim, six spokes, solid hub. Stations never move or turn on the
-// table, so it is drawn upright and the same whether or not "filled" is set.
+// A spin-habitat wheel: heavy rim, six spokes, small hub. Stations never move or turn on the
+// table, so it is drawn upright and the same whether or not "filled" is set. The rim grows
+// inward so the wheel keeps its outer size.
 function drawStation(ctx: CanvasRenderingContext2D) {
-  ctx.lineWidth = LINE * 1.4;
+  ctx.lineWidth = LINE * 1.8;
   ctx.beginPath();
-  ctx.arc(0, 0, 1.0, 0, Math.PI * 2);
+  ctx.arc(0, 0, 0.97, 0, Math.PI * 2);
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.lineWidth = LINE;
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
     const a = -Math.PI / 2 + (i * Math.PI) / 3;
-    ctx.moveTo(Math.cos(a) * 0.3, Math.sin(a) * 0.3);
-    ctx.lineTo(Math.cos(a) * 1.0, Math.sin(a) * 1.0);
+    ctx.moveTo(Math.cos(a) * 0.1, Math.sin(a) * 0.1);
+    ctx.lineTo(Math.cos(a) * 0.97, Math.sin(a) * 0.97);
   }
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(0, 0, 0.32, 0, Math.PI * 2);
+  ctx.arc(0, 0, 0.16, 0, Math.PI * 2);
   ctx.fill();
 }
 
