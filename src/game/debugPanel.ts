@@ -50,6 +50,15 @@ export function createDebugPanel(currentScenario: string): GUI {
   nav.add(navTuning, "avoidMarginMeters", 0, 20000, 100).name("avoid margin (m)");
   nav.close();
 
+  // Predicted routes for our ships: solid where burning, dashed where coasting.
+  const routes = gui.addFolder("Ship routes");
+  routes.add(pathTuning, "burnWidthPx", 0.5, 6, 0.1).name("burning line (px)");
+  routes.add(pathTuning, "burnOpacity", 0, 1, 0.05).name("burning opacity");
+  routes.add(pathTuning, "coastWidthPx", 0.5, 6, 0.1).name("coasting line (px)");
+  routes.add(pathTuning, "coastOpacity", 0, 1, 0.05).name("coasting opacity");
+  routes.add(pathTuning, "dashScale", 0.001, 0.03, 0.001).name("coast dash length");
+  routes.close();
+
   const cam = gui.addFolder("Camera");
   cam.add(cameraTuning, "fovDeg", 20, 90, 1);
   cam.add(cameraTuning, "rotateSpeed", 0.05, 1.5, 0.01);
