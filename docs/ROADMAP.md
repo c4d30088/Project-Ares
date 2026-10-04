@@ -78,7 +78,7 @@ Session estimates assume a sitting of 1 to 3 hours with Claude Code. They are ro
 - A scripted enemy that approaches and fires salvos on a timer
 - Unit tests for intercept prediction and PDC saturation
 
-**Checkpoint:** Fight the scripted enemy 5 times. Use each target type at least once: a torpedo salvo at the ship, a railgun shot at a point where you expect it to be, PDCs set to Auto and then switched to Manual. At least once, a red swarm closing on your ship should make you lean toward the screen. You should be able to say why each torpedo that hit you got through.
+**Checkpoint:** Fight the scripted enemy 5 times. Use each target type at least once: a torpedo salvo at the ship, a railgun shot at a point where you expect it to be, PDCs set to Auto and then switched to Manual. At least once, a yellow swarm closing on your ship should make you lean toward the screen. You should be able to say why each torpedo that hit you got through.
 
 **Stop rule:** If the torpedo and PDC exchange is not tense after three rounds of tuning, stop and rethink the weapons interaction before building sensors. Sensors make a good fight better. They will not rescue a flat one.
 

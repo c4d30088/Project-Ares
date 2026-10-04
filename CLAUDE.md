@@ -40,7 +40,7 @@ Screenshot URL options (pass with `npm run shot -- --query "..."`): `scenario=<n
 4. SI units in the sim: meters, seconds, kilograms, m/s². Convert to km, g, and mm:ss only for display.
 5. Every player and AI action is a `Command` submitted to the sim. Nothing outside the sim mutates sim state.
 6. The renderer and HUD read the player's sensor picture, never ground truth. Ground truth is visible only through the debug "God view" toggle.
-7. Colors come from tokens in `src/render/palette.ts`. Red means hostile or danger and is never decorative. Uncertain or warning is orange on the 3D table and amber in the HUD panels. Weapons once fired are green (ours) and yellow (the enemy's). Neutral is white.
+7. Colors come from tokens in `src/render/palette.ts`. Red means hostile or danger and is never decorative. Uncertain or warning is orange on the 3D table and amber in the HUD panels. Weapons once fired (torpedoes in flight, PDC fire, slugs, impact effects) are green (ours) and yellow (the enemy's). Neutral is white.
 8. Tunable numbers live in `src/data`, not in logic files. Expose new tunables in the lil-gui debug panel.
 9. Large distances: camera-relative rendering (floating origin) and a logarithmic depth buffer. Never write raw positions near 1e8 m into float32 GPU buffers.
 10. Every weapon accepts a `Target` that is a track, an object, or a point in space. Only PDCs have an automatic mode. Never add auto-fire to torpedoes or railguns.

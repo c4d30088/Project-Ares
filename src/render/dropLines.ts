@@ -6,7 +6,7 @@ import { holotableTuning as T } from "../data/holotable";
 import type { Vec3 } from "../sim/vec3";
 import type { DisplayList } from "./displayList";
 import { toRender } from "./frame";
-import { allegianceColor } from "./icons";
+import { symbolColor } from "./icons";
 import { palette } from "./palette";
 
 const MAX_OBJECTS = 512;
@@ -81,7 +81,7 @@ export function createDropLines(scene: THREE.Scene) {
       const pxPerRad = viewportHeight / 2 / Math.tan((cam.fov * Math.PI) / 360);
       for (const s of list.symbols) {
         const isTorpedo = s.shape === "torpedo";
-        const hex = isTorpedo && s.allegiance === "hostile" ? palette.threat : allegianceColor[s.allegiance];
+        const hex = symbolColor(s.shape, s.allegiance);
         addObject(s.position, focus, cam, hex, isTorpedo ? T.torpedoDropLineOpacity : T.dropLineOpacity, pxPerRad);
       }
       for (const w of list.waypoints) addObject(w.position, focus, cam, palette.friendly, 0.95, pxPerRad);
