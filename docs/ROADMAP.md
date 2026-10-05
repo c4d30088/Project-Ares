@@ -139,6 +139,21 @@ Build order (one commit per step):
 
 **Checkpoint:** Play 10 skirmishes. You win some and lose some. When you lose, you can name what the AI did. The AI should never seem to know something it could not have seen.
 
+**Approved plan (2026-10-04).** M4 (sensors) is iceboxed, so every side still sees everything. The AI reads only the sensor-picture interface (its own side's view); when sensors return it sees less with no AI change. Until then, "never knows what it could not have seen" cannot be judged by playing; the rest of the checkpoint can. Emissions discipline is stored and shown but has no effect until sensors return.
+- AI captain (`src/sim/ai/captain.ts`): utility AI scoring approach, keep range, launch salvo, evade, take cover behind a body, retreat, once a second. Commands only. Reuses the group salvo timing. Tunables in `src/data/ai.ts`.
+- Personalities: aggression, caution, emissions discipline. Presets Hunter, Duelist, Skulker.
+- Win: all hostile ships destroyed, or the AI retreats out of the area. Loss: your ship destroyed. Result banner with Restart and Back to setup; result goes in the alert log.
+- Skirmish setup screen (owner, 2026-10-04): the game opens to it on the bare URL, for testing AI scenarios. `?scenario=` links and `npm run shot` skip it. Pick scenario, enemy count (1v1, 1v2), AI personality.
+- Five hand-built scenarios: long-range torpedo duel, mid-range railgun fight around asteroids, close-range PDC knife fight in an asteroid cluster, two on one from different directions, moon cover.
+
+Build order (one commit per step):
+1. AI captain in the sim, with tests (determinism, picture only, personalities differ).
+2. Personality presets and settings.
+3. Win and loss, banner, alert log line.
+4. Skirmish setup screen.
+5. Five scenarios.
+6. Docs and playtest log.
+
 ---
 
 ### M6. Feel and polish pass (2 to 4 sessions)
