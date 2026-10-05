@@ -12,7 +12,7 @@ import { fuseTorpedoes, guideTorpedo, queueLaunch, runLaunchers } from "./weapon
 import { runPdcs, setBurst, setPdcs } from "./weapons/pdc";
 import { fireRailgun, moveSlugs, rechargeRailguns } from "./weapons/railgun";
 import { updateStrain } from "./crew";
-import { runScripts } from "./ai/scripted";
+import { runAi } from "./ai";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -138,7 +138,7 @@ export function step(world: World): void {
     for (const q of due) applyCommand(world, q);
   }
 
-  runScripts(world);
+  runAi(world);
   runLaunchers(world, DT, events);
   rechargeRailguns(world, DT);
   // Torpedoes steer on everyone's positions at the start of the tick, before anything

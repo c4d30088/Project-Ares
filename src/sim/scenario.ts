@@ -7,7 +7,8 @@ import { freshNavState, type Command } from "./commands";
 import { TICK_RATE } from "./sim";
 import { initHealth } from "./damage";
 import { initWeapons } from "./weapons/torpedo";
-import type { AiScript, Body, Faction, GSetting, Ship, Station, Torpedo, World } from "./world";
+import type { Body, Faction, GSetting, Ship, Station, Torpedo, World, SkirmisherScript } from "./world";
+import { resolvePersonality, type Personality, type PersonalityName } from "../data/ai";
 
 export interface SalvoSpec {
   idPrefix: string;
@@ -47,11 +48,16 @@ export interface Scenario {
   bodies?: Body[];
   torpedoes?: Torpedo[];
   salvos?: SalvoSpec[];
-  /** Scripted ships and their settings (see src/sim/ai/scripted.ts). */
-  ai?: Omit<AiScript, "state">[];
+  /** Scripted ships and AI captains, with their settings (see src/sim/ai). */
+  ai?: AiSpec[];
   /** Orders given by the scenario: at the start, or `atS` seconds in. */
   commands?: { faction: string; command: Command; atS?: number }[];
 }
+
+/** An AI entry as written in a scenario file. A captain's personality is a preset name or the three numbers. */
+export type AiSpec =
+  | Omit<SkirmisherScript, "state">
+  | { ship: string; behavior: "captain"; group?: string; personality: PersonalityName | Personality };
 
 function checkVec(v: Vec3, what: string): void {
   if (![v?.x, v?.y, v?.z].every(Number.isFinite)) {
@@ -152,6 +158,15 @@ export function loadScenario(scenario: Scenario): World {
     slugs: [],
     ai: (scenario.ai ?? []).map((a) => {
       if (!ships.some((s) => s.id === a.ship)) throw new Error(`Scenario: ai for unknown ship "${a.ship}"`);
+      if (a.behavior === "captain") {
+        return {
+          ship: a.ship,
+          behavior: "captain" as const,
+          ...(a.group ? { group: a.group } : {}),
+          personality: resolvePersonality(a.personality),
+          state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null, mode: null, issuedMode: null },
+        };
+      }
       return { ...a, state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null } };
     }),
     aiGroups: {},

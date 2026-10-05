@@ -1,6 +1,7 @@
 import type { Vec3 } from "./vec3";
 import type { NavOrder, NavState, QueuedCommand, SimEvent } from "./commands";
 import type { Target } from "./target";
+import type { Personality } from "../data/ai";
 
 export type ShipClass = "corvette" | "frigate" | "destroyer" | "cruiser" | "capital";
 /** Acceleration setting for movement orders (DESIGN.md section 6). */
@@ -178,8 +179,32 @@ export interface World {
   aiGroups: Record<string, { nextSalvoS: number; salvoAtS: number | null }>;
 }
 
-/** A scripted ship and its settings (scenario `ai` entries). */
-export interface AiScript {
+/** A scripted ship and its settings (scenario `ai` entries): the fixed routine of M3 or
+ *  an AI captain (M5). */
+export type AiScript = SkirmisherScript | CaptainScript;
+
+/** What a captain is doing with its ship right now (src/sim/ai/captain.ts). */
+export type CaptainMode = "station" | "orient" | "evade" | "retreat" | "cover";
+
+/** An AI captain: scores its options each second from its own side's picture. */
+export interface CaptainScript {
+  ship: string;
+  behavior: "captain";
+  /** Ships with the same group share a salvo clock and time their salvos to arrive together. */
+  group?: string;
+  personality: Personality;
+  state: {
+    nextThinkTick: number;
+    salvos: number;
+    navIssuedS: number;
+    launchAtS: number | null;
+    /** The behavior it chose, and the one whose order it last gave (to avoid repeating orders). */
+    mode: CaptainMode | null;
+    issuedMode: CaptainMode | null;
+  };
+}
+
+export interface SkirmisherScript {
   ship: string;
   behavior: "skirmisher";
   /** Ships with the same group share a salvo clock and time their salvos to arrive together. */
