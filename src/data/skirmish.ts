@@ -52,6 +52,77 @@ export const skirmishMaps: SkirmishMap[] = [
       { id: "ast-3", name: "AST-5127", kind: "asteroid", position: v(1300 * KM, 1700 * KM, -300 * KM), radius: 9 * KM },
     ],
   },
+  {
+    id: "pincer",
+    name: "Pincer",
+    blurb: "They come from opposite sides, 6,000 km out. Built for 1 v 2: you cannot face both, so decide who dies first and where to run.",
+    phase: "long",
+    seed: 5102,
+    player: { position: v(0, 0, 0), velocity: v(0, 0, 0), heading: v(1, 0, 0) },
+    enemies: [
+      { position: v(5200 * KM, 3200 * KM, 800 * KM), velocity: v(-420, -260, -60) },
+      { position: v(-4300 * KM, -4400 * KM, -900 * KM), velocity: v(350, 360, 70) },
+    ],
+    bodies: [
+      { id: "ast-1", name: "AST-5201", kind: "asteroid", position: v(1800 * KM, 1100 * KM, 150 * KM), radius: 10 * KM },
+      { id: "ast-2", name: "AST-5213", kind: "asteroid", position: v(-1500 * KM, -1700 * KM, -200 * KM), radius: 14 * KM },
+      { id: "ast-3", name: "AST-5226", kind: "asteroid", position: v(300 * KM, -2400 * KM, 400 * KM), radius: 7 * KM },
+    ],
+  },
+  {
+    id: "moon-shadow",
+    name: "Moon shadow",
+    blurb: "A moon sits between you and them. Slugs cannot pass through it and torpedoes must go around it: hide behind it, or hunt the ship that does.",
+    phase: "mid",
+    seed: 5103,
+    player: { position: v(-1700 * KM, 0, 0), velocity: v(0, 0, 0), heading: v(1, 0, 0) },
+    enemies: [
+      { position: v(4800 * KM, 500 * KM, 250 * KM), velocity: v(-250, 0, 0) },
+      { position: v(4200 * KM, -1900 * KM, -350 * KM), velocity: v(-200, 80, 0) },
+    ],
+    bodies: [
+      { id: "moon-1", name: "SELKET", kind: "moon", position: v(1100 * KM, 0, 0), radius: 650 * KM },
+      { id: "ast-1", name: "AST-5301", kind: "asteroid", position: v(-300 * KM, 1500 * KM, 200 * KM), radius: 9 * KM },
+      { id: "ast-2", name: "AST-5318", kind: "asteroid", position: v(2900 * KM, -1300 * KM, -150 * KM), radius: 11 * KM },
+    ],
+  },
+  {
+    id: "rock-garden",
+    name: "Rock garden",
+    blurb: "A tight cluster of asteroids, 900 km apart. Torpedoes have no room to build speed, routes bend around the rocks, and the railguns come into play.",
+    phase: "mid",
+    seed: 5104,
+    player: { position: v(0, 0, 0), velocity: v(0, 0, 0), heading: v(1, 0, 0) },
+    enemies: [
+      { position: v(900 * KM, 250 * KM, 80 * KM), velocity: v(-60, -15, -5) },
+      { position: v(750 * KM, -420 * KM, -60 * KM), velocity: v(-40, 25, 0) },
+    ],
+    bodies: [
+      { id: "ast-1", name: "AST-5401", kind: "asteroid", position: v(300 * KM, 40 * KM, 20 * KM), radius: 14 * KM },
+      { id: "ast-2", name: "AST-5412", kind: "asteroid", position: v(520 * KM, 190 * KM, -30 * KM), radius: 9 * KM },
+      { id: "ast-3", name: "AST-5419", kind: "asteroid", position: v(480 * KM, -230 * KM, 60 * KM), radius: 12 * KM },
+      { id: "ast-4", name: "AST-5427", kind: "asteroid", position: v(680 * KM, 20 * KM, 40 * KM), radius: 7 * KM },
+      { id: "ast-5", name: "AST-5433", kind: "asteroid", position: v(160 * KM, -210 * KM, -50 * KM), radius: 8 * KM },
+      { id: "ast-6", name: "AST-5442", kind: "asteroid", position: v(250 * KM, 260 * KM, 70 * KM), radius: 10 * KM },
+    ],
+  },
+  {
+    id: "knife-fight",
+    name: "Knife fight",
+    blurb: "150 km apart, almost no room. Torpedoes arrive in seconds and everything is decided inside PDC range. Pause, plan the first move, then commit.",
+    phase: "close",
+    seed: 5105,
+    player: { position: v(0, 0, 0), velocity: v(0, 0, 0), heading: v(1, 0, 0) },
+    enemies: [
+      { position: v(150 * KM, 40 * KM, 20 * KM), velocity: v(-10, -3, -1) },
+      { position: v(110 * KM, -90 * KM, -25 * KM), velocity: v(-5, 8, 2) },
+    ],
+    bodies: [
+      { id: "ast-1", name: "AST-5501", kind: "asteroid", position: v(60 * KM, 15 * KM, 6 * KM), radius: 5 * KM },
+      { id: "ast-2", name: "AST-5508", kind: "asteroid", position: v(95 * KM, -40 * KM, -10 * KM), radius: 4 * KM },
+      { id: "ast-3", name: "AST-5516", kind: "asteroid", position: v(40 * KM, -60 * KM, 12 * KM), radius: 6 * KM },
+    ],
+  },
 ];
 
 export const skirmishMapIds = skirmishMaps.map((m) => m.id);

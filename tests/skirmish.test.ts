@@ -39,7 +39,7 @@ describe.each(skirmishMaps)("skirmish map $id", (map) => {
     }
   }
 
-  it("starts everyone clear of the bodies and out of each other's way", () => {
+  it("starts everyone clear of the bodies and not on top of each other", () => {
     const w = loadScenario(buildSkirmish({ map: map.id, enemies: 2, personality: "duelist" }));
     for (const s of w.ships) {
       for (const b of w.bodies) {
@@ -48,6 +48,6 @@ describe.each(skirmishMaps)("skirmish map $id", (map) => {
       }
     }
     const [a, ...rest] = w.ships;
-    for (const s of rest) expect(Math.hypot(a.position.x - s.position.x, a.position.y - s.position.y, a.position.z - s.position.z)).toBeGreaterThan(1_000_000);
+    for (const s of rest) expect(Math.hypot(a.position.x - s.position.x, a.position.y - s.position.y, a.position.z - s.position.z)).toBeGreaterThan(40_000);
   });
 });
