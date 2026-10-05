@@ -244,6 +244,8 @@ Hits land on subsystems based on the direction the hit came from relative to the
 - AI ships use the same `Command` interface as the player and see only their own faction's sensor picture. No cheating.
 - Starting approach: utility AI that scores a small set of behaviors (approach, keep range, launch salvo, go dark, hide behind body, evade, retreat) each second.
 - Personality settings for variety: aggression, caution, emissions discipline.
+- Built in M5 (`src/sim/ai/captain.ts`, numbers in `src/data/ai.ts`, all with debug sliders): once a second a captain scores station (close to its hold range and hold it), orient (swing so the railgun can bear), evade (burn across the line of torpedoes about to land), cover (put a body between itself and the enemy) and retreat (burn away; a ship that gets 10,000 km clear has escaped). Torpedo salvos and railgun fire run alongside, with group salvos timed to arrive together. PDCs stay on Auto. Personality moves every number: aggression sets how close it presses, salvo size and gap, and how late it retreats; caution sets how soon it evades, hides and retreats; emissions discipline sets how many salvos go cold (and will decide whether it runs dark once sensors return in M4). Presets: Hunter, Duelist, Skulker.
+- Win and loss (M5, `src/sim/outcome.ts`): you lose when none of your ships is left; you win when no hostile ship is left (destroyed or escaped) and none of their torpedoes is still hunting; both gone at once is a draw. Time stops and a banner shows.
 - Later: group and fleet AI for the player's own subordinates, driven by doctrine settings.
 
 ## 11. Career layer (after combat is proven)

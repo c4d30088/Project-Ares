@@ -154,6 +154,8 @@ Build order (one commit per step):
 5. Five scenarios.
 6. Docs and playtest log.
 
+Status (2026-10-04): all six steps are built (steps 1 to 5 each one commit; two AI fixes found by playing the maps with bots, one more commit). Step 2 (personalities) was built inside step 1. Next: the owner plays the checkpoint (10 skirmishes); M5 passes on that, or gets a round of tuning. What no play can show yet: the AI never knowing what it could not have seen, because sensors are iceboxed (M4).
+
 ---
 
 ### M6. Feel and polish pass (2 to 4 sessions)
