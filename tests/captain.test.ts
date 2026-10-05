@@ -186,6 +186,34 @@ describe("captain in a fight", () => {
     expect(dist(w)).toBeGreaterThan(before);
   });
 
+  it("in a gun fight with no torpedoes left it holds its ground instead of backing away and turning back", () => {
+    const w = duel({ red: "hunter", range: 150_000 });
+    w.ships.find((s) => s.id === "red-1")!.weapons.magazine = 0;
+    w.ships.find((s) => s.id === "red-1")!.velocity = { x: 0, y: 0, z: 0 };
+    const modes: (string | null)[] = [];
+    let farthest = 0;
+    for (let i = 0; i < 120 / DT && w.ships.length === 2; i++) {
+      step(w);
+      if (i % Math.round(1 / DT) === 0 && w.ships.length === 2) {
+        modes.push(captain(w).state.mode);
+        farthest = Math.max(farthest, dist(w));
+      }
+    }
+    const changes = modes.filter((m, i) => i > 0 && m !== modes[i - 1]).length;
+    expect(modes.length).toBeGreaterThan(20);
+    expect(changes).toBeLessThanOrEqual(2);
+    expect(farthest).toBeLessThan(200_000);
+  });
+
+  it("a retreating captain eases off to Cruise G once its crew is strained", () => {
+    const w = duel({ range: 2e6 });
+    const red = w.ships.find((s) => s.id === "red-1")!;
+    red.health.hull = 0.1;
+    red.strain = 0.9;
+    run(w, 5);
+    expect(red.g).toBe("cruise");
+  });
+
   it("a cautious captain evades torpedoes about to land; an aggressive one does not", () => {
     const incoming: Torpedo = {
       id: "t-in",

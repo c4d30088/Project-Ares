@@ -217,6 +217,7 @@ export const tuningNotes: Record<string, string> = {
   "aiTuning.coverIdleExposure": "How exposed a captain feels with the enemy inside torpedo range but nothing launched yet (1 is as exposed as with torpedoes inbound).",
   "aiTuning.coverMaxTravelM": "An AI captain only takes cover behind a body whose hiding spot is within this distance (m).",
   "aiTuning.coverMarginM": "How far outside a body's surface a captain stands when it hides behind it (m).",
+  "aiTuning.retreatStrainLimit": "A retreating AI ship burns hard (Combat G) until its crew strain reaches this fraction, then eases to Cruise G so the crew is not lost.",
   "aiTuning.escapeRangeM": "A retreating AI ship that gets this far (m) from every enemy ship has escaped: it leaves the fight, and if it was the last one you win.",
   "aiTuning.retreatDistanceM": "How far away a retreating AI captain aims its burn (m). Far enough that it keeps running until it is clear of the fight.",
 };

@@ -204,7 +204,8 @@ function think(world: World, ai: CaptainScript, t: number): void {
     case "retreat": {
       if (fresh || stale) {
         const away = normalize(sub(me.position, target.position));
-        order({ type: "burnTo", ship: ai.ship, point: add(me.position, scale(away, A.retreatDistanceM)), g: "combat" });
+        const g = me.strain < A.retreatStrainLimit ? "combat" : "cruise";
+        order({ type: "burnTo", ship: ai.ship, point: add(me.position, scale(away, A.retreatDistanceM)), g });
         issued();
       }
       break;
@@ -246,7 +247,10 @@ function think(world: World, ai: CaptainScript, t: number): void {
     default: {
       // Out of torpedoes, close to the railgun's range and fight it out.
       const hold = !hasTorpedoes && hasSlugs ? Math.min(params.holdRange, A.railgunRangeM * 0.75) : params.holdRange;
-      if (d > hold * A.holdBandHigh || d < hold * A.holdBandLow) {
+      // Torpedoes want distance, so a captain that still has them backs away when crowded; a
+      // gun fight has no use for that (and burning away swings the gun out of its arc).
+      const tooClose = hasTorpedoes && d < hold * A.holdBandLow;
+      if (d > hold * A.holdBandHigh || tooClose) {
         if (fresh || stale || me.orderType !== "burnTo") {
           const point = add(target.position, scale(sub(me.position, target.position), hold / d));
           // The long approach at crew-safe Cruise G, so the crew arrives fresh.
