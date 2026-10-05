@@ -155,6 +155,8 @@ export interface HudActions {
   setPdcBurst(burst: BurstInfo): void;
   /** Starts the scenario again from the beginning. */
   restart(): void;
+  /** Goes back to the skirmish setup screen. */
+  backToSetup(): void;
 }
 
 export const hudActions: HudActions = {
@@ -167,4 +169,5 @@ export const hudActions: HudActions = {
   setPdcMode() {},
   setPdcBurst() {},
   restart() {},
+  backToSetup() {},
 };

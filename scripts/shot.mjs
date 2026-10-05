@@ -18,7 +18,8 @@ const strOpt = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : fallback;
 };
-const query = strOpt("query", "");
+// With no query the page opens to the skirmish setup screen, so default to a scene.
+const query = strOpt("query", "scenario=flight-test");
 const out = `shots/${strOpt("out", "latest")}.png`;
 
 const server = await createServer({ server: { port: 5199, strictPort: false }, logLevel: "error" });

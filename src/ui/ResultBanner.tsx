@@ -14,6 +14,9 @@ export function ResultBanner(props: { outcome: OutcomeInfo }) {
         <button className="hud-btn" onClick={() => hudActions.restart()}>
           RESTART
         </button>
+        <button className="hud-btn" onClick={() => hudActions.backToSetup()}>
+          BACK TO SETUP
+        </button>
       </div>
     </Panel>
   );

@@ -27,7 +27,9 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
 
   // Scenario picker: reloads the page with ?scenario=...
   const pick = { scenario: currentScenario };
-  gui.add(pick, "scenario", Object.keys(scenarios)).onChange((name: string) => {
+  const options = Object.keys(scenarios);
+  if (!options.includes(currentScenario)) options.unshift(currentScenario);
+  gui.add(pick, "scenario", options).onChange((name: string) => {
     const url = new URL(location.href);
     url.searchParams.set("scenario", name);
     location.href = url.toString();
