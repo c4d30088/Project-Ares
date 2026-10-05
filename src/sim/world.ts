@@ -37,6 +37,8 @@ export interface Ship {
   casualtyS: number;
   /** Set when destroyed; removed from the world at the end of the tick. */
   destroyed?: boolean;
+  /** Set when a retreating ship gets clear of the fight; removed at the end of the tick. */
+  escaped?: boolean;
   /** Weapons state: magazine, tubes, queued launches. */
   weapons: Weapons;
   /** Test aid until real sensors exist (M4): show this ship as an unknown contact. */

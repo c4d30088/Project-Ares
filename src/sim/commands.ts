@@ -83,6 +83,8 @@ export type SimEvent =
       position: Vec3; hull: number; amount: number;
     }
   | { type: "subsystemDestroyed"; ship: string; subsystem: string; position: Vec3 }
+  /** A retreating ship got clear of the fight and left it. */
+  | { type: "escaped"; ship: string; faction: string }
   | { type: "destroyed"; id: string; cause: string; kind: "ship" | "torpedo" | "slug"; position: Vec3 }
   | { type: "torpedoLaunched"; ship: string; torpedo: string; faction: string; mode: LaunchMode }
   | { type: "torpedoDetonated"; torpedo: string; faction: string; hit: string; position: Vec3 }

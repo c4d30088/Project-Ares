@@ -187,8 +187,8 @@ export function step(world: World): void {
   // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 
-  // Remove what was destroyed this tick.
-  if (world.ships.some((s) => s.destroyed)) world.ships = world.ships.filter((s) => !s.destroyed);
+  // Remove what was destroyed (or got away) this tick.
+  if (world.ships.some((s) => s.destroyed || s.escaped)) world.ships = world.ships.filter((s) => !s.destroyed && !s.escaped);
   if (world.torpedoes.some((t) => t.destroyed)) world.torpedoes = world.torpedoes.filter((t) => !t.destroyed);
 
   world.tick++;

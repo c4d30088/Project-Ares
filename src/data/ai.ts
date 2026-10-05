@@ -78,4 +78,6 @@ export const aiTuning = {
   coverMarginM: 30_000,
   /** How far away a retreating ship heads, m. */
   retreatDistanceM: 30_000_000,
+  /** A retreating ship this far from every enemy ship has escaped and leaves the fight, m. */
+  escapeRangeM: 10_000_000,
 };

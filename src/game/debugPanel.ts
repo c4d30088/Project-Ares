@@ -205,6 +205,7 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   ai.add(aiTuning, "coverMaxTravelM", 100000, 10000000, 100000).name("cover travel limit (m)");
   ai.add(aiTuning, "coverMarginM", 1000, 500000, 1000).name("cover margin (m)");
   ai.add(aiTuning, "retreatDistanceM", 1000000, 100000000, 1000000).name("retreat distance (m)");
+  ai.add(aiTuning, "escapeRangeM", 1000000, 100000000, 1000000).name("escape range (m)");
   ai.close();
 
   const pdc = gui.addFolder("PDCs");

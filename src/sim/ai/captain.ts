@@ -187,6 +187,12 @@ function think(world: World, ai: CaptainScript, t: number): void {
   };
   const mode = chooseMode(scoreBehaviors(sit, ai.personality, params), ai.state.mode);
   ai.state.mode = mode;
+  // A retreating ship that has opened the range far enough is gone.
+  if (mode === "retreat" && d > A.escapeRangeM) {
+    ship.escaped = true;
+    world.events.push({ type: "escaped", ship: ship.id, faction });
+    return;
+  }
   const fresh = mode !== ai.state.issuedMode;
   const stale = t - ai.state.navIssuedS > A.replanS;
   const issued = () => {

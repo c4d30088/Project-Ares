@@ -285,3 +285,14 @@
   opacity: 0.6;
 }
 .lil-gui.ares-hide-notes .ares-desc { display: none !important; }
+
+/* --- Result banner (win, loss, draw) --- */
+.result-banner { left: 50%; top: 96px; transform: translateX(-50%); width: min(380px, 40vw); height: 190px; --chamfer: 16px; }
+.result-banner .panel-inner { align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.result-title { font-size: 34px; font-weight: 600; letter-spacing: 0.3em; padding-left: 0.3em; }
+.result-title.win { color: var(--friendly); }
+.result-title.loss { color: var(--threat); }
+.result-title.draw { color: var(--neutral); }
+.result-detail { font-size: 13px; color: var(--text); }
+.result-time { font-size: 11px; color: var(--textDim); }
+.result-buttons { display: flex; gap: 10px; margin-top: 10px; }

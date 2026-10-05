@@ -83,6 +83,7 @@ const orders = createOrderInput(game, view, (x, y) => icons.pick(x, y));
 
 hudActions.togglePause = () => game.togglePause();
 hudActions.setCompression = (i) => game.setCompression(i);
+hudActions.restart = () => game.restart();
 hudActions.startOrder = (kind) => orders.start(kind as OrderKind);
 hudActions.setG = (g) => orders.setG(g);
 hudActions.setSalvo = (n) => {
@@ -219,6 +220,7 @@ function frame(now: number) {
       compressionIndex: game.compressionIndex,
       compressionSteps: timeTuning.compressionSteps,
       notice: game.notice,
+      outcome: game.outcome ? { result: game.outcome.result, title: game.outcome.title, detail: game.outcome.detail, timeS: game.outcome.tick * DT } : null,
     });
   }
   view.cam.update(dt);
