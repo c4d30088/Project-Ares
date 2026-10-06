@@ -12,6 +12,7 @@ import { angleBetween } from "../physics";
 import { Rng } from "../rng";
 import { pdcMountDirections, shipFrame, toWorld } from "../shipFrame";
 import { resolveTarget, type Target } from "../target";
+import { sideSees } from "../sensors/tracks";
 import { dot, length, normalize, scale, sub, type Vec3 } from "../vec3";
 import { areHostile, type PdcMount, type Ship, type ShipClass, type Torpedo, type World } from "../world";
 
@@ -52,7 +53,7 @@ export function pdcAims(world: World, ship: Ship): (PdcAim | null)[] {
     if (m.engaged === "point") return m.assigned?.kind === "point" ? { position: { ...m.assigned.position }, velocity: { x: 0, y: 0, z: 0 } } : null;
     const slug = world.slugs.find((s) => s.id === m.engaged);
     if (slug) return { position: { ...slug.position }, velocity: { ...slug.velocity } };
-    const r = resolveTarget(world, { kind: "track", id: m.engaged }) ?? resolveTarget(world, { kind: "object", id: m.engaged });
+    const r = resolveTarget(world, { kind: "track", id: m.engaged }, ship.faction) ?? resolveTarget(world, { kind: "object", id: m.engaged });
     return r ? { position: r.position, velocity: r.velocity } : null;
   });
 }
@@ -117,7 +118,8 @@ function chooseAuto(world: World, ship: Ship, dir: Vec3, taken: Set<string>): Ai
   let best: { t: Torpedo; eta: number } | null = null;
   let fallback: { t: Torpedo; eta: number } | null = null;
   for (const t of world.torpedoes) {
-    if (t.destroyed || !areHostile(world, ship.faction, t.faction) || !covers(ship, dir, t.position)) continue;
+    // Only what our side sees (M4 Sensors Lite): a dark torpedo is not engaged until found.
+    if (t.destroyed || !areHostile(world, ship.faction, t.faction) || !covers(ship, dir, t.position) || !sideSees(world, ship.faction, t.id)) continue;
     const eta = timeToReach(ship, t);
     const r = length(sub(t.position, ship.position));
     const key = Math.min(eta, r / 1000); // closing ones by time, loiterers by range
@@ -142,7 +144,7 @@ function chooseAuto(world: World, ship: Ship, dir: Vec3, taken: Set<string>): Ai
   if (pick) return { id: pick.t.id, position: pick.t.position, kind: "torpedo" };
   if (PT.autoEngagesShips) {
     for (const s of world.ships) {
-      if (s.destroyed || !areHostile(world, ship.faction, s.faction)) continue;
+      if (s.destroyed || !areHostile(world, ship.faction, s.faction) || !sideSees(world, ship.faction, s.id)) continue;
       if (length(sub(s.position, ship.position)) <= PT.effectiveRange && covers(ship, dir, s.position)) return { id: s.id, position: s.position, kind: "ship" };
     }
   }
@@ -151,7 +153,7 @@ function chooseAuto(world: World, ship: Ship, dir: Vec3, taken: Set<string>): Ai
 
 function chooseManual(world: World, ship: Ship, dir: Vec3, target: Target): Aim | null {
   if (target.kind === "point") return covers(ship, dir, target.position) ? { id: null, position: target.position, kind: "point" } : null;
-  const r = resolveTarget(world, target);
+  const r = resolveTarget(world, target, ship.faction);
   if (!r || !covers(ship, dir, r.position)) return null;
   const kind = world.torpedoes.some((t) => t.id === target.id) ? "torpedo" : world.ships.some((s) => s.id === target.id) ? "ship" : "object";
   return { id: target.id, position: r.position, kind };
@@ -173,7 +175,7 @@ export function runPdcs(world: World, dt: number, events: SimEvent[]): void {
       }
       // A manual assignment that no longer exists (a torpedo shot down, a ship destroyed)
       // hands the mount back to Auto.
-      if (m.mode === "manual" && m.assigned && m.assigned.kind !== "point" && !resolveTarget(world, m.assigned)) {
+      if (m.mode === "manual" && m.assigned && m.assigned.kind !== "point" && !resolveTarget(world, m.assigned, ship.faction)) {
         m.mode = "auto";
         m.assigned = null;
       }

@@ -17,7 +17,7 @@ import { G0, shipClasses } from "../data/ships";
 import type { TableView } from "../render/scene";
 import type { Game } from "./game";
 
-export type OrderKind = "burnTo" | "rendezvous" | "fastPass" | "match" | "stationKeep" | "orient" | "orbit" | "coast" | "launch" | "pdcTarget" | "railgun";
+export type OrderKind = "burnTo" | "rendezvous" | "fastPass" | "match" | "stationKeep" | "orient" | "orbit" | "coast" | "evade" | "evasive" | "launch" | "pdcTarget" | "railgun";
 export type SalvoSize = 1 | 2 | 4 | 6;
 
 /** How each order picks what it applies to. */
@@ -30,6 +30,8 @@ const NEEDS: Record<OrderKind, "point" | "target" | "body" | "pointOrTarget" | "
   orient: "pointOrTarget",
   orbit: "body",
   coast: "none",
+  evade: "none",
+  evasive: "none",
   launch: "pointOrTarget",
   pdcTarget: "pointOrTarget",
   railgun: "pointOrTarget",
@@ -275,8 +277,9 @@ export function createOrderInput(game: Game, view: TableView, pick: (x: number, 
       const ship = game.activeShipId;
       if (!ship) return;
       placed = null;
-      if (kind === "coast") {
-        game.issue({ type: "coast", ship });
+      // Immediate orders: nothing to pick.
+      if (kind === "coast" || kind === "evade" || kind === "evasive") {
+        game.issue({ type: kind, ship });
         finish();
         return;
       }

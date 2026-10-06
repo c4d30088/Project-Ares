@@ -25,9 +25,25 @@ export const pathTuning = {
   torpedoRefreshS: 1,
   torpedoBudgetMs: 3,
   torpedoMaxPredictS: 1800,
-  /** Weapon range rings on the reference plane. */
+  /** Weapon range rings on the reference plane: one per weapon under each ship. */
   rangeRingWidthPx: 1.5,
   rangeRingOpacity: 0.6,
+  /** Our ships' rings are always shown (the W key hides them); a selected enemy's too. */
+  showOwnRings: true,
+  showEnemyRings: true,
+  /** The torpedo ring while aiming torpedoes. */
+  rangeRingAimOpacity: 1,
+  /** Railgun rings are dashed: dash and gap as a fraction of the ring's radius. */
+  rangeRingDash: 0.04,
+  /** A ring's label is shown only when the ring is at least this big on screen, as a
+   *  fraction of the camera distance (small rings would put labels on top of the ship). */
+  rangeRingLabelMin: 0.04,
+  /** Lost contacts (nobody sees them any more): symbol brightness (fades further as the
+   *  contact ages), and the dashed line along their last course, drawn this many seconds of
+   *  travel ahead. */
+  lostSymbolOpacity: 0.8,
+  lostCourseS: 600,
+  lostCourseOpacity: 0.35,
   /** PDC domes (to effective range): resting and while that mount fires. */
   pdcDomeOpacity: 0.003,
   pdcDomeFiringOpacity: 0.012,

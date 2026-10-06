@@ -9,6 +9,7 @@ const ORDER_NAMES: Record<string, string> = {
   orient: "ORIENT",
   orbit: "ORBIT",
   coast: "COAST",
+  evasive: "EVASIVE MANEUVERS",
 };
 
 function Row(props: { label: string; value: string; tone?: "warn" | "dim" }) {
@@ -28,13 +29,14 @@ export function NavStatus() {
     <div className="nav-status">
       <div className="ship-name">{s.name}</div>
       <div className="ship-class">{s.shipClass}-CLASS</div>
-      <Row label="Order" value={ORDER_NAMES[s.order] ?? s.order} />
+      <Row label="Order" value={`${ORDER_NAMES[s.order] ?? s.order}${s.evading ? " · EVADE" : ""}`} tone={s.evading || s.order === "evasive" ? "warn" : undefined} />
       <Row label="Drive" value={s.phase.toUpperCase()} tone={s.phase === "flip" || s.phase === "avoid" ? "warn" : undefined} />
       <Row label="Speed" value={formatSpeed(s.speed)} />
       <Row label="Accel" value={`${s.accelG.toFixed(2)} G`} />
       <Row label="G set" value={s.g.toUpperCase()} tone={s.g === "max" ? "warn" : undefined} />
       <Row label="Flip" value={s.flipIn !== null ? `T-${formatCountdown(s.flipIn)}` : "—"} tone={s.flipIn === null ? "dim" : undefined} />
       <Row label="ETA" value={s.eta !== null ? formatCountdown(s.eta) : "—"} tone={s.eta === null ? "dim" : undefined} />
+      <Row label="Emissions" value={s.emissions} tone={s.emissions === "DARK" ? "dim" : "warn"} />
       {s.orbitAlt !== null && <Row label="Orbit alt" value={formatDistance(s.orbitAlt)} />}
       {s.orbitPeriod !== null && <Row label="Period" value={formatCountdown(s.orbitPeriod)} />}
     </div>

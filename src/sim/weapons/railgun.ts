@@ -119,7 +119,8 @@ function pathsClosest(a: { t: number; position: Vec3 }[], b: { t: number; positi
  */
 export function aimRailgun(world: World, ship: Ship, target: Target): { velocity: Vec3; t: number; aimPoint: Vec3 } | null {
   const spec = railgunSpec(ship.shipClass);
-  const tgt = resolveTarget(world, target);
+  // Aimed at what the ship's side knows: exact if seen, else along a lost contact's course.
+  const tgt = resolveTarget(world, target, ship.faction);
   if (!spec || !tgt) return null;
   const speed = spec.slugSpeed;
   const moving = target.kind === "track";

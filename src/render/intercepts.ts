@@ -23,6 +23,8 @@ export function createInterceptLayer(scene: THREE.Scene) {
   };
   const own = make(palette.fireFriendly);
   const hostile = make(palette.fireHostile);
+  // Lost contacts' last courses: orange, uncertain (M4 Sensors Lite).
+  const course = make(palette.uncertainMap);
   // Slug streaks: short solid strokes where our slugs are.
   const solid = (color: string) => {
     const line = new LineSegments2(new LineSegmentsGeometry(), new LineMaterial({ color, linewidth: 2, transparent: true, depthWrite: false }));
@@ -36,7 +38,7 @@ export function createInterceptLayer(scene: THREE.Scene) {
   const a = new THREE.Vector3();
   const b = new THREE.Vector3();
 
-  function rebuild(line: LineSegments2, paths: InterceptLine[], focus: Vec3, cameraDistance: number, dotted = true) {
+  function rebuild(line: LineSegments2, paths: InterceptLine[], focus: Vec3, cameraDistance: number, dotted = true, opacity = T.interceptOpacity, dash = T.interceptDotScale) {
     const pos: number[] = [];
     for (const p of paths) {
       for (let i = 1; i < p.points.length; i++) {
@@ -54,14 +56,16 @@ export function createInterceptLayer(scene: THREE.Scene) {
     const mat = line.material as LineMaterial;
     if (!dotted) return;
     mat.linewidth = T.interceptWidthPx;
-    mat.opacity = T.interceptOpacity;
-    mat.dashSize = cameraDistance * T.interceptDotScale;
-    mat.gapSize = cameraDistance * T.interceptDotScale * 1.5;
+    mat.opacity = opacity;
+    mat.dashSize = cameraDistance * dash;
+    mat.gapSize = cameraDistance * dash * 1.5;
   }
 
   return {
-    update(lines: InterceptLine[], focus: Vec3, cameraDistance: number, streaks: InterceptLine[] = []) {
-      rebuild(own, lines.filter((l) => !l.hostile), focus, cameraDistance);
+    update(lines: InterceptLine[], focus: Vec3, cameraDistance: number, streaks: InterceptLine[] = [], courses: InterceptLine[] = []) {
+      // Lost contacts' courses, and our torpedoes flying blind on their last sighting: orange.
+      rebuild(course, [...courses, ...lines.filter((l) => l.blind)], focus, cameraDistance, true, T.lostCourseOpacity, T.interceptDotScale * 3);
+      rebuild(own, lines.filter((l) => !l.hostile && !l.blind), focus, cameraDistance);
       rebuild(hostile, lines.filter((l) => l.hostile), focus, cameraDistance);
       rebuild(ownStreaks, streaks.filter((l) => !l.hostile), focus, cameraDistance, false);
       rebuild(hostileStreaks, streaks.filter((l) => l.hostile), focus, cameraDistance, false);

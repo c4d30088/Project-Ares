@@ -3,15 +3,16 @@ import { createRoot } from "react-dom/client";
 import { createTableView } from "./render/scene";
 import { createDebugPanel } from "./game/debugPanel";
 import { createGame } from "./game/game";
-import { buildDisplayList, pathMarkers, railShotOverlays, torpedoOverlays } from "./render/displayList";
+import { buildDisplayList, lostCourseLines, pathMarkers, railShotOverlays, torpedoOverlays } from "./render/displayList";
 import { aimRailgun, railgunBlocked } from "./sim/weapons/railgun";
 import { applyLabelStyle } from "./render/labelStyle";
 import { createPathLayer } from "./render/paths";
 import { createInterceptLayer } from "./render/intercepts";
 import { createRangeRingLayer } from "./render/rangeRings";
+import { weaponRings } from "./render/weaponRings";
 import { createPdcLayer, type PdcDome, type Tracer } from "./render/pdcs";
 import { dirToSim } from "./render/frame";
-import { torpedoTuning } from "./data/weapons";
+import { pathTuning } from "./data/paths";
 import { formatCountdown, formatDistance } from "./ui/format";
 import { DT } from "./sim/sim";
 import { G0 } from "./data/ships";
@@ -102,6 +103,16 @@ hudActions.backToSetup = () => {
   location.href = location.pathname;
 };
 hudActions.startOrder = (kind) => orders.start(kind as OrderKind);
+/** The active ship's Sensors switch, counting a switch still waiting for the next tick. */
+const sensorsOn = (id: string): boolean => {
+  const waiting = game.world.pending.filter((q) => q.command.type === "setSensors" && q.command.ship === id).pop();
+  if (waiting && waiting.command.type === "setSensors") return waiting.command.on;
+  return game.picture.ownShips.find((s) => s.id === id)?.sensorsOn ?? false;
+};
+hudActions.toggleSensors = () => {
+  const id = game.activeShipId;
+  if (id) game.issue({ type: "setSensors", ship: id, on: !sensorsOn(id) });
+};
 hudActions.setG = (g) => orders.setG(g);
 hudActions.setSalvo = (n) => {
   orders.salvo = n as SalvoSize;
@@ -139,12 +150,14 @@ view.dom.addEventListener("dblclick", (e) => {
   }
 });
 
-const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", l: "launch", d: "pdcTarget", g: "railgun" };
+const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", e: "evade", v: "evasive", l: "launch", d: "pdcTarget", g: "railgun" };
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
   if (e.key === "f" || e.key === "F") focusSelected();
   if (e.key === "t" || e.key === "T") view.cam.toggleTopDown();
+  if ((e.key === "w" || e.key === "W") && !e.metaKey && !e.ctrlKey) pathTuning.showOwnRings = !pathTuning.showOwnRings;
+  if ((e.key === "s" || e.key === "S") && !e.metaKey && !e.ctrlKey) hudActions.toggleSensors();
   if (e.key === "Escape") {
     if (orders.mode) orders.cancel();
     else game.selectedId = null;
@@ -216,6 +229,10 @@ function frame(now: number) {
             strain: own.strain,
             efficiency: own.efficiency,
             health: own.health,
+            sensorsOn: sensorsOn(own.id),
+            emissions: own.sensorsOn ? "SENSORS" : own.thrust > 0 ? "DRIVE" : own.loud ? "VISIBLE" : "DARK",
+            heat: own.heat,
+            evading: own.evading,
           }
         : null,
       weapons: own
@@ -259,21 +276,33 @@ function frame(now: number) {
       if (aim) rgPreview.push({ id: "rg-lead", position: aim.aimPoint, label: why ? why.toUpperCase() : `RG LEAD · ${formatCountdown(aim.t)}`, warn: !!why });
     }
   }
-  // While aiming torpedoes: their range ring on the plane, labelled on the side facing us.
-  const aimingFrom = orders.mode === "launch" && game.activeShipId ? game.positionOf(game.activeShipId) : null;
-  const ring = aimingFrom ? { center: aimingFrom, radius: torpedoTuning.effectiveRange } : null;
+  // Weapon range rings on the plane: our ships' always (W hides them), a selected enemy's,
+  // and the torpedo ring brighter while aiming torpedoes. Each big enough ring is labelled
+  // to the lower left as seen from the camera (the grid's own ring labels sit lower right,
+  // and straight toward us lands under the bottom bar), a little round from the others.
+  const rings = weaponRings(game.picture, {
+    selectedId: game.selectedId,
+    aimingTorpedoesFrom: orders.mode === "launch" ? game.activeShipId : null,
+    formatDistance,
+    positionOf: (id) => game.positionOf(id),
+  });
   const ringLabels = [];
-  if (ring) {
+  {
     const c = view.cam.camera.position;
     const toCam = dirToSim(c.x, c.y, c.z);
-    const h = Math.hypot(toCam.x, toCam.y) || 1;
-    ringLabels.push({
-      id: "range:torpedo",
-      kind: "range" as const,
-      position: { x: ring.center.x + (toCam.x / h) * ring.radius, y: ring.center.y + (toCam.y / h) * ring.radius, z: view.cam.focus.z },
-      label: `TORP RANGE ${formatDistance(ring.radius)}`,
-      allegiance: "friendly" as const,
-    });
+    const base = Math.atan2(toCam.y, toCam.x) - 0.7;
+    const turn = { torpedo: 0, railgun: 0.12, pdc: 0.24 };
+    for (const r of rings) {
+      if (r.radius < pathTuning.rangeRingLabelMin * view.cam.distance) continue;
+      const a = base + turn[r.weapon];
+      ringLabels.push({
+        id: `range:${r.key}`,
+        kind: "range" as const,
+        position: { x: r.center.x + Math.cos(a) * r.radius, y: r.center.y + Math.sin(a) * r.radius, z: view.cam.focus.z },
+        label: r.label,
+        allegiance: r.allegiance,
+      });
+    }
   }
   const list = buildDisplayList(
     game.picture,
@@ -290,8 +319,8 @@ function frame(now: number) {
     dt,
     game.picture.ownShips.flatMap((s) => (s.orbit ? [{ id: s.id, ...s.orbit }] : [])),
   );
-  intercepts.update([...torps.lines, ...rails.lines], view.cam.focus, view.cam.distance, rails.streaks);
-  rangeRings.update(ring, view.cam.focus);
+  intercepts.update([...torps.lines, ...rails.lines], view.cam.focus, view.cam.distance, rails.streaks, lostCourseLines(game.picture, pathTuning.lostCourseS));
+  rangeRings.update(rings, view.cam.focus);
   // PDC domes on our ships; tracers from every gun that is firing (theirs are visible too).
   const domes: PdcDome[] = [];
   const tracers: Tracer[] = [];

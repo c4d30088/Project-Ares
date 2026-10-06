@@ -14,7 +14,11 @@ import { gravityAt } from "../gravity";
 import type { SimEvent } from "../commands";
 import { applyHit, destroy } from "../damage";
 import { shipFrame } from "../shipFrame";
-import { resolveTarget, type Target } from "../target";
+import { resolveTarget, type ResolvedTarget, type Target } from "../target";
+import { sensorTuning as S } from "../../data/sensors";
+import { isLoud, lineOfSight } from "../sensors/detect";
+import { sideSees } from "../sensors/tracks";
+import { TICK_RATE } from "../sim";
 import { add, dot, length, normalize, scale, sub, type Vec3 } from "../vec3";
 import { areHostile, type LaunchMode, type Ship, type ShipClass, type Torpedo, type Weapons, type World } from "../world";
 
@@ -47,7 +51,7 @@ export function queueLaunch(world: World, ship: Ship, target: Target, count: num
   const w = ship.weapons;
   if (!w.tubeReload.length) return "no torpedo tubes";
   if ((ship.health.tubes ?? 0) <= 0) return "tubes destroyed";
-  if (target.kind !== "point" && !resolveTarget(world, target)) return "unknown target";
+  if (target.kind !== "point" && !resolveTarget(world, target, ship.faction)) return "unknown target";
   const n = Math.min(Math.floor(count), w.magazine);
   if (n <= 0) return w.magazine <= 0 ? "magazine empty" : "no torpedoes ordered";
   w.magazine -= n;
@@ -84,7 +88,8 @@ function launch(world: World, ship: Ship, tube: number, target: Target, mode: La
   // Hot: pushed out sideways to clear the tubes, drive lit at once. Cold: pushed out toward
   // the target and left to coast dark.
   const f = shipFrame(ship.heading);
-  const t = resolveTarget(world, target);
+  // Aimed from what the launcher's side knows (a lost contact: along its last course).
+  const t = resolveTarget(world, target, ship.faction);
   const toward = t ? normalize(sub(t.position, ship.position)) : f.forward;
   const side = scale(f.left, tube % 2 === 0 ? 1 : -1);
   const eject = mode === "hot" ? scale(side, TT.hotEjectSpeed) : scale(toward, TT.coldEjectSpeed);
@@ -95,18 +100,38 @@ function launch(world: World, ship: Ship, tube: number, target: Target, mode: La
     velocity: add(ship.velocity, eject),
     heading: mode === "hot" ? side : toward,
     thrust: 0,
-    guidance: { target, launcher: ship.id, mode, stage: mode === "cold" ? "cold" : "flight", fuel: TT.deltaV, reserve: TT.terminalReserve, searchS: 0 },
+    guidance: {
+      target,
+      launcher: ship.id,
+      mode,
+      stage: mode === "cold" ? "cold" : "flight",
+      fuel: TT.deltaV,
+      reserve: TT.terminalReserve,
+      searchS: 0,
+      ...(t && target.kind === "track" ? { seen: { position: { ...t.position }, velocity: { ...t.velocity }, tick: world.tick } } : {}),
+    },
   };
   world.torpedoes.push(torpedo);
   return torpedo;
 }
 
-/** Nearest hostile ship within seeker range (perfect information until M4). */
+/**
+ * Can a torpedo's seeker see this ship or torpedo (M4 Sensors Lite)? It needs line of sight,
+ * and the contact must be loud, within proximity range of the torpedo, or seen by the
+ * torpedo's side (one datalink network per side).
+ */
+export function torpedoSees(world: World, t: Torpedo, e: Ship | Torpedo): boolean {
+  if (world.perfectInfo) return true;
+  if (!lineOfSight(world.bodies, t.position, e.position)) return false;
+  return isLoud(e) || length(sub(e.position, t.position)) <= S.proximityRange || sideSees(world, t.faction, e.id);
+}
+
+/** Nearest hostile ship within seeker range that the seeker can see. */
 function seek(world: World, t: Torpedo): Ship | null {
   let best: Ship | null = null;
   let bestD = TT.seekerRange;
   for (const s of world.ships) {
-    if (s.destroyed || !areHostile(world, t.faction, s.faction)) continue;
+    if (s.destroyed || !areHostile(world, t.faction, s.faction) || !torpedoSees(world, t, s)) continue;
     const d = length(sub(s.position, t.position));
     if (d < bestD) {
       best = s;
@@ -217,12 +242,42 @@ function toPoint(world: World, t: Torpedo, point: Vec3, a: number, dt: number): 
   return scale(dv, Math.min(a, m / dt) / m);
 }
 
+/**
+ * What a torpedo knows of its target. A ship or torpedo target is exact while the seeker
+ * sees it (torpedoSees); out of sight the torpedo flies on the last position and motion it
+ * saw (its intercept line turns orange), and picks the target up again if it comes back
+ * into view. Objects and points are charted. Null if it has never seen the target and its
+ * side has forgotten it, or the target is gone in view. `update` records what is seen (the
+ * flight does; predictions do not).
+ */
+export function seekerView(world: World, t: Torpedo, update: boolean): ResolvedTarget | null {
+  const g = t.guidance!;
+  if (g.target.kind !== "track" || world.perfectInfo) return resolveTarget(world, g.target);
+  const id = g.target.id;
+  const e = world.ships.find((s) => s.id === id) ?? world.torpedoes.find((x) => x.id === id);
+  if (e && !e.destroyed && torpedoSees(world, t, e)) {
+    if (update) {
+      g.seen = { position: { ...e.position }, velocity: { ...e.velocity }, tick: world.tick };
+      g.blind = false;
+    }
+    return resolveTarget(world, g.target);
+  }
+  if (!e || e.destroyed) {
+    // Gone. If it was in the seeker's view a moment ago, the torpedo knows.
+    if (!g.seen || world.tick - g.seen.tick <= 1) return null;
+  }
+  if (update) g.blind = true;
+  if (!g.seen) return null;
+  const age = (world.tick - g.seen.tick) / TICK_RATE;
+  return { position: add(g.seen.position, scale(g.seen.velocity, age)), velocity: { ...g.seen.velocity }, thrust: { x: 0, y: 0, z: 0 } };
+}
+
 /** One tick of guidance: sets heading and thrust and spends fuel. May expire the torpedo. */
 export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEvent[]): void {
   const g = t.guidance;
   if (!g) return; // scenario prop: flies straight at its set thrust
   const a = torpedoAccel();
-  let tgt = resolveTarget(world, g.target);
+  let tgt = seekerView(world, t, true);
   let cmd: Vec3 = { x: 0, y: 0, z: 0 };
   // The reserve is for final homing (and for settling as a mine); the boost and the
   // flight to a point leave it alone.
@@ -260,7 +315,9 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
       g.target = { kind: "track", id: found.id };
       g.stage = "flight";
       g.reserve = g.fuel * (TT.terminalReserve / TT.deltaV);
-      tgt = resolveTarget(world, g.target);
+      delete g.seen;
+      delete g.aEst;
+      tgt = seekerView(world, t, true);
     } else if (g.searchS >= TT.mineLifetimeS) {
       events.push({ type: "torpedoExpired", torpedo: t.id, reason: "timeout" });
       destroy(world, t, "timeout");
@@ -276,7 +333,11 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
     else {
       const r = sub(tgt.position, t.position);
       const v = sub(t.velocity, tgt.velocity);
-      const aT = sub(add(tgt.thrust, gravityAt(world.bodies, tgt.position)), gravityAt(world.bodies, t.position));
+      // Lead the target's average drive acceleration, not this instant's: a corkscrewing
+      // target's thrust keeps turning, and leading each instant would chase phantoms.
+      const k = Math.min(1, dt / Math.max(dt, TT.targetAccelSmoothS));
+      g.aEst = g.aEst ? add(g.aEst, scale(sub(tgt.thrust, g.aEst), k)) : { ...tgt.thrust };
+      const aT = sub(add(g.aEst, gravityAt(world.bodies, tgt.position)), gravityAt(world.bodies, t.position));
       const vc = dot(v, normalize(r));
       const tgo = vc > 0 ? length(r) / vc : Infinity;
       const boosting = g.fuel > g.reserve;
@@ -344,7 +405,7 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
 export function predictImpact(world: World, t: Torpedo): { position: Vec3; t: number; targetId: string | null } | null {
   const g = t.guidance;
   if (!g || g.stage === "search") return null;
-  const tgt = resolveTarget(world, g.target);
+  const tgt = seekerView(world, t, false);
   if (!tgt) return null;
   const a = torpedoAccel();
   const r = sub(tgt.position, t.position);

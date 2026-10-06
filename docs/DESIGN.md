@@ -53,7 +53,7 @@ One battle can pass through all three ranges. Scenarios can start in any phase.
 | Phase | Range | Typical activity | Typical compression |
 |---|---|---|---|
 | Strategic approach | 100,000 km and beyond | Passive detection, choosing to burn or go dark, using bodies for cover, long-range cold torpedo launches | 256x to 1024x |
-| Torpedo exchange | 1,000 to 50,000 km | Radar and lidar, salvos, jamming, intercept lines | 4x to 64x |
+| Torpedo exchange | 1,000 to 50,000 km | Sensors on or dark, salvos, intercept lines | 4x to 64x |
 | Merge | Under 500 km | Railguns, PDC fire, evasive burns, terminal torpedo homing | 1x |
 
 The camera zoom is logarithmic so the same table works from 100 m to a billion meters.
@@ -78,7 +78,8 @@ The player gives intents. The nav computer flies them.
 | Intercept | Fly to a target's predicted position. Options: rendezvous (match velocity at arrival) or fast pass (no flip, maximum closing speed). |
 | Match velocity | Null relative velocity with a target or body. |
 | Station-keep | Hold position relative to a body, ship, or point. |
-| Evade | Randomized jinking burns. Spoils enemy firing solutions, costs G-strain and makes you bright. |
+| Evade | One slight bend in the current route per press: the burn turns a few degrees off-line in a random direction for about 30 s, then the nav computer steers back and still arrives at the same destination. Spoils railgun leads and the enemy's guess of your course (owner, 2026-10-05). |
+| Evasive maneuvers | Cancels the current route and corkscrews at the chosen G: the thrust circles around the line of travel. The hull turns with the thrust, so PDC arcs sweep around. Strong against railgun slugs; against torpedoes it only drains their homing fuel. Manual only; the alert strip suggests it when something is inbound (owner, 2026-10-05). |
 | Coast | Drive off. Required for running dark. |
 | Orient | Point the bow along a direction or at a target, for railgun shots, PDC arcs, or minimum cross-section. |
 | Orbit | Enter a circular orbit around a moon or asteroid, just outside its safety zone. Flies to the nearest point on the orbit, burns up to orbital speed, then coasts with the drive off; small corrections only if it drifts. |
@@ -121,6 +122,7 @@ The prediction is produced by running the same autopilot forward on a copy of th
 ### Torpedoes
 
 - Self-guided missiles with their own drive. Starting values: 30 g acceleration, 15 km/s delta-v budget, with part of it reserved for terminal homing.
+- Guidance leads the target's drive acceleration averaged over the last 15 s, not this instant's, so a corkscrewing target does not send it chasing empty space (2026-10-05).
 - Launch modes: **Hot** (drive lights at launch, fast and visible) or **Cold** (ejected and coasting, drive lights late, hard to detect).
 - Salvo size and spread are player choices. Small salvos are easy to stop. Large salvos empty the magazine.
 - A salvo bigger than the ship's tubes still arrives as one wave: the first torpedoes out wait beside the ship, drive dark, until the last leaves its tube, then all light together (decided 2026-10-03; without it a two-tube ship's salvo arrived in pairs and four PDCs stopped every pair).
@@ -132,9 +134,9 @@ The prediction is produced by running the same autopilot forward on a copy of th
 ### Railguns
 
 - Kinetic guns firing a slug at about 20 km/s. Frigates and destroyers carry a light railgun on a limited turret. Cruisers and capital ships carry heavy spinal railguns fixed along the keel, so the whole ship must turn to aim.
-- A lidar lock gives the best firing solution and shows the lead point on the table. Without a lock, you can still fire at a track's estimated position or at a point, with lower accuracy.
+- A ship you can see gets an exact firing solution, with the lead point shown on the table. A lost contact is aimed at where its last-seen course line says it would be now; a point can always be fired at. (Lidar locks were dropped with Sensors Lite, 2026-10-05.)
 - A projectile leaves with the firing ship's velocity plus the gun's muzzle velocity (owner, 2026-10-04): slugs and torpedoes, and the PDC tracer rounds, all inherit the ship's motion. Aim is worked out in the ship's own frame, so a fast-moving ship cancels its own drift when it leads a target, and a target that is outrunning the muzzle speed gives "no firing solution" instead of a wasted shot.
-- Slugs are hard to see coming: they have no drive plume, and the target only gets warning if its radar picks them up.
+- Slugs cannot be tracked in flight: each side sees the shot and its predicted path, and firing makes the shooter loud for a few seconds.
 - Long flight times mean a maneuvering target can dodge at range. Effective range against an evading target is low hundreds of km. Against a coasting target it is much longer. This punishes coasting dark near enemies.
 - Limited ammunition and a recharge time between shots. Spinal guns hit much harder and recharge much slower.
 
@@ -152,6 +154,8 @@ The prediction is produced by running the same autopilot forward on a copy of th
 
 ### Electronic warfare
 
+Parked with Sensors Lite (2026-10-05); kept here for later.
+
 - **Jamming** degrades enemy radar and lidar in a cone. Jammed tracks turn amber and their predicted path becomes a cone of possible trajectories instead of a single line.
 - **Decoys** create ghost contacts that look like real ships to passive sensors until confirmed by lidar.
 - When the player's own ship is jammed, the affected parts of the display visibly break down: lines dissolve into static and amber noise.
@@ -160,36 +164,38 @@ The prediction is produced by running the same autopilot forward on a copy of th
 
 Detection is the core of the game's tension. Every faction keeps its own picture of the battle. The player sees only their own.
 
-### Sensors
+### Sensors (Sensors Lite, owner, 2026-10-05)
 
-| Sensor | Type | Gives | Starting range | Cost |
-|---|---|---|---|---|
-| Telescope (optical and IR) | Passive | Bearing. Range estimate improves over time, or immediately with triangulation from two or more ships. | Burning drive: 2,000,000 km. Dark ship: 3,000 km. Cold torpedo: 300 km. | None. Always on. |
-| Radar | Active, wide | Range, bearing, velocity | 100,000 km against a frigate. 10,000 km against a coasting torpedo. | Your emitter is visible to enemy passive sensors at twice your radar range. |
-| Lidar | Active, narrow beam | Targeting-quality lock: best railgun solutions and best torpedo guidance | 30,000 km | The target gets a lock warning. |
+The first M4 build (telescope, radar and lidar, uncertainty clouds, classification steps) was too complicated to play and was iceboxed. Sensors Lite keeps one decision: **see more, or stay hidden.**
 
-### Signatures
+- Each ship has one switch: **Sensors** on or off.
+- A ship sees a contact when there is line of sight (bodies block it) and any one of these holds:
 
-- **Drive plume.** By far the brightest thing. Scales with G. Under thrust you are visible across the system.
-- **Heat.** Reactor and crew heat. Grows while dark (see below).
-- **Radar cross-section.** Depends on size and aspect. Pointing your bow at a radar shrinks it.
-- **Emissions.** Your own radar, lidar, and jammers.
+| Rule | Range | Notes |
+|---|---|---|
+| The contact is **loud** | Any range | Loud = drive burning, Sensors on, or fired a weapon in the last 10 s. Seen even by ships with their sensors off. |
+| Proximity | 1,000 km | Anything this close is always seen. |
+| The observer has **Sensors on** | 3,000 km | How dark ships and cold torpedoes are found. |
+
+- **Seen means known.** A seen contact shows its class, name and weapon rings at once. There is no UNKNOWN step.
+- Cold torpedoes follow the same rules as ships: coasting, they are dark; lit, they are loud.
+- Starting numbers are tunable in the debug panel. Every map so far is inside 7,000 km, so "any range" and "a very long range" play the same.
 
 ### Line of sight
 
-Planets, moons, and asteroids block all sensors. The table draws faint sensor shadow volumes behind bodies relative to known enemy sensor positions, so the player can see where they would be hidden.
+Planets, moons, and asteroids block all sensors. A ship hidden behind a moon cannot be seen, however loud it is.
 
 ### Running dark
 
-- Coast with drive off and active sensors off.
-- Heat builds because radiators are retracted. A frigate can stay dark for about 10 minutes at reactor idle.
-- Venting heat (extending radiators) makes you visible to IR for a short time. Overheating damages systems and crew.
+- Dark = coasting, Sensors off, and not firing. A dark ship further than 1,000 km is invisible except to an enemy with Sensors on within 3,000 km.
+- Heat builds while dark. A frigate can stay dark for about 10 minutes. It cools whenever the ship is loud (burning or Sensors on), so to cool down you must show yourself. At full heat the ship takes slow damage and shows HEAT CRITICAL.
 
-### Tracks
+### Lost contacts
 
-- Each contact is a track with a position estimate, an uncertainty region, and a classification confidence.
-- Uncertainty grows while a contact is not being detected and shrinks with each detection.
-- Classification improves with better data: `UNKNOWN` to `DRIVE SIG: FRIGATE-CLASS` to a confirmed identity.
+- When nobody on your side sees a contact any more, it is lost: a hollow orange marker stays frozen where it was last seen, labelled `LAST SEEN mm:ss`, with one dashed line along its last course. There is no uncertainty cloud and no moving guess: where it went is your call.
+- Weapons fired at a lost contact aim where its course line says it would be now.
+- The marker fades after a few minutes unless someone sees the contact again.
+- **Briefing:** a fight starts with each side knowing where every enemy ship was at the start, as a lost contact (built 2026-10-05). Without it a ship that stays dark could never be found, and nobody would know where to look.
 
 ### Datalink: the shared picture
 
@@ -197,7 +203,7 @@ Each ship builds its own local picture from its own sensors. Friendly ships conn
 
 - A scout that spots an enemy hiding behind an asteroid sends that track to every linked ship. The whole group or fleet sees it, even ships with no line of sight.
 - Every track remembers which ships are contributing to it. Hovering a track shows its sources: `SEEN BY: PICKET-2, FRIGATE-1`.
-- **When the only ship seeing a contact is destroyed, the contact goes stale.** Its icon freezes at the last known position, turns amber, and its uncertainty region starts growing. A label shows `LAST SEEN T+00:45 / PICKET-2 LOST`. If no other ship picks it up, the track fades out after a few minutes.
+- **When the only ship seeing a contact is destroyed, the contact goes stale.** Its icon freezes at the last known position, turns orange and hollow, and a dashed line shows its last course. A label shows `LAST SEEN T+00:45 / PICKET-2 LOST`. If no other ship picks it up, the track fades out after a few minutes.
 - The same happens if a contributing ship loses its link (out of range, blocked, or jammed) instead of being destroyed. The track returns if the link comes back.
 - Triangulation: two or more linked ships with passive bearings on the same contact get its range immediately, without anyone emitting.
 - The enemy has the same system. Killing their scouts blinds their fleet. Protecting your own pickets matters.
@@ -208,9 +214,9 @@ Starting assumption (to confirm in playtest): the datalink uses tight-beam laser
 
 The sensor model is tuned so these play out without scripting:
 - Launch torpedoes cold from behind a moon, let them coast, light them late
-- Run radar to catch cold torpedoes, and accept that you light yourself up
-- Two ships triangulating a passive contact to get range without emitting
-- Decoys drawing a salvo away from the real ship
+- Turn Sensors on to catch cold torpedoes, and accept that you light yourself up
+- Burn onto a new course, then go dark, so the enemy's last-seen line points the wrong way
+- Evade (a slight bend) just before going dark, for the same reason
 - Hunting the enemy's scouts first to blind their fleet
 - Parking a picket behind an asteroid to watch a lane while the main force stays dark
 - Firing torpedoes at a point where a stale track was last seen
@@ -226,7 +232,7 @@ No single hit-point bar. Each ship has:
 - PDC mounts, each with its own arc
 - Torpedo tubes and magazine
 - Railguns
-- Sensors (telescope, radar, lidar)
+- Sensors
 - Radiators (damage shortens how long you can run dark)
 - Crew
 
@@ -244,7 +250,7 @@ Hits land on subsystems based on the direction the hit came from relative to the
 - AI ships use the same `Command` interface as the player and see only their own faction's sensor picture. No cheating.
 - Starting approach: utility AI that scores a small set of behaviors (approach, keep range, launch salvo, go dark, hide behind body, evade, retreat) each second.
 - Personality settings for variety: aggression, caution, emissions discipline.
-- Built in M5 (`src/sim/ai/captain.ts`, numbers in `src/data/ai.ts`, all with debug sliders): once a second a captain scores station (close to its hold range and hold it), orient (swing so the railgun can bear), evade (burn across the line of torpedoes about to land), cover (put a body between itself and the enemy) and retreat (burn away; a ship that gets 10,000 km clear has escaped). Torpedo salvos and railgun fire run alongside, with group salvos timed to arrive together. PDCs stay on Auto. Personality moves every number: aggression sets how close it presses, salvo size and gap, and how late it retreats; caution sets how soon it evades, hides and retreats; emissions discipline sets how many salvos go cold (and will decide whether it runs dark once sensors return in M4). Presets: Hunter, Duelist, Skulker.
+- Built in M5 (`src/sim/ai/captain.ts`, numbers in `src/data/ai.ts`, all with debug sliders): once a second a captain scores station (close to its hold range and hold it), orient (swing so the railgun can bear), evade (burn across the line of torpedoes about to land), cover (put a body between itself and the enemy) and retreat (burn away; a ship that gets 10,000 km clear has escaped). Torpedo salvos and railgun fire run alongside, with group salvos timed to arrive together. PDCs stay on Auto. Personality moves every number: aggression sets how close it presses, salvo size and gap, and how late it retreats; caution sets how soon it evades, hides and retreats; emissions discipline sets how many salvos go cold and, with Sensors Lite (2026-10-05), how it uses sensors: below 0.35 it runs them all the time; above, only when it has seen no enemy for a while (searching), and from 0.6 it holds its range coasting dark instead of burning to match speed. Every captain shows itself to cool down when it is hot. With no enemy in sight it hunts: it flies to where its enemy was last known to be and searches there. Its evade behavior uses Evasive maneuvers. Presets: Hunter, Duelist, Skulker.
 - Win and loss (M5, `src/sim/outcome.ts`): you lose when none of your ships is left; you win when no hostile ship is left (destroyed or escaped) and none of their torpedoes is still hunting; both gone at once is a draw. Time stops and a banner shows.
 - Later: group and fleet AI for the player's own subordinates, driven by doctrine settings.
 
@@ -276,7 +282,7 @@ Hits land on subsystems based on the direction the hit came from relative to the
 | Capital ship | Triple chevron over a bar | By allegiance |
 | Station | Tri-arm hub: ring hub, three arms, a module on each | By allegiance |
 | Unknown contact | Dashed diamond with `?` | Orange |
-| Stale contact (source lost) | Last icon, frozen, hollow, with growing uncertainty ring | Orange |
+| Lost contact (nobody sees it) | Last icon, frozen, hollow, `LAST SEEN mm:ss`, one dashed line along its last course | Orange |
 | Targeted point in space | Small crosshair with drop line and weapon tag (`TORP x4`, `RG`, `PDC`) | Friendly |
 | Torpedo | Small torpedo shape: pointed nose, tail fins, points along its flight (hostile ones pulse) | By allegiance |
 | Torpedo intercept line and impact X | Thin dotted path along the torpedo's predicted flight, X and countdown | Weapon fire: green ours, yellow theirs |
@@ -284,7 +290,7 @@ Hits land on subsystems based on the direction the hit came from relative to the
 | PDC fire | Tracer rounds (short streaks) over a faint line from gun to target | Weapon fire: green ours, yellow theirs |
 | PDC coverage | Translucent dome or cone | By allegiance, low opacity |
 | Celestial body | Dim wireframe sphere with name label | Neutral gray |
-| Sensor shadow | Faint dark volume behind a body | Neutral gray |
+| Weapon range ring | Flat ring on the grid under the ship, one per weapon (torpedo, railgun, PDC), labelled | Own ships: friendly. Selected enemy: hostile. Lost enemy: orange, dashed |
 
 Ship icons point along their thrust vector when burning. When coasting, they point along velocity.
 
@@ -324,9 +330,7 @@ Weapon fire has its own colors, separate from allegiance (decided 2026-10-03): o
 | Rotating-arrows glyph + countdown | Flip point |
 | Ring + ETA | Arrival point |
 | Thin dotted converging lines + X + countdown (yellow incoming, green ours) | Torpedo predicted path and impact |
-| Orange fan of lines | Possible trajectories of an uncertain or jammed track |
-| Orange particle cloud | Uncertain position |
-| Thin pulsing line between ships | Lidar lock (red when someone locks you) |
+| Orange dashed line from a hollow icon | Last course of a lost contact |
 | Faint dotted line between friendly ships | Datalink connection (breaks visibly when cut) |
 
 ### Effects
@@ -342,9 +346,9 @@ Readability comes first. Every effect has an intensity slider in the debug panel
 
 - **Center:** the holotable
 - **Left rail:** own ship status: subsystems, ammunition, heat, G-strain, emissions state
-- **Right rail:** the alert log (owner, 2026-10-04): every launch, hit, kill, loss and system failure with the time it happened, newest first; similar lines in quick succession merge ("8 torpedoes destroyed"). The contact list (class, confidence, range, closing rate, time to closest approach) returns here in M4, when sensors make contacts uncertain, probably as a second tab.
+- **Right rail:** the alert log (owner, 2026-10-04): every launch, hit, kill, loss and system failure with the time it happened, newest first; similar lines in quick succession merge ("8 torpedoes destroyed"). A contact list was dropped with Sensors Lite (2026-10-05); contacts gained and lost go in the alert log.
 - **Bottom bar:** order buttons, G setting, time compression controls
-- **Top strip:** alerts such as `LAUNCH DETECTED`, `LIDAR LOCK`, `IMPACT T-00:42`
+- **Top strip:** alerts such as `LAUNCH DETECTED`, `ENEMY SENSORS ACTIVE`, `IMPACT T-00:42`
 
 Panels have chamfered corners, thin borders, condensed uppercase labels, and dense data rows (`DRIVE OK`, `PDC 3 AMMO 62%`), following the system control and airlock panel references.
 

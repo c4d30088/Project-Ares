@@ -9,6 +9,7 @@ import { physicsTuning } from "../data/physics";
 import { timeTuning } from "../data/time";
 import { pdcTuning, railgunTuning, torpedoTuning } from "../data/weapons";
 import { aiTuning } from "../data/ai";
+import { sensorTuning } from "../data/sensors";
 import { crewTuning } from "../data/crew";
 import { pathTuning } from "../data/paths";
 import { impactTuning } from "../data/impacts";
@@ -63,10 +64,16 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   const time = gui.addFolder("Time");
   time.add(timeTuning, "slowOnFlip").name("slow to 1x on flip");
   time.add(timeTuning, "slowOnOrderComplete").name("slow to 1x on arrival");
+  time.add(timeTuning, "slowOnContact").name("slow to 1x on new contact");
   time.add(timeTuning, "maxSimMsPerFrame", 2, 20, 1);
   time.close();
 
   const nav = gui.addFolder("Nav computer");
+  nav.add(navTuning, "evadeAngleDeg", 1, 45, 0.5).name("evade: bend (deg)");
+  nav.add(navTuning, "evadeDurationS", 5, 300, 5).name("evade: lasts (s)");
+  nav.add(navTuning, "evadeCoastAccelFrac", 0, 1, 0.05).name("evade: sideways burn when coasting (x cruise)");
+  nav.add(navTuning, "evasiveConeDeg", 5, 80, 1).name("evasive: corkscrew angle (deg)");
+  nav.add(navTuning, "evasivePeriodS", 5, 120, 1).name("evasive: one turn every (s)");
   nav.add(navTuning, "alignToleranceDeg", 0.2, 10, 0.1);
   nav.add(navTuning, "arriveDistance", 5, 1000, 5);
   nav.add(navTuning, "arriveSpeed", 0.05, 5, 0.05);
@@ -163,6 +170,7 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   torp.add(torpedoTuning, "terminalReserve", 0, 10000, 100).name("homing reserve (m/s)");
   torp.add(torpedoTuning, "terminalPhaseS", 5, 120, 1).name("final homing (s)");
   torp.add(torpedoTuning, "fuseRadius", 10, 1000, 10).name("fuse radius (m)");
+  torp.add(torpedoTuning, "targetAccelSmoothS", 0.5, 120, 0.5).name("lead target accel averaged over (s)");
   torp.add(torpedoTuning, "seekerRange", 10000, 10000000, 10000).name("seeker range (m)");
   torp.add(torpedoTuning, "pointArrival", 1000, 500000, 1000).name("point arrival (m)");
   torp.add(torpedoTuning, "mineLifetimeS", 60, 14400, 60).name("mine lifetime (s)");
@@ -172,11 +180,41 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   torp.add(torpedoTuning, "tubeReloadS", 1, 60, 0.5).name("tube reload (s)");
   torp.add(torpedoTuning, "salvoHold").name("salvo hold (arrive together)");
   torp.add(torpedoTuning, "effectiveRange", 100000, 20000000, 100000).name("range ring (m)");
-  torp.add(pathTuning, "rangeRingOpacity", 0, 1, 0.05).name("range ring opacity");
   torp.add(pathTuning, "interceptWidthPx", 0.5, 4, 0.1).name("intercept line (px)");
   torp.add(pathTuning, "interceptOpacity", 0, 1, 0.05).name("intercept line opacity");
   torp.add(pathTuning, "interceptDotScale", 0.0005, 0.02, 0.0005).name("intercept dot size");
   torp.close();
+
+  const sen = gui.addFolder("Sensors");
+  sen.add(sensorTuning, "godView").name("God view (show ground truth)");
+  sen.add(sensorTuning, "proximityRange", 10000, 10000000, 10000).name("always seen within (m)");
+  sen.add(sensorTuning, "sensorRange", 100000, 50000000, 100000).name("sensors find dark within (m)");
+  sen.add(sensorTuning, "plumeFadeS", 0, 120, 1).name("loud after drive stops (s)");
+  sen.add(sensorTuning, "firedLoudS", 0, 120, 1).name("loud after firing (s)");
+  sen.add(sensorTuning, "lostAfterS", 0, 30, 0.5).name("lost after unseen (s)");
+  sen.add(sensorTuning, "lostFadeS", 10, 3600, 10).name("lost marker fades over (s)");
+  sen.add(sensorTuning, "startSensorsOn").name("ships start with sensors on");
+  for (const cls of ["corvette", "frigate", "destroyer", "cruiser", "capital"] as const) {
+    sen.add(sensorTuning.darkLimitS, cls, 30, 3600, 10).name(`${cls}: dark for (s)`);
+  }
+  sen.add(sensorTuning, "coolFactor", 0.1, 10, 0.1).name("cooling speed (x)");
+  sen.add(sensorTuning, "heatDamage", 0, 0.5, 0.01).name("overheat damage");
+  sen.add(sensorTuning, "heatDamageIntervalS", 1, 120, 1).name("overheat damage every (s)");
+  sen.add(sensorTuning, "heatWarn", 0, 1, 0.05).name("heat warning above");
+  sen.add(pathTuning, "lostSymbolOpacity", 0, 1, 0.05).name("lost contact brightness");
+  sen.add(pathTuning, "lostCourseS", 0, 3600, 30).name("lost course line ahead (s)");
+  sen.add(pathTuning, "lostCourseOpacity", 0, 1, 0.05).name("lost course line opacity");
+  sen.close();
+
+  const rings = gui.addFolder("Weapon range rings");
+  rings.add(pathTuning, "showOwnRings").name("our ships' rings (W)");
+  rings.add(pathTuning, "showEnemyRings").name("selected enemy's rings");
+  rings.add(pathTuning, "rangeRingOpacity", 0, 1, 0.05).name("ring opacity");
+  rings.add(pathTuning, "rangeRingAimOpacity", 0, 1, 0.05).name("torpedo ring while aiming");
+  rings.add(pathTuning, "rangeRingWidthPx", 0.5, 5, 0.1).name("ring width (px)");
+  rings.add(pathTuning, "rangeRingDash", 0.005, 0.2, 0.005).name("railgun ring dash");
+  rings.add(pathTuning, "rangeRingLabelMin", 0, 0.5, 0.005).name("label when bigger than");
+  rings.close();
 
   const ai = gui.addFolder("AI captain");
   ai.add(aiTuning, "thinkS", 0.25, 5, 0.25).name("think every (s)");
@@ -209,6 +247,14 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   ai.add(aiTuning, "retreatDistanceM", 1000000, 100000000, 1000000).name("retreat distance (m)");
   ai.add(aiTuning, "retreatStrainLimit", 0.1, 1, 0.05).name("retreat strain limit");
   ai.add(aiTuning, "escapeRangeM", 1000000, 100000000, 1000000).name("escape range (m)");
+  ai.add(aiTuning, "sensorsAlwaysBelow", 0, 1, 0.05).name("sensors always on below discipline");
+  ai.add(aiTuning, "searchSensorsMinS", 0, 600, 5).name("search with sensors after, loose (s)");
+  ai.add(aiTuning, "searchSensorsMaxS", 0, 600, 5).name("search with sensors after, disciplined (s)");
+  ai.add(aiTuning, "coolAboveHeat", 0, 1, 0.05).name("show itself to cool above heat");
+  ai.add(aiTuning, "coolBelowHeat", 0, 1, 0.05).name("cooled below heat");
+  ai.add(aiTuning, "darkHoldDiscipline", 0, 1, 0.05).name("holds range dark from discipline");
+  ai.add(aiTuning, "darkHoldRelSpeed", 0, 1000, 5).name("holds range dark below (m/s)");
+  ai.add(aiTuning, "huntArriveM", 1000, 1000000, 1000).name("hunt: stop this close (m)");
   ai.close();
 
   const pdc = gui.addFolder("PDCs");
@@ -271,6 +317,7 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
     rg.add(railgunTuning[kind], "ammo", 1, 200, 1).name(`${kind}: slugs`);
     rg.add(railgunTuning[kind], "arcDeg", 0.5, 180, 0.5).name(`${kind}: arc (deg)`);
     rg.add(railgunTuning[kind], "damageScale", 0.1, 5, 0.1).name(`${kind}: damage (x)`);
+    rg.add(railgunTuning[kind], "effectiveRange", 10000, 5000000, 10000).name(`${kind}: range ring (m)`);
   }
   rg.add(railgunTuning, "pdcSlugFactor", 0, 1, 0.05).name("PDC vs slug (x torpedo)");
   rg.add(railgunTuning, "dangerRadius", 100, 50000, 100).name("incoming if within (m)");

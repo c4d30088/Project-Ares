@@ -198,6 +198,7 @@
 
 /* --- Railgun --- */
 .railgun-bar { display: flex; align-items: center; gap: 10px; }
+.sensor-bar { display: flex; align-items: center; gap: 10px; }
 .weapons-label.dim { color: var(--textDim); }
 
 /* --- Ship status: G-strain and subsystems; the left rail scrolls if it must --- */

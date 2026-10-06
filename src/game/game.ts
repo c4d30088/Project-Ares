@@ -7,7 +7,8 @@ import { Predictor, type Prediction } from "../sim/predict";
 import type { Command, SimEvent } from "../sim/commands";
 import { evaluateOutcome, type Outcome } from "../sim/outcome";
 import { loadScenario, type Scenario } from "../sim/scenario";
-import { buildPerfectPicture, type SensorPicture } from "../sim/sensors/picture";
+import { buildPicture, type SensorPicture } from "../sim/sensors/picture";
+import { sensorTuning } from "../data/sensors";
 import { DT, step, submit, TICK_RATE } from "../sim/sim";
 import type { Vec3 } from "../sim/vec3";
 import { areHostile, type World } from "../sim/world";
@@ -131,6 +132,8 @@ export function createGame(scenario: Scenario): Game {
   let realClock = 0;
 
   const isOwn = (shipId: string) => world.ships.some((s) => s.id === shipId && s.faction === faction);
+  /** Our side sees this ship or torpedo right now (M4 Sensors Lite). */
+  const sideSees = (id: string) => !!world.perfectInfo || (world.sensors[faction]?.[id]?.seenBy.length ?? 0) > 0;
   const shipName = (shipId: string) => world.ships.find((s) => s.id === shipId)?.name ?? shipId;
 
   // The alert log (see alertLog.ts). Times are sim time.
@@ -168,10 +171,15 @@ export function createGame(scenario: Scenario): Game {
       setNotice(`1x: ${text}`);
       return true;
     };
-    // Perfect sensors until M4: a launch is detected the moment it happens.
+    // Only what our side sees: a launch or a shot from a ship hidden from us goes unnoticed.
     for (const e of events) {
-      if (e.type === "torpedoLaunched" && timeTuning.slowOnLaunch && areHostile(world, faction, e.faction) && slow("LAUNCH DETECTED")) return true;
-      if (e.type === "railgunFired" && timeTuning.slowOnRailgun && areHostile(world, faction, e.faction) && slow("RAILGUN FIRE DETECTED")) return true;
+      if (e.type === "torpedoLaunched" && timeTuning.slowOnLaunch && areHostile(world, faction, e.faction) && sideSees(e.torpedo) && slow("LAUNCH DETECTED")) return true;
+      if (e.type === "railgunFired" && timeTuning.slowOnRailgun && areHostile(world, faction, e.faction) && sideSees(e.ship) && slow("RAILGUN FIRE DETECTED")) return true;
+    }
+    if (timeTuning.slowOnContact && newContact) {
+      const name = newContact;
+      newContact = null;
+      if (slow(`CONTACT ${name}`)) return true;
     }
     // Our ships hurt: remember it for the alert strip, and slow down.
     for (const e of events) {
@@ -183,7 +191,7 @@ export function createGame(scenario: Scenario): Game {
     }
     if (timeTuning.slowOnThreatS > 0) {
       for (const t of world.torpedoes) {
-        if (threatWarned.has(t.id) || !areHostile(world, faction, t.faction)) continue;
+        if (threatWarned.has(t.id) || !areHostile(world, faction, t.faction) || !sideSees(t.id)) continue;
         const hit = predictImpact(world, t);
         if (!hit || hit.t > timeTuning.slowOnThreatS || !hit.targetId || !isOwn(hit.targetId)) continue;
         threatWarned.add(t.id);
@@ -262,7 +270,10 @@ export function createGame(scenario: Scenario): Game {
   // targets that change course. The last finished path stays on screen meanwhile.
   const torpedoRuns = new Map<string, { predictor: TorpedoPredictor; startedAt: number }>();
   function updateTorpedoPaths() {
-    const flying = new Set(world.torpedoes.filter((t) => t.guidance && t.guidance.stage !== "search").map((t) => t.id));
+    // Ours, and the enemy's that we see now: a hidden torpedo's path is not ours to know.
+    const flying = new Set(
+      world.torpedoes.filter((t) => t.guidance && t.guidance.stage !== "search" && (t.faction === faction || sideSees(t.id))).map((t) => t.id),
+    );
     for (const id of [...torpedoRuns.keys()]) {
       if (!flying.has(id)) {
         torpedoRuns.delete(id);
@@ -285,7 +296,7 @@ export function createGame(scenario: Scenario): Game {
   /** Where a ghost run is finished, its end is the impact the table shows. */
   function applyTorpedoPaths() {
     for (const tr of game.picture.tracks) {
-      const path = tr.kind === "torpedo" ? game.torpedoPaths.get(tr.id) : undefined;
+      const path = tr.kind === "torpedo" && !tr.lost ? game.torpedoPaths.get(tr.id) : undefined;
       if (!path?.end) continue;
       const elapsed = (world.tick - path.startTick) * DT;
       tr.impact = path.end.kind === "miss" ? undefined : { position: path.end.position, t: Math.max(0, path.end.t - elapsed), targetId: tr.impact?.targetId ?? null };
@@ -322,6 +333,33 @@ export function createGame(scenario: Scenario): Game {
   const knownHostileTorpedoes = new Set<string>();
   let launchAlertUntil = -Infinity;
   let alertsPrimed = false;
+  // Enemy ships our side sees now, and whether any of them runs its sensors (M4 Sensors Lite).
+  const liveContacts = new Set<string>();
+  let newContact: string | null = null;
+  let enemySensorsActive = false;
+  function updateContacts() {
+    if (world.perfectInfo) return;
+    let sensing = false;
+    const now = new Set<string>();
+    const recs = world.sensors[faction] ?? {};
+    for (const r of Object.values(recs)) {
+      if (r.kind !== "ship" || !r.seenBy.length || !areHostile(world, faction, r.faction)) continue;
+      now.add(r.id);
+      if (r.sensorsOn) sensing = true;
+      if (!liveContacts.has(r.id) && alertsPrimed) {
+        logLine({ tone: "threat", tpl: `CONTACT: ${r.name}` });
+        newContact = r.name;
+      }
+    }
+    for (const id of liveContacts) {
+      // Gone from the records means seen destroyed or getting away: logged on its own.
+      if (!now.has(id) && recs[id]) logLine({ tone: "warn", tpl: `CONTACT LOST: ${recs[id].name}` });
+    }
+    if (sensing && !enemySensorsActive && alertsPrimed) logLine({ tone: "warn", tpl: "ENEMY SENSORS ACTIVE" });
+    enemySensorsActive = sensing;
+    liveContacts.clear();
+    for (const id of now) liveContacts.add(id);
+  }
   function updateAlerts() {
     const own = new Set(game.picture.ownShips.map((s) => s.id));
     let impactIn: number | null = null;
@@ -358,6 +396,8 @@ export function createGame(scenario: Scenario): Game {
     const ship = world.ships.find((s) => s.id === game.activeShipId && s.faction === faction);
     if (impactIn !== null) list.push({ text: "IMPACT", tone: "threat", countdown: impactIn });
     if (slugImpactIn !== null) list.push({ text: "SLUG", tone: "threat", countdown: slugImpactIn });
+    // Something inbound: suggest the corkscrew (never automatic).
+    if ((impactIn !== null || slugImpactIn !== null) && ship && ship.order?.type !== "evasive") list.push({ text: "EVASIVE MANEUVERS: V", tone: "warn" });
     if (ship) {
       const recentHit = realClock - lastHullHit < timeTuning.damageAlertS;
       if (recentHit || ship.health.hull < timeTuning.hullAlert) list.push({ text: `HULL BREACH ${Math.round(ship.health.hull * 100)}%`, tone: "threat", blink: recentHit });
@@ -365,6 +405,7 @@ export function createGame(scenario: Scenario): Game {
     }
     if (game.alerts.launchDetected) list.push({ text: "LAUNCH DETECTED", tone: "threat", blink: true });
     if (game.alerts.railgunDetected) list.push({ text: "RAILGUN FIRE DETECTED", tone: "threat", blink: true });
+    if (enemySensorsActive) list.push({ text: "ENEMY SENSORS ACTIVE", tone: "warn" });
     if (ship) {
       ship.weapons.pdcs.forEach((_, i) => {
         if ((ship.health[`pdc${i + 1}`] ?? 1) <= 0) list.push({ text: `PDC ${i + 1} OFFLINE`, tone: "threat" });
@@ -373,6 +414,8 @@ export function createGame(scenario: Scenario): Game {
       else if (ship.health.drive < 1) list.push({ text: `DRIVE DAMAGED ${Math.round(ship.health.drive * 100)}%`, tone: "warn" });
       if ((ship.health.railgun ?? 1) <= 0) list.push({ text: "RAILGUN OFFLINE", tone: "threat" });
       if ((ship.health.tubes ?? 1) <= 0) list.push({ text: "TUBES OFFLINE", tone: "threat" });
+      if (ship.heat >= 1) list.push({ text: "HEAT CRITICAL", tone: "threat", blink: true });
+      else if (ship.heat > sensorTuning.heatWarn) list.push({ text: `HEAT ${Math.round(ship.heat * 100)}%`, tone: "warn" });
       if (ship.strain >= 1) list.push({ text: "G-STRAIN MAX", tone: "threat" });
       else if (ship.strain > crewTuning.strainWarn) list.push({ text: `G-STRAIN ${Math.round(ship.strain * 100)}%`, tone: "warn" });
     }
@@ -395,7 +438,7 @@ export function createGame(scenario: Scenario): Game {
   }
 
   function rebuildPicture(alpha: number) {
-    const pic = buildPerfectPicture(world, faction);
+    const pic = buildPicture(world, faction, sensorTuning.godView);
     const lerp = (id: string, p: Vec3) => {
       const a = prev.get(id);
       if (!a) return;
@@ -404,14 +447,16 @@ export function createGame(scenario: Scenario): Game {
       p.z = a.z + (p.z - a.z) * alpha;
     };
     for (const s of pic.ownShips) lerp(s.id, s.position);
-    for (const t of pic.tracks) lerp(t.id, t.position);
+    // Only what is seen now moves smoothly: a lost contact stays where it was last seen, and
+    // one seen a moment ago is carried along its own motion, not the truth.
+    for (const t of pic.tracks) if (!t.lost && (t.allegiance === "friendly" || t.kind === "station" || t.contributors.length)) lerp(t.id, t.position);
     game.picture = pic;
   }
 
   const game: Game = {
     world,
     playerFaction: faction,
-    picture: buildPerfectPicture(world, faction),
+    picture: buildPicture(world, faction),
     selectedId: world.ships.find((s) => s.faction === faction)?.id ?? null,
     activeShipId: world.ships.find((s) => s.faction === faction)?.id ?? null,
     paused: false,
@@ -487,7 +532,11 @@ export function createGame(scenario: Scenario): Game {
       game.paused = false;
       hostileAtStart = countHostiles();
       hostileEscaped = 0;
-      game.picture = buildPerfectPicture(world, faction);
+      game.picture = buildPicture(world, faction, sensorTuning.godView);
+      liveContacts.clear();
+      newContact = null;
+      enemySensorsActive = false;
+      updateContacts();
       setNotice("SCENARIO RESTARTED");
       logLine({ tone: "info", tpl: `${scenario.name.toUpperCase()}: RESTARTED` });
     },
@@ -509,6 +558,7 @@ export function createGame(scenario: Scenario): Game {
           if (world.events.length && eventQueue.length < EVENT_QUEUE_MAX) eventQueue.push(...world.events);
           for (const d of draftsFromEvents(world.events, logContext)) logLine(d);
           for (const e of world.events) if (e.type === "escaped" && areHostile(world, faction, e.faction)) hostileEscaped++;
+          updateContacts();
           const outcome = game.outcome ? null : evaluateOutcome(world, faction, { hostileAtStart, escaped: hostileEscaped });
           if (outcome) {
             game.outcome = outcome;
@@ -543,6 +593,7 @@ export function createGame(scenario: Scenario): Game {
     },
   };
   hostileAtStart = countHostiles();
+  updateContacts(); // what is in view at the start is not news
   logLine({ tone: "info", tpl: `${scenario.name.toUpperCase()}: STARTED` });
   return game;
 }

@@ -7,9 +7,11 @@
 // salvos on a timer (ships in a group share the timer and time their salvos to arrive
 // together); inside railgun range, keep the target in the railgun's arc and shoot when
 // the gun is ready. Out of torpedoes, close to railgun range and fight it out.
+// Sensors (M4 Sensors Lite): it always runs them. With no enemy in sight it flies to where
+// its side last saw one (along its last course), weapons quiet.
 
 import { submit, TICK_RATE } from "../sim";
-import { buildPerfectPicture } from "../sensors/picture";
+import { buildSensorPicture } from "../sensors/picture";
 import { railgunBlocked } from "../weapons/railgun";
 import { add, dot as dotV, length, scale, sub, type Vec3 } from "../vec3";
 import { finishGroupLaunch, groupMembers, planGroupSalvo } from "./salvo";
@@ -40,21 +42,32 @@ function think(world: World, ai: SkirmisherScript, t: number): void {
   const ship = world.ships.find((s) => s.id === ai.ship)!;
   const faction = ship.faction;
   // Only what its side can see.
-  const pic = buildPerfectPicture(world, faction);
+  const pic = buildSensorPicture(world, faction);
   const me = pic.ownShips.find((s) => s.id === ai.ship)!;
+  const order = (command: Parameters<typeof submit>[2]) => submit(world, faction, command);
+  if (!me.sensorsOn) order({ type: "setSensors", ship: ai.ship, on: true });
   let target: { id: string; position: Vec3; velocity: Vec3 } | null = null;
   let best = Infinity;
   for (const tr of pic.tracks) {
-    if (tr.kind !== "ship" || tr.allegiance !== "hostile") continue;
+    if (tr.kind !== "ship" || tr.allegiance !== "hostile" || tr.lost) continue;
     const d = length(sub(tr.position, me.position));
     if (d < best) {
       best = d;
       target = tr;
     }
   }
-  const order = (command: Parameters<typeof submit>[2]) => submit(world, faction, command);
   if (!target) {
-    if (me.orderType) order({ type: "coast", ship: ai.ship });
+    // Nobody in sight: head for the latest sighting, along its last course.
+    const lost = pic.tracks.filter((tr) => tr.kind === "ship" && tr.allegiance === "hostile" && tr.lost).sort((a, b) => b.lastUpdateTick - a.lastUpdateTick)[0];
+    if (!lost) {
+      if (me.orderType) order({ type: "coast", ship: ai.ship });
+      return;
+    }
+    const where = add(lost.position, scale(lost.velocity, lost.lost!.ageS));
+    if (me.orderType !== "burnTo" || t - ai.state.navIssuedS > NAV_REPLAN_S) {
+      order({ type: "burnTo", ship: ai.ship, point: where, g: "cruise" });
+      ai.state.navIssuedS = t;
+    }
     return;
   }
   const d = best;

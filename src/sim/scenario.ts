@@ -9,6 +9,8 @@ import { initHealth } from "./damage";
 import { initWeapons } from "./weapons/torpedo";
 import type { Body, Faction, GSetting, Ship, Station, Torpedo, World, SkirmisherScript } from "./world";
 import { resolvePersonality, type Personality, type PersonalityName } from "../data/ai";
+import { sensorTuning } from "../data/sensors";
+import { briefSides, sweepSensors } from "./sensors/tracks";
 
 export interface SalvoSpec {
   idPrefix: string;
@@ -35,6 +37,8 @@ export interface ScenarioShip {
   velocity: Vec3;
   heading?: Vec3;
   g?: GSetting;
+  /** Sensors switch at the start (default: sensorTuning.startSensorsOn). */
+  sensorsOn?: boolean;
   testShowAsUnknown?: boolean;
 }
 
@@ -52,6 +56,11 @@ export interface Scenario {
   ai?: AiSpec[];
   /** Orders given by the scenario: at the start, or `atS` seconds in. */
   commands?: { faction: string; command: Command; atS?: number }[];
+  /** "perfect": every side sees everything (no sensor rules). Default: sensors. */
+  sensors?: "perfect" | "sensors";
+  /** "start" (default): each side knows where every enemy ship was at the start, as a lost
+   *  contact. "none": each side knows only what it sees. */
+  intel?: "start" | "none";
 }
 
 /** An AI entry as written in a scenario file. A captain's personality is a preset name or the three numbers. */
@@ -98,6 +107,10 @@ export function loadScenario(scenario: Scenario): World {
       strain: 0,
       casualtyS: 0,
       weapons: initWeapons(s.shipClass),
+      sensorsOn: s.sensorsOn ?? sensorTuning.startSensorsOn,
+      loudS: 0,
+      heat: 0,
+      overheatS: 0,
       ...(s.testShowAsUnknown ? { testShowAsUnknown: true } : {}),
     };
   });
@@ -145,7 +158,7 @@ export function loadScenario(scenario: Scenario): World {
   const pending = (scenario.commands ?? [])
     .map((c) => ({ tick: Math.round((c.atS ?? 0) * TICK_RATE), faction: c.faction, command: structuredClone(c.command) }))
     .sort((a, b) => a.tick - b.tick);
-  return {
+  const world: World = {
     tick: 0,
     rngState: rng.getState(),
     pending,
@@ -164,13 +177,20 @@ export function loadScenario(scenario: Scenario): World {
           behavior: "captain" as const,
           ...(a.group ? { group: a.group } : {}),
           personality: resolvePersonality(a.personality),
-          state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null, mode: null, issuedMode: null },
+          state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null, mode: null, issuedMode: null, lastKnown: null, unseenS: 0, cooling: false },
         };
       }
       return { ...a, state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null } };
     }),
     aiGroups: {},
+    sensors: Object.fromEntries(scenario.factions.map((f) => [f.id, {}])),
+    ...(scenario.sensors === "perfect" ? { perfectInfo: true } : {}),
   };
+  if (!world.perfectInfo) {
+    sweepSensors(world);
+    if (scenario.intel !== "none") briefSides(world);
+  }
+  return world;
 }
 
 function randomInSphere(rng: Rng, radius: number): Vec3 {

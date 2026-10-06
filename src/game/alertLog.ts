@@ -131,6 +131,9 @@ export function draftsFromEvents(events: SimEvent[], ctx: LogContext): LogDraft[
       case "pdcAmmoOut":
         if (side(ctx.factionOf(e.ship), ctx) === "own") out.push({ tone: "warn", tpl: `${ctx.nameOf(e.ship)}: PDC ${e.mount} OUT OF AMMO` });
         break;
+      case "overheat":
+        if (side(ctx.factionOf(e.ship), ctx) === "own") out.push({ tone: "threat", key: `heat:${e.ship}`, tpl: `${ctx.nameOf(e.ship)}: OVERHEATING, CREW AND RADIATORS DAMAGED` });
+        break;
       case "crewCasualties":
         if (side(ctx.factionOf(e.ship), ctx) === "own") out.push({ tone: "threat", key: `crew:${e.ship}`, tpl: `${ctx.nameOf(e.ship)}: CREW LOST TO G-STRAIN` });
         break;

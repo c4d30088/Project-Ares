@@ -9,7 +9,8 @@ import { length, sub } from "../src/sim/vec3";
 import { predictImpact } from "../src/sim/weapons/torpedo";
 import type { SkirmisherScript, World } from "../src/sim/world";
 
-const firstFight = () => loadScenario(scenarios["first-fight"] as Scenario);
+// The salvo timing is under test here, not sensors: everyone sees everything.
+const firstFight = () => loadScenario({ ...(scenarios["first-fight"] as Scenario), sensors: "perfect" });
 const dist = (w: World, a: string, b: string) => length(sub(w.ships.find((s) => s.id === a)!.position, w.ships.find((s) => s.id === b)!.position));
 
 describe("scripted enemy", () => {

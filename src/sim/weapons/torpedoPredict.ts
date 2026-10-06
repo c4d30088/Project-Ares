@@ -45,6 +45,8 @@ export class TorpedoPredictor {
       slugs: [],
       ai: [],
       aiGroups: {},
+      // What each side knew at the copy is kept; sensors are not swept in a ghost run.
+      ghost: true,
       stations: source.stations.filter((s) => s.id === targetId),
     });
     for (const s of world.ships) {

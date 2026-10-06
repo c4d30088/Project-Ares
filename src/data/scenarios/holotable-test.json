@@ -1,6 +1,7 @@
 {
   "name": "Holotable test",
   "seed": 1701,
+  "sensors": "perfect",
   "playerFaction": "blue",
   "factions": [
     {

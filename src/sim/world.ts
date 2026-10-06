@@ -41,7 +41,16 @@ export interface Ship {
   escaped?: boolean;
   /** Weapons state: magazine, tubes, queued launches. */
   weapons: Weapons;
-  /** Test aid until real sensors exist (M4): show this ship as an unknown contact. */
+  /** Sensors switch (M4 Sensors Lite): on finds dark contacts nearby but makes the ship loud. */
+  sensorsOn: boolean;
+  /** Seconds the ship stays loud after its drive stops or it fires (see sensors/detect.ts). */
+  loudS: number;
+  /** Evade in progress: until this tick the burn is bent toward `side` (a unit vector). */
+  evade?: { untilTick: number; side: Vec3 };
+  /** Heat from running dark, 0 (cool) to 1 (full: damage), and time held at full (heat.ts). */
+  heat: number;
+  overheatS: number;
+  /** Test aid: show this ship as an unknown contact (perfect-information pictures only). */
   testShowAsUnknown?: boolean;
 }
 
@@ -139,6 +148,12 @@ export interface TorpedoGuidance {
   searchS: number;
   /** Salvo hold: waiting, dark, for the rest of this salvo to leave the tubes. */
   holdSalvo?: number;
+  /** The target as the seeker last saw it (M4 Sensors Lite). Out of sight, the torpedo flies
+   *  on this; `blind` is set while it does. */
+  seen?: { position: Vec3; velocity: Vec3; tick: number };
+  blind?: boolean;
+  /** The target's drive acceleration, averaged over targetAccelSmoothS (guidance leads this). */
+  aEst?: Vec3;
 }
 
 export interface Station {
@@ -179,6 +194,34 @@ export interface World {
   ai: AiScript[];
   /** Shared state of scripted ships acting together, by group name. */
   aiGroups: Record<string, { nextSalvoS: number; salvoAtS: number | null }>;
+  /** What each side knows (M4 Sensors Lite): its contacts, by entity id. One datalink
+   *  network per side, so a side's ships share one set (see sensors/tracks.ts). */
+  sensors: Record<FactionId, Record<string, ContactRecord>>;
+  /** Everyone sees everything (tests and scenarios written before sensors). */
+  perfectInfo?: boolean;
+  /** A prediction's copy of the world: sensors are not swept, what each side knew at the
+   *  copy is kept as it was. */
+  ghost?: boolean;
+}
+
+/** What a side knows about one contact. Seen means known (class, name, motion). */
+export interface ContactRecord {
+  id: string;
+  kind: "ship" | "torpedo";
+  faction: FactionId;
+  /** Seen means known: name and class come with the first sighting. */
+  name: string;
+  shipClass?: ShipClass;
+  /** Own ships that see it right now (CLAUDE.md rule 11). Empty while it is not seen. */
+  seenBy: string[];
+  /** When it was last seen, and its motion then. */
+  seenTick: number;
+  position: Vec3;
+  velocity: Vec3;
+  heading: Vec3;
+  burning: boolean;
+  /** Its Sensors were on when last seen (ships). */
+  sensorsOn: boolean;
 }
 
 /** A scripted ship and its settings (scenario `ai` entries): the fixed routine of M3 or
@@ -186,7 +229,7 @@ export interface World {
 export type AiScript = SkirmisherScript | CaptainScript;
 
 /** What a captain is doing with its ship right now (src/sim/ai/captain.ts). */
-export type CaptainMode = "station" | "orient" | "evade" | "retreat" | "cover";
+export type CaptainMode = "station" | "orient" | "evade" | "retreat" | "cover" | "hunt";
 
 /** An AI captain: scores its options each second from its own side's picture. */
 export interface CaptainScript {
@@ -203,6 +246,11 @@ export interface CaptainScript {
     /** The behavior it chose, and the one whose order it last gave (to avoid repeating orders). */
     mode: CaptainMode | null;
     issuedMode: CaptainMode | null;
+    /** Where it last knew its enemy to be (M4 Sensors Lite): it hunts there when it sees no one. */
+    lastKnown: { id: string; position: Vec3; velocity: Vec3; tick: number } | null;
+    /** Seconds since it last saw an enemy ship, and whether it is showing itself to cool down. */
+    unseenS: number;
+    cooling: boolean;
   };
 }
 

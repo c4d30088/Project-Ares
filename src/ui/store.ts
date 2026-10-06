@@ -20,6 +20,14 @@ export interface ActiveShipInfo {
   efficiency: number; // 0..1
   /** Subsystem health, 1 = intact. */
   health: Record<string, number>;
+  /** Sensors switch (including a switch waiting for the next tick), and what gives the ship
+   *  away right now: SENSORS, DRIVE, VISIBLE (drive just stopped, or just fired) or DARK. */
+  sensorsOn: boolean;
+  emissions: "SENSORS" | "DRIVE" | "VISIBLE" | "DARK";
+  /** Heat from running dark, 0..1. */
+  heat: number;
+  /** An Evade bend is in progress. */
+  evading: boolean;
 }
 
 export interface AlertInfo {
@@ -153,6 +161,8 @@ export interface HudActions {
   /** PDC mode for one mount (0-based) or all. */
   setPdcMode(mount: number | "all", mode: "auto" | "manual" | "hold"): void;
   setPdcBurst(burst: BurstInfo): void;
+  /** Sensors on or off for the active ship (S). */
+  toggleSensors(): void;
   /** Starts the scenario again from the beginning. */
   restart(): void;
   /** Goes back to the skirmish setup screen. */
@@ -168,6 +178,7 @@ export const hudActions: HudActions = {
   setLaunchMode() {},
   setPdcMode() {},
   setPdcBurst() {},
+  toggleSensors() {},
   restart() {},
   backToSetup() {},
 };

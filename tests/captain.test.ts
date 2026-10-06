@@ -10,6 +10,7 @@ import { loadScenario, type Scenario } from "../src/sim/scenario";
 import { DT, step } from "../src/sim/sim";
 import { length, sub } from "../src/sim/vec3";
 import type { CaptainScript, Torpedo, World } from "../src/sim/world";
+import type { SimEvent } from "../src/sim/commands";
 
 const calm: Situation = {
   hull: 1,
@@ -98,11 +99,14 @@ describe("behavior scores", () => {
 });
 
 /** Blue (the "player") against one red captain; a moon near red if asked for. */
-function duel(opts: { red?: keyof typeof personalityPresets; blueAi?: keyof typeof personalityPresets; range?: number; moon?: boolean; torpedo?: Torpedo } = {}): World {
+function duel(opts: { red?: keyof typeof personalityPresets; blueAi?: keyof typeof personalityPresets; range?: number; moon?: boolean; torpedo?: Torpedo; sensors?: boolean; intel?: boolean } = {}): World {
   const range = opts.range ?? 7e6;
   const scenario: Scenario = {
     name: "duel",
     seed: 7,
+    // These tests are about the captain's choices; sensors have their own tests.
+    ...(opts.sensors ? {} : { sensors: "perfect" as const }),
+    ...(opts.intel === false ? { intel: "none" as const } : {}),
     playerFaction: "blue",
     factions: [
       { id: "blue", name: "B", hostileTo: ["red"] },
@@ -253,10 +257,66 @@ describe("captain in a fight", () => {
     expect(play()).toBe(play());
   });
 
-  it("coasts when it sees no enemy", () => {
+  it("coasts when it sees no enemy and knows of none", () => {
     const w = duel();
     w.ships = w.ships.filter((s) => s.id === "red-1");
     run(w, 5);
-    expect(captain(w).state.mode).toBeNull();
+    expect(captain(w).state.mode).toBe("hunt");
+    expect(w.ships[0].order).toBeNull();
+  });
+});
+
+describe("captain on its own sensors", () => {
+  const events = (w: World, s: number) => {
+    const out: SimEvent[] = [];
+    for (let i = 0; i < s / DT; i++) {
+      step(w);
+      out.push(...w.events);
+    }
+    return out;
+  };
+
+  it("never acts on what its side cannot see", () => {
+    // Blue sits dark 7,000 km away and red was never told where: red cannot target it.
+    const w = duel({ sensors: true, intel: false, red: "hunter" });
+    const ev = events(w, 300);
+    expect(ev.filter((e) => e.type === "commandRejected")).toEqual([]);
+    expect(ev.some((e) => e.type === "torpedoLaunched" || e.type === "railgunFired")).toBe(false);
+    expect(w.sensors.red["blue-1"]).toBeUndefined();
+  });
+
+  it("hunts from where it was told the enemy was, and finds a dark ship with its sensors", () => {
+    const w = duel({ sensors: true, red: "duelist" });
+    let foundAt = -1;
+    for (let i = 0; i < (40 * 60) / DT && foundAt < 0; i++) {
+      step(w);
+      if ((w.sensors.red["blue-1"]?.seenBy.length ?? 0) > 0) foundAt = i * DT;
+    }
+    expect(foundAt).toBeGreaterThan(0);
+    const red = w.ships.find((s) => s.id === "red-1")!;
+    const blue = w.ships.find((s) => s.id === "blue-1")!;
+    // Found by searching (sensors on, inside sensor range), not by blue giving itself away.
+    expect(red.sensorsOn).toBe(true);
+    expect(length(sub(red.position, blue.position))).toBeLessThanOrEqual(3_000_000 + 1);
+  });
+
+  it("a loose captain runs its sensors; a disciplined one keeps them off while it sees its enemy", () => {
+    const loose = duel({ sensors: true, red: "hunter" });
+    run(loose, 3);
+    expect(loose.ships.find((s) => s.id === "red-1")!.sensorsOn).toBe(true);
+    const quiet = duel({ sensors: true, red: "skulker" });
+    quiet.ships.find((s) => s.id === "blue-1")!.sensorsOn = true; // blue gives itself away
+    run(quiet, 3);
+    expect(quiet.sensors.red["blue-1"].seenBy.length).toBeGreaterThan(0);
+    expect(quiet.ships.find((s) => s.id === "red-1")!.sensorsOn).toBe(false);
+  });
+
+  it("shows itself to cool down when running dark has heated it", () => {
+    const w = duel({ sensors: true, red: "skulker" });
+    w.ships.find((s) => s.id === "blue-1")!.sensorsOn = true;
+    const red = w.ships.find((s) => s.id === "red-1")!;
+    red.heat = 0.9;
+    run(w, 3);
+    expect(red.sensorsOn).toBe(true);
   });
 });
