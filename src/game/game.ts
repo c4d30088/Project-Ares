@@ -18,6 +18,7 @@ import { railgunTuning } from "../data/weapons";
 import { crewTuning } from "../data/crew";
 import { TorpedoPredictor, type TorpedoPath } from "../sim/weapons/torpedoPredict";
 import { appendDraft, draftsFromEvents, type LogContext, type LogDraft, type LogEntry } from "./alertLog";
+import type { GameSignal } from "./soundCues";
 
 /** Never run more than this many ticks in one frame, whatever the compression. */
 const MAX_TICKS_PER_FRAME = 4000;
@@ -63,6 +64,9 @@ export interface Game {
   factionOf(id: string): string | undefined;
   /** Every sim event since the last call (the table's effects and the alert log read these). */
   takeEvents(): SimEvent[];
+  /** What our side's picture reported since the last call: new contacts, detected launches,
+   *  the end of the fight (the sound reads these; see soundCues.ts). */
+  takeSignals(): GameSignal[];
   /** Submits a command as the player's faction. */
   issue(command: Command): void;
   setCompression(index: number): void;
@@ -107,6 +111,10 @@ export function createGame(scenario: Scenario): Game {
   const shipNames = new Map<string, string>();
   // Events since the last takeEvents(), capped so an ignored queue cannot grow forever.
   let eventQueue: SimEvent[] = [];
+  let signals: GameSignal[] = [];
+  const signal = (s: GameSignal) => {
+    if (signals.length < 200) signals.push(s);
+  };
   const EVENT_QUEUE_MAX = 20000;
   const snapshotPrev = () => {
     for (const s of world.ships) {
@@ -348,14 +356,21 @@ export function createGame(scenario: Scenario): Game {
       if (r.sensorsOn) sensing = true;
       if (!liveContacts.has(r.id) && alertsPrimed) {
         logLine({ tone: "threat", tpl: `CONTACT: ${r.name}` });
+        signal({ type: "contact" });
         newContact = r.name;
       }
     }
     for (const id of liveContacts) {
       // Gone from the records means seen destroyed or getting away: logged on its own.
-      if (!now.has(id) && recs[id]) logLine({ tone: "warn", tpl: `CONTACT LOST: ${recs[id].name}` });
+      if (!now.has(id) && recs[id]) {
+        logLine({ tone: "warn", tpl: `CONTACT LOST: ${recs[id].name}` });
+        signal({ type: "contactLost" });
+      }
     }
-    if (sensing && !enemySensorsActive && alertsPrimed) logLine({ tone: "warn", tpl: "ENEMY SENSORS ACTIVE" });
+    if (sensing && !enemySensorsActive && alertsPrimed) {
+      logLine({ tone: "warn", tpl: "ENEMY SENSORS ACTIVE" });
+      signal({ type: "enemySensors" });
+    }
     enemySensorsActive = sensing;
     liveContacts.clear();
     for (const id of now) liveContacts.add(id);
@@ -371,6 +386,7 @@ export function createGame(scenario: Scenario): Game {
         if (alertsPrimed) {
           launchAlertUntil = realClock + timeTuning.launchAlertS;
           logLine({ tone: "threat", key: "launch:hostile", tpl: "LAUNCH DETECTED: {n} {TORPEDO|TORPEDOES}" });
+          signal({ type: "launchDetected" });
         }
       }
       if (t.impact?.targetId && own.has(t.impact.targetId)) impactIn = Math.min(impactIn ?? Infinity, t.impact.t);
@@ -383,6 +399,7 @@ export function createGame(scenario: Scenario): Game {
         if (alertsPrimed) {
           railgunAlertUntil = realClock + timeTuning.launchAlertS;
           logLine({ tone: "threat", key: "rg:hostile", tpl: "RAILGUN FIRE DETECTED: {n} {SHOT|SHOTS}" });
+          signal({ type: "railgunDetected" });
         }
       }
       const d = game.shotPaths.get(shot.id)?.danger;
@@ -496,6 +513,11 @@ export function createGame(scenario: Scenario): Game {
       eventQueue = [];
       return out;
     },
+    takeSignals() {
+      const out = signals;
+      signals = [];
+      return out;
+    },
     issue(command) {
       submit(world, faction, command);
     },
@@ -512,6 +534,7 @@ export function createGame(scenario: Scenario): Game {
       shipFaction.clear();
       shipNames.clear();
       eventQueue = [];
+      signals = [];
       game.alertLog = [];
       strainBand.clear();
       game.outcome = null;
@@ -565,6 +588,7 @@ export function createGame(scenario: Scenario): Game {
             game.paused = true;
             accumulator = 0;
             logLine({ tone: outcome.result === "win" ? "good" : outcome.result === "loss" ? "threat" : "info", tpl: `${outcome.title}: ${outcome.detail}` });
+            signal({ type: "outcome", result: outcome.result });
             break;
           }
           if (checkSlowdown(world.events)) {

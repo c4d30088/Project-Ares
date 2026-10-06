@@ -43,6 +43,7 @@ Project Ares/
       lines.ts           trajectories, intercepts, drop lines
       volumes.ts         PDC domes, sensor shadows, uncertainty clouds
       effects.ts         bloom, chromatic split, jamming static
+    audio/               Web Audio synth: every sound made live, no sound files (M6)
     ui/                  React HUD panels
     game/                main loop, input, sim-to-render bridge
     data/                ship classes, weapons, sensors, scenarios (all tunables)

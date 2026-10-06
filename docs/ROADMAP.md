@@ -194,6 +194,18 @@ Status (2026-10-04): all six steps are built (steps 1 to 5 each one commit; two 
 - Accessibility basics: color-blind palette, effect sliders, remappable keys
 - Playtest build deployed to a shareable link
 
+**Plan (2026-10-05).** Built on main after M4 Sensors Lite. Jamming static moves out of M6: jamming itself is parked (ideas list), so the effect comes with it. The replay now matters, since the two sides really do see different things. Owner addition: redesign the bottom HUD into clusters.
+
+Build order (one commit per step):
+1. Sound. Every sound is synthesized in the browser (Web Audio), no sound files. You hear your own ship and its bridge: drive rumble, our launches, railgun and PDC fire, hits on us, and alarms for what our side has detected (launch and railgun warnings, contact pings, enemy sensors, impact countdown beeps, heat, subsystems lost, victory and defeat). Nothing is heard that the sensor picture does not show. `N` mutes; volumes in the debug panel. **Done.**
+2. Bottom HUD redesign (owner, 2026-10-05): three clusters. Weapons on the left, time (pause, slower, faster) in the center, maneuvering on the right. Explore a hexagonal control panel for weapons and maneuvering; mockups first, then build the one the owner picks.
+3. Hit flicker and alert animations, each with a strength slider.
+4. Accessibility: color-blind palette option, a "reduce effects" switch, saved in the browser.
+5. Remappable keys: one key map behind every shortcut and button label, and a Controls screen to rebind.
+6. After-action replay: Replay on the result banner, a timeline to scrub, our view / their view / God view.
+7. Shareable playtest link (hosting decided when we get here).
+8. Docs and playtest log.
+
 **Checkpoint:** Give the link to 3 to 5 people who have not seen the game. Watch them play without explaining anything. Write down where they hesitate, what they never use, and when they lean in. Those notes decide what Phase 2 fixes first.
 
 ---

@@ -20,6 +20,21 @@ export const tuningNotes: Record<string, string> = {
   "panel.resetLook": "Puts the panel's text size, explanation size, width and font back to their defaults.",
   "panel.copyValues": "Copies every tuning value as JSON to the clipboard. Paste it into the chat to save your tweaks as the new defaults.",
 
+  // --- Sound ---
+  "audioTuning.muted": "Turns all sound off. The N key and the SOUND button at the bottom do the same.",
+  "audioTuning.master": "Overall volume of every sound in the game.",
+  "audioTuning.alarms": "Volume of the bridge alarms: launch and railgun warnings, contact pings, impact countdown beeps, heat and damage alarms.",
+  "audioTuning.weapons": "Volume of our own weapons: torpedo launches, railgun shots, PDC fire and PDC kills.",
+  "audioTuning.impacts": "Volume of hits on our ship, our ship being destroyed, and the boom when an enemy ship dies.",
+  "audioTuning.drive": "Volume of the drive rumble, which grows with how hard our ship is accelerating.",
+  "audioTuning.driveFullG": "The drive rumble is at full strength at this acceleration (g). Lower it to hear the drive louder at Cruise.",
+  "audioTuning.impactBeepS": "Countdown beeps start when an incoming torpedo or slug is this many seconds from hitting us. 0 turns them off.",
+  "audioTuning.beepSlowS": "Seconds between countdown beeps when they start. The beeps speed up from this toward the gap below.",
+  "audioTuning.beepFastS": "Seconds between countdown beeps just before impact.",
+  "audioTuning.pdcKillGapS": "Shortest gap between two 'shot down' pops, so a swarm being shot down does not become a wall of noise.",
+  "audioTuning.hitGapS": "Shortest gap between two hit sounds on our ship.",
+  "audioTuning.warningGapS": "The launch and railgun warnings do not repeat more often than this many seconds.",
+
   // --- Physics and time ---
   "physicsTuning.gravityEnabled": "Moons, planets and asteroids pull on ships and torpedoes. Off: no gravity (bodies are still solid).",
   "timeTuning.slowOnFlip": "Drops time to 1x when one of your ships starts its flip to brake, so you can watch it.",

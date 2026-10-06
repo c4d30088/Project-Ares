@@ -33,6 +33,9 @@ import { defaultScenario, scenarios } from "./data/scenarios";
 import { buildSkirmish, parseSkirmish, skirmishMaps } from "./data/skirmish";
 import { effectsTuning } from "./data/effects";
 import { tuningRoots } from "./data/tuningRoots";
+import { audioTuning } from "./data/audio";
+import { createSoundSystem } from "./audio/synth";
+import { cuesFromEvents, cuesFromSignals, driveLevel } from "./game/soundCues";
 
 // What to play, from the page address: ?skirmish=open-duel&enemies=2&ai=hunter (the setup
 // screen's choice), or ?scenario=holotable-test. Neither: the skirmish setup screen, with a
@@ -50,10 +53,15 @@ const game = createGame(
 );
 if (showSetup) game.paused = true;
 const view = createTableView(document.getElementById("table")!);
-createDebugPanel(scenarioName, () => {
-  game.restart();
-  impacts.clear();
-});
+const sound = createSoundSystem();
+createDebugPanel(
+  scenarioName,
+  () => {
+    game.restart();
+    impacts.clear();
+  },
+  () => sound.applyVolumes(),
+);
 createRoot(document.getElementById("hud")!).render(createElement(showSetup ? SetupScreen : Hud));
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.
@@ -97,6 +105,10 @@ focusSelected(false);
 const orders = createOrderInput(game, view, (x, y) => icons.pick(x, y));
 
 hudActions.togglePause = () => game.togglePause();
+hudActions.toggleMute = () => {
+  audioTuning.muted = !audioTuning.muted;
+  sound.applyVolumes();
+};
 hudActions.setCompression = (i) => game.setCompression(i);
 hudActions.restart = () => game.restart();
 hudActions.backToSetup = () => {
@@ -171,6 +183,7 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     game.togglePause();
   }
+  if ((e.key === "n" || e.key === "N") && !e.metaKey && !e.ctrlKey) hudActions.toggleMute();
   if (e.key === "[") game.setCompression(game.compressionIndex - 1);
   if (e.key === "]") game.setCompression(game.compressionIndex + 1);
 });
@@ -254,6 +267,7 @@ function frame(now: number) {
       compressionIndex: game.compressionIndex,
       compressionSteps: timeTuning.compressionSteps,
       notice: game.notice,
+      muted: audioTuning.muted,
       outcome: game.outcome ? { result: game.outcome.result, title: game.outcome.title, detail: game.outcome.detail, timeS: game.outcome.tick * DT } : null,
     });
   }
@@ -345,12 +359,29 @@ function frame(now: number) {
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);
-  // Explosions, sparks and hit text for what was hit since the last frame.
-  const fx = impactsFromEvents(game.takeEvents(), {
+  // Explosions, sparks and hit text for what was hit since the last frame, and its sounds.
+  const events = game.takeEvents();
+  const eventCtx = {
     playerFaction: game.playerFaction,
-    hostile: (a, b) => areHostile(game.world, a, b),
-    factionOf: (id) => game.factionOf(id),
-  });
+    hostile: (a: string, b: string) => areHostile(game.world, a, b),
+    factionOf: (id: string) => game.factionOf(id),
+  };
+  const fx = impactsFromEvents(events, eventCtx);
+  sound.play([...cuesFromEvents(events, eventCtx), ...cuesFromSignals(game.takeSignals())]);
+  {
+    const own = game.picture.ownShips.find((s) => s.id === game.activeShipId);
+    const { impactIn, slugImpactIn } = game.alerts;
+    const soonest = impactIn === null ? slugImpactIn : slugImpactIn === null ? impactIn : Math.min(impactIn, slugImpactIn);
+    sound.update(
+      {
+        drive: own ? driveLevel(own.thrust / G0) : 0,
+        pdcsFiring: own ? own.pdcs.filter((m) => m.firing).length : 0,
+        impactIn: soonest,
+        quiet: game.paused || !!game.outcome,
+      },
+      dt,
+    );
+  }
   impacts.spawn(fx.effects, fx.texts);
   impacts.update(dt, view.cam.focus, view.cam.camera, (id) => game.positionOf(id));
   view.render([[icons.scene, icons.camera], [impacts.scene, impacts.camera]]);

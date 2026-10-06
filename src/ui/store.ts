@@ -101,6 +101,8 @@ export interface HudState {
   compressionIndex: number;
   compressionSteps: number[];
   notice: string | null;
+  /** All sound off (N). */
+  muted: boolean;
   /** Set when the fight is over (win, loss or draw). */
   outcome: OutcomeInfo | null;
 }
@@ -124,6 +126,7 @@ let state: HudState = {
   compressionIndex: 0,
   compressionSteps: [1],
   notice: null,
+  muted: false,
   outcome: null,
 };
 const listeners = new Set<() => void>();
@@ -153,6 +156,8 @@ export function useHud(): HudState {
 
 export interface HudActions {
   togglePause(): void;
+  /** Sound on or off (N). */
+  toggleMute(): void;
   setCompression(index: number): void;
   startOrder(kind: string): void;
   setG(g: "cruise" | "combat" | "max"): void;
@@ -171,6 +176,7 @@ export interface HudActions {
 
 export const hudActions: HudActions = {
   togglePause() {},
+  toggleMute() {},
   setCompression() {},
   startOrder() {},
   setG() {},

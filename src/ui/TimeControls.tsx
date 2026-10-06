@@ -24,6 +24,9 @@ export function TimeControls() {
         ))}
       </div>
       <span className="clock mono">{formatClock(hud.simTime)}</span>
+      <button className={`hud-btn ${hud.muted ? "warn" : ""}`} onClick={() => hudActions.toggleMute()} title="Sound on or off (N)">
+        {hud.muted ? "SOUND OFF" : "SOUND"}
+      </button>
     </div>
   );
 }

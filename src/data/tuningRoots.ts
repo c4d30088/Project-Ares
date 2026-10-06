@@ -2,6 +2,7 @@
 // explanations are looked up against.
 
 import { aiTuning } from "./ai";
+import { audioTuning } from "./audio";
 import { bodyTuning } from "./bodies";
 import { cameraTuning } from "./camera";
 import { crewTuning } from "./crew";
@@ -20,5 +21,5 @@ import { pdcTuning, railgunTuning, torpedoTuning } from "./weapons";
 export const tuningRoots = {
   cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning,
   physicsTuning, torpedoTuning, pdcTuning, railgunTuning, crewTuning, pathTuning, impactTuning, labelTuning, aiTuning,
-  sensorTuning,
+  sensorTuning, audioTuning,
 };
