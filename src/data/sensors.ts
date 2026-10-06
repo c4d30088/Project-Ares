@@ -21,4 +21,7 @@ export const sensorTuning = {
   lostFadeS: 300,
   /** Ships start with Sensors off unless the scenario says otherwise. */
   startSensorsOn: false,
+  /** Debug: the table shows ground truth instead of the player's picture. The sim, the AI and
+   *  the alerts still use sensors. */
+  godView: false,
 };

@@ -35,6 +35,7 @@ export function NavStatus() {
       <Row label="G set" value={s.g.toUpperCase()} tone={s.g === "max" ? "warn" : undefined} />
       <Row label="Flip" value={s.flipIn !== null ? `T-${formatCountdown(s.flipIn)}` : "—"} tone={s.flipIn === null ? "dim" : undefined} />
       <Row label="ETA" value={s.eta !== null ? formatCountdown(s.eta) : "—"} tone={s.eta === null ? "dim" : undefined} />
+      <Row label="Emissions" value={s.emissions} tone={s.emissions === "DARK" ? "dim" : "warn"} />
       {s.orbitAlt !== null && <Row label="Orbit alt" value={formatDistance(s.orbitAlt)} />}
       {s.orbitPeriod !== null && <Row label="Period" value={formatCountdown(s.orbitPeriod)} />}
     </div>

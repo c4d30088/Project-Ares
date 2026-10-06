@@ -11,6 +11,7 @@ import { WeaponsBar } from "./WeaponsBar";
 import { PdcBar } from "./PdcBar";
 import { PdcStatus } from "./PdcStatus";
 import { RailgunBar } from "./RailgunBar";
+import { SensorBar } from "./SensorBar";
 import { ShipStatus } from "./ShipStatus";
 import { AlertLog } from "./AlertLog";
 import { ResultBanner } from "./ResultBanner";
@@ -51,6 +52,7 @@ export function Hud() {
         <div className="bottom-row">
           <TimeControls />
           <RailgunBar />
+          <SensorBar />
         </div>
         <div className="bottom-row">
           <WeaponsBar />

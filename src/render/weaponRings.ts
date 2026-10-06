@@ -3,6 +3,7 @@
 // Read from the sensor picture only (CLAUDE.md rule 6): our own ships' weapon state, and an
 // enemy's class, whose loadout tells us what it carries. A weapon that is destroyed or empty
 // on our side loses its ring; for an enemy we cannot see its magazine, so its rings stay.
+// A lost enemy's rings are orange and dashed, at its last-seen marker.
 
 import { loadouts } from "../data/combat";
 import { pathTuning as T } from "../data/paths";
@@ -40,17 +41,18 @@ export interface RingOptions {
 
 export function weaponRings(pic: SensorPicture, opts: RingOptions): WeaponRing[] {
   const rings: WeaponRing[] = [];
-  const add = (shipId: string, center: Vec3, weapon: RingWeapon, radius: number, allegiance: Allegiance) => {
+  const add = (shipId: string, center: Vec3, weapon: RingWeapon, radius: number, allegiance: Allegiance, lost = false) => {
     const aiming = weapon === "torpedo" && opts.aimingTorpedoesFrom === shipId;
     rings.push({
       key: `${shipId}:${weapon}`,
       shipId,
       weapon,
-      center: opts.positionOf?.(shipId) ?? center,
+      // A lost contact's rings stay at its last-seen marker.
+      center: lost ? center : (opts.positionOf?.(shipId) ?? center),
       radius,
       allegiance,
       opacity: aiming ? T.rangeRingAimOpacity : T.rangeRingOpacity,
-      dashed: weapon === "railgun",
+      dashed: lost || weapon === "railgun",
       label: `${SHORT[weapon]} ${opts.formatDistance(radius)}`,
     });
   };
@@ -69,10 +71,13 @@ export function weaponRings(pic: SensorPicture, opts: RingOptions): WeaponRing[]
   if (T.showEnemyRings && opts.selectedId) {
     const t = pic.tracks.find((tr) => tr.id === opts.selectedId);
     if (t && t.kind === "ship" && t.allegiance === "hostile" && t.identified && t.shipClass) {
+      // A lost enemy's rings are orange and dashed, at the marker where it was last seen.
+      const lost = !!t.lost;
+      const al: Allegiance = lost ? "unknown" : "hostile";
       const lo = loadouts[t.shipClass];
-      if (lo.magazine > 0 && lo.tubes > 0) add(t.id, t.position, "torpedo", torpedoTuning.effectiveRange, "hostile");
-      if (lo.railgun !== "none") add(t.id, t.position, "railgun", railgunTuning[lo.railgun].effectiveRange, "hostile");
-      if (lo.pdcCount > 0) add(t.id, t.position, "pdc", pdcTuning.effectiveRange, "hostile");
+      if (lo.magazine > 0 && lo.tubes > 0) add(t.id, t.position, "torpedo", torpedoTuning.effectiveRange, al, lost);
+      if (lo.railgun !== "none") add(t.id, t.position, "railgun", railgunTuning[lo.railgun].effectiveRange, al, lost);
+      if (lo.pdcCount > 0) add(t.id, t.position, "pdc", pdcTuning.effectiveRange, al, lost);
     }
   }
   return rings;

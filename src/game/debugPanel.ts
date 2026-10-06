@@ -64,6 +64,7 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   const time = gui.addFolder("Time");
   time.add(timeTuning, "slowOnFlip").name("slow to 1x on flip");
   time.add(timeTuning, "slowOnOrderComplete").name("slow to 1x on arrival");
+  time.add(timeTuning, "slowOnContact").name("slow to 1x on new contact");
   time.add(timeTuning, "maxSimMsPerFrame", 2, 20, 1);
   time.close();
 
@@ -179,6 +180,7 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   torp.close();
 
   const sen = gui.addFolder("Sensors");
+  sen.add(sensorTuning, "godView").name("God view (show ground truth)");
   sen.add(sensorTuning, "proximityRange", 10000, 10000000, 10000).name("always seen within (m)");
   sen.add(sensorTuning, "sensorRange", 100000, 50000000, 100000).name("sensors find dark within (m)");
   sen.add(sensorTuning, "plumeFadeS", 0, 120, 1).name("loud after drive stops (s)");
@@ -186,6 +188,9 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   sen.add(sensorTuning, "lostAfterS", 0, 30, 0.5).name("lost after unseen (s)");
   sen.add(sensorTuning, "lostFadeS", 10, 3600, 10).name("lost marker fades over (s)");
   sen.add(sensorTuning, "startSensorsOn").name("ships start with sensors on");
+  sen.add(pathTuning, "lostSymbolOpacity", 0, 1, 0.05).name("lost contact brightness");
+  sen.add(pathTuning, "lostCourseS", 0, 3600, 30).name("lost course line ahead (s)");
+  sen.add(pathTuning, "lostCourseOpacity", 0, 1, 0.05).name("lost course line opacity");
   sen.close();
 
   const rings = gui.addFolder("Weapon range rings");

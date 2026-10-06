@@ -81,7 +81,7 @@ export function createDropLines(scene: THREE.Scene) {
       const pxPerRad = viewportHeight / 2 / Math.tan((cam.fov * Math.PI) / 360);
       for (const s of list.symbols) {
         const isTorpedo = s.shape === "torpedo";
-        const hex = symbolColor(s.shape, s.allegiance);
+        const hex = symbolColor(s.shape, s.allegiance, s.lost);
         addObject(s.position, focus, cam, hex, isTorpedo ? T.torpedoDropLineOpacity : T.dropLineOpacity, pxPerRad);
       }
       for (const w of list.waypoints) addObject(w.position, focus, cam, palette.friendly, 0.95, pxPerRad);

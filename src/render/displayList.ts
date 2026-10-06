@@ -25,6 +25,9 @@ export interface ShipSymbol {
   pointing: Vec3;
   label: string | null;
   isOwn: boolean;
+  /** A lost contact: frozen where last seen, drawn orange and hollow, fading out (0..1). */
+  lost?: boolean;
+  fade?: number;
 }
 
 export interface BodySymbol {
@@ -109,7 +112,8 @@ export function torpedoOverlays(
   const lines: InterceptLine[] = [];
   const groups = new Map<string, { position: Vec3; t: number; count: number; allegiance: Allegiance }>();
   for (const tr of picture.tracks) {
-    if (tr.kind !== "torpedo") continue;
+    // A lost torpedo has only its course line: where it flies now is not known.
+    if (tr.kind !== "torpedo" || tr.lost) continue;
     const hostile = tr.allegiance === "hostile";
     const path = paths.get(tr.id);
     if (path) {
@@ -204,6 +208,21 @@ export function railShotOverlays(
   return { lines, streaks, markers };
 }
 
+/**
+ * Lost contacts (M4 Sensors Lite): one dashed line from where each was last seen along its
+ * last course, `aheadS` seconds of travel long. Not a guess of where it is: where it went
+ * is the player's call.
+ */
+export function lostCourseLines(picture: SensorPicture, aheadS: number): InterceptLine[] {
+  const out: InterceptLine[] = [];
+  for (const t of picture.tracks) {
+    if (!t.lost || length(t.velocity) < MIN_POINTING_SPEED) continue;
+    const v = t.velocity;
+    out.push({ points: [t.position, { x: t.position.x + v.x * aheadS, y: t.position.y + v.y * aheadS, z: t.position.z + v.z * aheadS }], hostile: t.allegiance === "hostile" });
+  }
+  return out;
+}
+
 /** Below this speed a coasting object points along its heading instead of its velocity. */
 const MIN_POINTING_SPEED = 0.5; // m/s
 
@@ -231,6 +250,9 @@ export function buildDisplayList(picture: SensorPicture, markers: PathMarker[] =
   }
 
   for (const t of picture.tracks) {
+    const lost = t.lost;
+    let label = t.kind === "torpedo" ? null : t.label;
+    if (lost && label) label = `${label} · LAST SEEN ${formatCountdown(lost.ageS)}`;
     const shape: SymbolShape =
       t.kind === "torpedo" ? "torpedo" :
       t.kind === "station" ? "station" :
@@ -240,12 +262,13 @@ export function buildDisplayList(picture: SensorPicture, markers: PathMarker[] =
       id: t.id,
       shape,
       allegiance: t.allegiance,
-      filled: t.burning,
+      filled: t.burning && !lost,
       rotates: shape !== "station" && shape !== "unknown",
       position: t.position,
       pointing: pointingFor(t.burning, t.heading, t.velocity),
-      label: t.kind === "torpedo" ? null : t.label,
+      label,
       isOwn: false,
+      ...(lost ? { lost: true, fade: lost.fade } : {}),
     });
   }
 

@@ -15,6 +15,8 @@ export const timeTuning = {
   slowOnThreatS: 60,
   /** Drop to 1x when hostile railgun fire is detected. */
   slowOnRailgun: true,
+  /** Drop to 1x when a new enemy ship is seen (M4 Sensors Lite). */
+  slowOnContact: true,
   /** Drop to 1x when one of our ships takes damage. */
   slowOnDamage: true,
   /** HULL BREACH and CREW CASUALTIES stay in the alert strip this long after it happens,

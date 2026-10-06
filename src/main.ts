@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { createTableView } from "./render/scene";
 import { createDebugPanel } from "./game/debugPanel";
 import { createGame } from "./game/game";
-import { buildDisplayList, pathMarkers, railShotOverlays, torpedoOverlays } from "./render/displayList";
+import { buildDisplayList, lostCourseLines, pathMarkers, railShotOverlays, torpedoOverlays } from "./render/displayList";
 import { aimRailgun, railgunBlocked } from "./sim/weapons/railgun";
 import { applyLabelStyle } from "./render/labelStyle";
 import { createPathLayer } from "./render/paths";
@@ -103,6 +103,16 @@ hudActions.backToSetup = () => {
   location.href = location.pathname;
 };
 hudActions.startOrder = (kind) => orders.start(kind as OrderKind);
+/** The active ship's Sensors switch, counting a switch still waiting for the next tick. */
+const sensorsOn = (id: string): boolean => {
+  const waiting = game.world.pending.filter((q) => q.command.type === "setSensors" && q.command.ship === id).pop();
+  if (waiting && waiting.command.type === "setSensors") return waiting.command.on;
+  return game.picture.ownShips.find((s) => s.id === id)?.sensorsOn ?? false;
+};
+hudActions.toggleSensors = () => {
+  const id = game.activeShipId;
+  if (id) game.issue({ type: "setSensors", ship: id, on: !sensorsOn(id) });
+};
 hudActions.setG = (g) => orders.setG(g);
 hudActions.setSalvo = (n) => {
   orders.salvo = n as SalvoSize;
@@ -147,6 +157,7 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "f" || e.key === "F") focusSelected();
   if (e.key === "t" || e.key === "T") view.cam.toggleTopDown();
   if ((e.key === "w" || e.key === "W") && !e.metaKey && !e.ctrlKey) pathTuning.showOwnRings = !pathTuning.showOwnRings;
+  if ((e.key === "s" || e.key === "S") && !e.metaKey && !e.ctrlKey) hudActions.toggleSensors();
   if (e.key === "Escape") {
     if (orders.mode) orders.cancel();
     else game.selectedId = null;
@@ -218,6 +229,8 @@ function frame(now: number) {
             strain: own.strain,
             efficiency: own.efficiency,
             health: own.health,
+            sensorsOn: sensorsOn(own.id),
+            emissions: own.sensorsOn ? "SENSORS" : own.thrust > 0 ? "DRIVE" : own.loud ? "VISIBLE" : "DARK",
           }
         : null,
       weapons: own
@@ -304,7 +317,7 @@ function frame(now: number) {
     dt,
     game.picture.ownShips.flatMap((s) => (s.orbit ? [{ id: s.id, ...s.orbit }] : [])),
   );
-  intercepts.update([...torps.lines, ...rails.lines], view.cam.focus, view.cam.distance, rails.streaks);
+  intercepts.update([...torps.lines, ...rails.lines], view.cam.focus, view.cam.distance, rails.streaks, lostCourseLines(game.picture, pathTuning.lostCourseS));
   rangeRings.update(rings, view.cam.focus);
   // PDC domes on our ships; tracers from every gun that is firing (theirs are visible too).
   const domes: PdcDome[] = [];

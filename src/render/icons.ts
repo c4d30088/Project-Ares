@@ -10,6 +10,7 @@ import type { Vec3 } from "../sim/vec3";
 import type { DisplayList } from "./displayList";
 import { toRender } from "./frame";
 import { palette } from "./palette";
+import { pathTuning as P } from "../data/paths";
 import { cellIndex, cellUv, createSymbolAtlas, EXTRA_CELLS, type Treatment } from "./symbolAtlas";
 
 const MAX_ICONS = 512;
@@ -56,7 +57,8 @@ export const allegianceColor: Record<Allegiance, string> = {
  * green if it is ours, yellow if it is the enemy's (owner decision 2026-10-04). Everything
  * else keeps its allegiance color.
  */
-export function symbolColor(shape: string, allegiance: Allegiance): string {
+export function symbolColor(shape: string, allegiance: Allegiance, lost = false): string {
+  if (lost) return palette.uncertainMap;
   if (shape === "torpedo") {
     if (allegiance === "friendly") return palette.fireFriendly;
     if (allegiance === "hostile") return palette.fireHostile;
@@ -236,8 +238,8 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
           el.style.display = visible ? "" : "none";
           if (visible) {
             el.textContent = s.label;
-            el.style.color = allegianceColor[s.allegiance];
-            el.style.opacity = String(T.labelOpacity);
+            el.style.color = s.lost ? palette.uncertainMap : allegianceColor[s.allegiance];
+            el.style.opacity = String(T.labelOpacity * (s.lost ? (s.fade ?? 1) : 1));
             candidates.push({
               el, x: sp.x + size * 0.42, y: sp.y - 6, w: s.label.length * charW(labelSize(el, L.shipPx)),
               priority: s.isOwn ? 0 : labelPriority[s.allegiance],
@@ -259,9 +261,10 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
           }
         }
 
-        const hex = symbolColor(s.shape, s.allegiance);
-        // Enemy torpedoes pulse so a swarm reads as moving.
-        const alpha = s.shape === "torpedo" && s.allegiance === "hostile" ? pulse : 1;
+        const hex = symbolColor(s.shape, s.allegiance, s.lost);
+        // Enemy torpedoes pulse so a swarm reads as moving; lost contacts are dimmer and fade.
+        let alpha = s.shape === "torpedo" && s.allegiance === "hostile" && !s.lost ? pulse : 1;
+        if (s.lost) alpha *= P.lostSymbolOpacity * (s.fade ?? 1);
         const treatment = s.shape === "torpedo" ? "plain" : treatmentFor[s.allegiance];
         push(sp.x, sp.y, size, angle, cellIndex(s.shape, s.filled, treatment), hex, alpha);
         // Thrust vector: a short bright line ahead of a burning ship.
