@@ -27,8 +27,8 @@ export const torpedoTuning = {
    *  dark, until the last is out, then all light together and arrive as one wave (owner
    *  decision, M3 step 7). Off: each wave of tubes lights as it leaves (12 s apart). */
   salvoHold: true,
-  /** Range ring shown while aiming torpedoes, m: about where a single torpedo still hits a
-   *  ship burning hard (Combat G) across its path the whole way. Display only. */
+  /** Torpedo range ring, m: about where a single torpedo still hits a ship burning hard
+   *  (Combat G) across its path the whole way. Display only. */
   effectiveRange: 3_000_000,
 };
 
@@ -63,8 +63,10 @@ export const pdcTuning = {
 // the bow; spinal guns (cruisers, capital ships) are fixed along the keel, so the ship must
 // point at the target. Fire only on the player's order (CLAUDE.md rule 10).
 export const railgunTuning = {
-  light: { slugSpeed: 20_000, rechargeS: 8, ammo: 40, arcDeg: 75, damageScale: 1 },
-  spinal: { slugSpeed: 25_000, rechargeS: 30, ammo: 20, arcDeg: 1, damageScale: 2 },
+  /** effectiveRange (m) is display only: the weapon range ring on the table. About where a
+   *  slug still hits a ship that keeps maneuvering (DESIGN.md: low hundreds of km). */
+  light: { slugSpeed: 20_000, rechargeS: 8, ammo: 40, arcDeg: 75, damageScale: 1, effectiveRange: 400_000 },
+  spinal: { slugSpeed: 25_000, rechargeS: 30, ammo: 20, arcDeg: 1, damageScale: 2, effectiveRange: 1_000_000 },
   /** Slugs that hit nothing are removed after this long, s. */
   slugMaxLifeS: 900,
   /** A new slug cannot hit its own ship for this long, s. */

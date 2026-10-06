@@ -9,9 +9,10 @@ import { applyLabelStyle } from "./render/labelStyle";
 import { createPathLayer } from "./render/paths";
 import { createInterceptLayer } from "./render/intercepts";
 import { createRangeRingLayer } from "./render/rangeRings";
+import { weaponRings } from "./render/weaponRings";
 import { createPdcLayer, type PdcDome, type Tracer } from "./render/pdcs";
 import { dirToSim } from "./render/frame";
-import { torpedoTuning } from "./data/weapons";
+import { pathTuning } from "./data/paths";
 import { formatCountdown, formatDistance } from "./ui/format";
 import { DT } from "./sim/sim";
 import { G0 } from "./data/ships";
@@ -145,6 +146,7 @@ window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
   if (e.key === "f" || e.key === "F") focusSelected();
   if (e.key === "t" || e.key === "T") view.cam.toggleTopDown();
+  if ((e.key === "w" || e.key === "W") && !e.metaKey && !e.ctrlKey) pathTuning.showOwnRings = !pathTuning.showOwnRings;
   if (e.key === "Escape") {
     if (orders.mode) orders.cancel();
     else game.selectedId = null;
@@ -259,21 +261,33 @@ function frame(now: number) {
       if (aim) rgPreview.push({ id: "rg-lead", position: aim.aimPoint, label: why ? why.toUpperCase() : `RG LEAD · ${formatCountdown(aim.t)}`, warn: !!why });
     }
   }
-  // While aiming torpedoes: their range ring on the plane, labelled on the side facing us.
-  const aimingFrom = orders.mode === "launch" && game.activeShipId ? game.positionOf(game.activeShipId) : null;
-  const ring = aimingFrom ? { center: aimingFrom, radius: torpedoTuning.effectiveRange } : null;
+  // Weapon range rings on the plane: our ships' always (W hides them), a selected enemy's,
+  // and the torpedo ring brighter while aiming torpedoes. Each big enough ring is labelled
+  // to the lower left as seen from the camera (the grid's own ring labels sit lower right,
+  // and straight toward us lands under the bottom bar), a little round from the others.
+  const rings = weaponRings(game.picture, {
+    selectedId: game.selectedId,
+    aimingTorpedoesFrom: orders.mode === "launch" ? game.activeShipId : null,
+    formatDistance,
+    positionOf: (id) => game.positionOf(id),
+  });
   const ringLabels = [];
-  if (ring) {
+  {
     const c = view.cam.camera.position;
     const toCam = dirToSim(c.x, c.y, c.z);
-    const h = Math.hypot(toCam.x, toCam.y) || 1;
-    ringLabels.push({
-      id: "range:torpedo",
-      kind: "range" as const,
-      position: { x: ring.center.x + (toCam.x / h) * ring.radius, y: ring.center.y + (toCam.y / h) * ring.radius, z: view.cam.focus.z },
-      label: `TORP RANGE ${formatDistance(ring.radius)}`,
-      allegiance: "friendly" as const,
-    });
+    const base = Math.atan2(toCam.y, toCam.x) - 0.7;
+    const turn = { torpedo: 0, railgun: 0.12, pdc: 0.24 };
+    for (const r of rings) {
+      if (r.radius < pathTuning.rangeRingLabelMin * view.cam.distance) continue;
+      const a = base + turn[r.weapon];
+      ringLabels.push({
+        id: `range:${r.key}`,
+        kind: "range" as const,
+        position: { x: r.center.x + Math.cos(a) * r.radius, y: r.center.y + Math.sin(a) * r.radius, z: view.cam.focus.z },
+        label: r.label,
+        allegiance: r.allegiance,
+      });
+    }
   }
   const list = buildDisplayList(
     game.picture,
@@ -291,7 +305,7 @@ function frame(now: number) {
     game.picture.ownShips.flatMap((s) => (s.orbit ? [{ id: s.id, ...s.orbit }] : [])),
   );
   intercepts.update([...torps.lines, ...rails.lines], view.cam.focus, view.cam.distance, rails.streaks);
-  rangeRings.update(ring, view.cam.focus);
+  rangeRings.update(rings, view.cam.focus);
   // PDC domes on our ships; tracers from every gun that is firing (theirs are visible too).
   const domes: PdcDome[] = [];
   const tracers: Tracer[] = [];

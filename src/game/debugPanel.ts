@@ -172,11 +172,20 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   torp.add(torpedoTuning, "tubeReloadS", 1, 60, 0.5).name("tube reload (s)");
   torp.add(torpedoTuning, "salvoHold").name("salvo hold (arrive together)");
   torp.add(torpedoTuning, "effectiveRange", 100000, 20000000, 100000).name("range ring (m)");
-  torp.add(pathTuning, "rangeRingOpacity", 0, 1, 0.05).name("range ring opacity");
   torp.add(pathTuning, "interceptWidthPx", 0.5, 4, 0.1).name("intercept line (px)");
   torp.add(pathTuning, "interceptOpacity", 0, 1, 0.05).name("intercept line opacity");
   torp.add(pathTuning, "interceptDotScale", 0.0005, 0.02, 0.0005).name("intercept dot size");
   torp.close();
+
+  const rings = gui.addFolder("Weapon range rings");
+  rings.add(pathTuning, "showOwnRings").name("our ships' rings (W)");
+  rings.add(pathTuning, "showEnemyRings").name("selected enemy's rings");
+  rings.add(pathTuning, "rangeRingOpacity", 0, 1, 0.05).name("ring opacity");
+  rings.add(pathTuning, "rangeRingAimOpacity", 0, 1, 0.05).name("torpedo ring while aiming");
+  rings.add(pathTuning, "rangeRingWidthPx", 0.5, 5, 0.1).name("ring width (px)");
+  rings.add(pathTuning, "rangeRingDash", 0.005, 0.2, 0.005).name("railgun ring dash");
+  rings.add(pathTuning, "rangeRingLabelMin", 0, 0.5, 0.005).name("label when bigger than");
+  rings.close();
 
   const ai = gui.addFolder("AI captain");
   ai.add(aiTuning, "thinkS", 0.25, 5, 0.25).name("think every (s)");
@@ -271,6 +280,7 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
     rg.add(railgunTuning[kind], "ammo", 1, 200, 1).name(`${kind}: slugs`);
     rg.add(railgunTuning[kind], "arcDeg", 0.5, 180, 0.5).name(`${kind}: arc (deg)`);
     rg.add(railgunTuning[kind], "damageScale", 0.1, 5, 0.1).name(`${kind}: damage (x)`);
+    rg.add(railgunTuning[kind], "effectiveRange", 10000, 5000000, 10000).name(`${kind}: range ring (m)`);
   }
   rg.add(railgunTuning, "pdcSlugFactor", 0, 1, 0.05).name("PDC vs slug (x torpedo)");
   rg.add(railgunTuning, "dangerRadius", 100, 50000, 100).name("incoming if within (m)");
