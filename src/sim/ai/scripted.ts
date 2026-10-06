@@ -1,4 +1,4 @@
-// Scripted enemy (M3 step 7). Not the AI captain of M5: a fixed routine. It decides from
+// Scripted enemy (M3 step 7). Not the AI captain (captain.ts): a fixed routine. It decides from
 // its own side's sensor picture only and acts only through commands, exactly as the
 // player does (CLAUDE.md rules 5 and 6). It runs inside the sim once a second, so a fight
 // replays the same from the same seed.
@@ -8,13 +8,12 @@
 // together); inside railgun range, keep the target in the railgun's arc and shoot when
 // the gun is ready. Out of torpedoes, close to railgun range and fight it out.
 
-import { torpedoTuning as TT } from "../../data/weapons";
 import { submit, TICK_RATE } from "../sim";
 import { buildPerfectPicture } from "../sensors/picture";
 import { railgunBlocked } from "../weapons/railgun";
-import { timeToGo, torpedoAccel } from "../weapons/torpedo";
 import { add, dot as dotV, length, scale, sub, type Vec3 } from "../vec3";
-import type { AiScript, World } from "../world";
+import { finishGroupLaunch, groupMembers, planGroupSalvo } from "./salvo";
+import type { SkirmisherScript, World } from "../world";
 
 /** Scripted ships think this often, s. */
 const THINK_S = 1;
@@ -25,15 +24,10 @@ const BRAWL_RANGE = 0.75;
 /** Launch cold only when closing on the target at least this fast, m/s. */
 const COLD_MIN_CLOSING = 2000;
 
-/** Rough torpedo flight time over distance d, starting with the launcher's closing speed
- *  (for timing salvos). */
-function flightTime(d: number, closing: number): number {
-  return timeToGo(d, Math.max(0, closing), torpedoAccel(), TT.deltaV - TT.terminalReserve);
-}
-
 export function runScripts(world: World): void {
   const t = world.tick / TICK_RATE;
   for (const ai of world.ai) {
+    if (ai.behavior !== "skirmisher") continue;
     if (world.tick < ai.state.nextThinkTick) continue;
     ai.state.nextThinkTick = world.tick + Math.round(THINK_S * TICK_RATE);
     const ship = world.ships.find((s) => s.id === ai.ship);
@@ -42,7 +36,7 @@ export function runScripts(world: World): void {
   }
 }
 
-function think(world: World, ai: AiScript, t: number): void {
+function think(world: World, ai: SkirmisherScript, t: number): void {
   const ship = world.ships.find((s) => s.id === ai.ship)!;
   const faction = ship.faction;
   // Only what its side can see.
@@ -90,24 +84,8 @@ function think(world: World, ai: AiScript, t: number): void {
   // is in range of its target; then the farther ships launch first and the nearer ones
   // wait, so the salvos arrive together and split the target's guns.
   const key = ai.group ?? ai.ship;
-  const g = (world.aiGroups[key] ??= { nextSalvoS: t, salvoAtS: null });
-  const members = world.ai.filter((x) => (x.group ?? x.ship) === key && world.ships.some((s) => s.id === x.ship));
-  if (g.salvoAtS === null && t >= g.nextSalvoS) {
-    const plan = members.map((x) => {
-      const s = world.ships.find((y) => y.id === x.ship)!;
-      const r = sub(target!.position, s.position);
-      const dd = length(r);
-      const armed = s.weapons.magazine > 0;
-      return { x, armed, inRange: dd <= x.launchRange, flight: flightTime(dd, dotV(sub(s.velocity, target!.velocity), r) / dd) };
-    });
-    const firing = plan.filter((p) => p.armed);
-    if (firing.length && firing.every((p) => p.inRange)) {
-      const longest = Math.max(...firing.map((p) => p.flight));
-      for (const p of firing) p.x.state.launchAtS = t + (longest - p.flight);
-      g.salvoAtS = t;
-      g.nextSalvoS = t + ai.salvoIntervalS;
-    }
-  }
+  const members = groupMembers(world, world.ai.filter((x): x is SkirmisherScript => x.behavior === "skirmisher"), key);
+  planGroupSalvo(world, key, members, target, t, ai.salvoIntervalS);
   if (ai.state.launchAtS !== null && t >= ai.state.launchAtS) {
     ai.state.salvos++;
     // Cold only pays when the ship is closing fast: a cold torpedo just coasts on the
@@ -116,7 +94,7 @@ function think(world: World, ai: AiScript, t: number): void {
     const cold = ai.coldEvery > 0 && ai.state.salvos % ai.coldEvery === 0 && closing > COLD_MIN_CLOSING;
     order({ type: "launchTorpedoes", ship: ai.ship, target: tgt, count: ai.salvoSize, mode: cold ? "cold" : "hot" });
     ai.state.launchAtS = null;
-    if (members.every((x) => x.state.launchAtS === null)) g.salvoAtS = null;
+    finishGroupLaunch(world, key, members);
   }
 
   // Railgun: whenever it is ready and the target is in its arc.

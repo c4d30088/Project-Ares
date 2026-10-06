@@ -12,7 +12,7 @@ import { fuseTorpedoes, guideTorpedo, queueLaunch, runLaunchers } from "./weapon
 import { runPdcs, setBurst, setPdcs } from "./weapons/pdc";
 import { fireRailgun, moveSlugs, rechargeRailguns } from "./weapons/railgun";
 import { updateStrain } from "./crew";
-import { runScripts } from "./ai/scripted";
+import { runAi } from "./ai";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -138,7 +138,7 @@ export function step(world: World): void {
     for (const q of due) applyCommand(world, q);
   }
 
-  runScripts(world);
+  runAi(world);
   runLaunchers(world, DT, events);
   rechargeRailguns(world, DT);
   // Torpedoes steer on everyone's positions at the start of the tick, before anything
@@ -187,8 +187,8 @@ export function step(world: World): void {
   // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 
-  // Remove what was destroyed this tick.
-  if (world.ships.some((s) => s.destroyed)) world.ships = world.ships.filter((s) => !s.destroyed);
+  // Remove what was destroyed (or got away) this tick.
+  if (world.ships.some((s) => s.destroyed || s.escaped)) world.ships = world.ships.filter((s) => !s.destroyed && !s.escaped);
   if (world.torpedoes.some((t) => t.destroyed)) world.torpedoes = world.torpedoes.filter((t) => !t.destroyed);
 
   world.tick++;

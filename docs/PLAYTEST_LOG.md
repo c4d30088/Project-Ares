@@ -17,6 +17,27 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-04, milestone M5: build complete, ready for the checkpoint playtest
+Next session: start with the playtest. The owner plays 10 skirmishes and reports: did you win some and lose some; when you lost, could you name what the AI did; did any personality feel wrong; was any map unfair or dull. Claude Code writes the M5 playtest entry from it, then tunes (every AI number has a debug slider under "AI captain").
+
+How to play
+- `npm run dev`, open http://localhost:5173/. The setup screen opens first: pick a map, 1 v 1 or 1 v 2, and Hunter, Duelist or Skulker, then Start. When it ends the banner offers Restart and Back to setup.
+- Maps: Open duel (long range, torpedoes), Pincer (long range, built for 1 v 2), Moon shadow (mid range, cover), Rock garden (mid range, 900 km apart in an asteroid cluster), Knife fight (150 km apart; PDC range).
+- The usual controls apply (see CLAUDE.md). Fights take about 5 to 25 minutes; speed up with `]`.
+
+What Claude Code saw playing the maps with bots (not a real playtest)
+- Every map ends in a result, between 2 and 25 minutes; results vary with the personalities on both sides (a bot run of every map against every personality gave 11 wins, 22 losses and 12 draws for the bot standing in for you).
+- A player who does nothing but leave PDCs on Auto still beats a lone AI in Knife fight: the AI fires all 12 torpedoes in two volleys, the PDCs shoot them all down, and it then runs dry and breaks off. That comes from the M3 weapon tuning (PDCs are very strong at 150 km), not from the AI; worth your judgement.
+- Moon shadow: both sides run for their own side of the moon, so whoever lands torpedoes first usually wins; the AI side starts already closing, which gives it a small edge.
+- Fixed while testing: a captain with no torpedoes left kept backing away and turning back to shoot; a retreating ship burned at Combat G until its crew was at full strain.
+
+What it cannot show yet
+- "The AI never seems to know something it could not have seen": sensors are iceboxed (M4), so every side sees everything. The captains read only the sensor-picture interface, so this changes by itself when sensors return.
+- Emissions discipline only changes how many salvos launch cold; it has no stealth effect until M4.
+- Not yet measured: whether evading torpedoes (a hard burn across their line) actually saves the ship. It is tested to trigger and to use Max G, not to work. Watch for it.
+
+---
+
 ## 2026-10-04, milestone M3: first playtest notes (all fixed)
 Played: First fight (the owner; number of fights and results not recorded).
 Felt wrong (owner), all done this session:

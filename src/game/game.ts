@@ -5,6 +5,7 @@ import { timeTuning } from "../data/time";
 import { pathTuning } from "../data/paths";
 import { Predictor, type Prediction } from "../sim/predict";
 import type { Command, SimEvent } from "../sim/commands";
+import { evaluateOutcome, type Outcome } from "../sim/outcome";
 import { loadScenario, type Scenario } from "../sim/scenario";
 import { buildPerfectPicture, type SensorPicture } from "../sim/sensors/picture";
 import { DT, step, submit, TICK_RATE } from "../sim/sim";
@@ -32,6 +33,8 @@ export interface Game {
   /** The player's ship that receives orders: the last own ship selected. */
   activeShipId: string | null;
   paused: boolean;
+  /** How the fight ended (win, loss or draw), or null while it goes on. Time stops when it is set. */
+  outcome: Outcome | null;
   compressionIndex: number;
   /** Short message explaining an automatic time change, or null. */
   notice: string | null;
@@ -89,8 +92,10 @@ export interface ShotPath {
 
 export function createGame(scenario: Scenario): Game {
   let world = loadScenario(scenario);
-  // Ships each side had at the start, for the end-of-fight message.
-  let startedWithHostiles = false;
+  // For win and loss (sim/outcome.ts): hostile ships at the start, and how many have escaped since.
+  let hostileAtStart = 0;
+  let hostileEscaped = 0;
+  const countHostiles = () => world.ships.filter((s) => areHostile(world, scenario.playerFaction, s.faction)).length;
   const faction = scenario.playerFaction;
 
   // Positions before the most recent tick, for interpolation.
@@ -142,7 +147,6 @@ export function createGame(scenario: Scenario): Game {
   };
   // Where each of our ships is on the G-strain scale: 0 fine, 1 above the warning, 2 at the limit.
   const strainBand = new Map<string, number>();
-  let endLogged = false;
 
   function setNotice(text: string) {
     game.notice = text;
@@ -372,9 +376,7 @@ export function createGame(scenario: Scenario): Game {
       if (ship.strain >= 1) list.push({ text: "G-STRAIN MAX", tone: "threat" });
       else if (ship.strain > crewTuning.strainWarn) list.push({ text: `G-STRAIN ${Math.round(ship.strain * 100)}%`, tone: "warn" });
     }
-    // End of the fight (proper win and loss screens come in M5).
-    if (!world.ships.some((s) => s.faction === faction)) list.unshift({ text: "ALL OUR SHIPS LOST", tone: "threat" });
-    else if (startedWithHostiles && !world.ships.some((s) => areHostile(world, faction, s.faction))) list.unshift({ text: "ALL TARGETS DESTROYED", tone: "good" });
+    if (game.outcome) list.unshift({ text: game.outcome.detail, tone: game.outcome.result === "win" ? "good" : "threat" });
     game.alertList = list;
 
     // Log the G-strain thresholds as they are crossed, and the end of the fight.
@@ -388,15 +390,6 @@ export function createGame(scenario: Scenario): Game {
         else if (band === 1 && before === 0) logLine({ tone: "warn", tpl: `${name}: G-STRAIN ${Math.round(s.strain * 100)}%, CREW EFFICIENCY FALLING` });
         else if (band === 0) logLine({ tone: "info", tpl: `${name}: G-STRAIN RECOVERED` });
         strainBand.set(s.id, band);
-      }
-    }
-    if (!endLogged) {
-      if (!world.ships.some((s) => s.faction === faction)) {
-        endLogged = true;
-        logLine({ tone: "threat", tpl: "ALL OUR SHIPS LOST" });
-      } else if (startedWithHostiles && !world.ships.some((s) => areHostile(world, faction, s.faction))) {
-        endLogged = true;
-        logLine({ tone: "good", tpl: "ALL TARGETS DESTROYED" });
       }
     }
   }
@@ -422,6 +415,7 @@ export function createGame(scenario: Scenario): Game {
     selectedId: world.ships.find((s) => s.faction === faction)?.id ?? null,
     activeShipId: world.ships.find((s) => s.faction === faction)?.id ?? null,
     paused: false,
+    outcome: null,
     compressionIndex: 0,
     notice: null,
     predictions: new Map(),
@@ -475,7 +469,7 @@ export function createGame(scenario: Scenario): Game {
       eventQueue = [];
       game.alertLog = [];
       strainBand.clear();
-      endLogged = false;
+      game.outcome = null;
       snapshotPrev();
       accumulator = 0;
       overloadFrames = 0;
@@ -491,7 +485,8 @@ export function createGame(scenario: Scenario): Game {
       game.selectedId = game.activeShipId = world.ships.find((s) => s.faction === faction)?.id ?? null;
       game.compressionIndex = 0;
       game.paused = false;
-      startedWithHostiles = world.ships.some((s) => areHostile(world, faction, s.faction));
+      hostileAtStart = countHostiles();
+      hostileEscaped = 0;
       game.picture = buildPerfectPicture(world, faction);
       setNotice("SCENARIO RESTARTED");
       logLine({ tone: "info", tpl: `${scenario.name.toUpperCase()}: RESTARTED` });
@@ -513,6 +508,15 @@ export function createGame(scenario: Scenario): Game {
           step(world);
           if (world.events.length && eventQueue.length < EVENT_QUEUE_MAX) eventQueue.push(...world.events);
           for (const d of draftsFromEvents(world.events, logContext)) logLine(d);
+          for (const e of world.events) if (e.type === "escaped" && areHostile(world, faction, e.faction)) hostileEscaped++;
+          const outcome = game.outcome ? null : evaluateOutcome(world, faction, { hostileAtStart, escaped: hostileEscaped });
+          if (outcome) {
+            game.outcome = outcome;
+            game.paused = true;
+            accumulator = 0;
+            logLine({ tone: outcome.result === "win" ? "good" : outcome.result === "loss" ? "threat" : "info", tpl: `${outcome.title}: ${outcome.detail}` });
+            break;
+          }
           if (checkSlowdown(world.events)) {
             accumulator = 0;
             break;
@@ -538,7 +542,7 @@ export function createGame(scenario: Scenario): Game {
       updateAlerts();
     },
   };
-  startedWithHostiles = world.ships.some((s) => areHostile(world, faction, s.faction));
+  hostileAtStart = countHostiles();
   logLine({ tone: "info", tpl: `${scenario.name.toUpperCase()}: STARTED` });
   return game;
 }

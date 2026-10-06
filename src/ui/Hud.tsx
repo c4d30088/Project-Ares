@@ -13,6 +13,7 @@ import { PdcStatus } from "./PdcStatus";
 import { RailgunBar } from "./RailgunBar";
 import { ShipStatus } from "./ShipStatus";
 import { AlertLog } from "./AlertLog";
+import { ResultBanner } from "./ResultBanner";
 import { formatCountdown } from "./format";
 import { useHud } from "./store";
 
@@ -44,6 +45,7 @@ export function Hud() {
         <AlertLog />
       </Panel>
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
+      {hud.outcome && <ResultBanner outcome={hud.outcome} />}
       <Panel className="bottom-bar">
         <OrderBar />
         <div className="bottom-row">

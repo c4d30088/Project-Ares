@@ -123,6 +123,11 @@ export function draftsFromEvents(events: SimEvent[], ctx: LogContext): LogDraft[
           out.push({ tone: victim === "own" ? "threat" : victim === "enemy" ? "good" : "info", tpl: `${ctx.nameOf(e.id)} DESTROYED (${e.cause.toUpperCase()})` });
         }
         break;
+      case "escaped": {
+        const s = side(e.faction, ctx);
+        out.push({ tone: s === "enemy" ? "good" : "info", tpl: `${ctx.nameOf(e.ship)} BROKE OFF AND ESCAPED` });
+        break;
+      }
       case "pdcAmmoOut":
         if (side(ctx.factionOf(e.ship), ctx) === "own") out.push({ tone: "warn", tpl: `${ctx.nameOf(e.ship)}: PDC ${e.mount} OUT OF AMMO` });
         break;

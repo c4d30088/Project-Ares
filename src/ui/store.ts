@@ -62,6 +62,15 @@ export interface RailgunInfo {
   spinal: boolean;
 }
 
+/** How the fight ended, for the result banner. */
+export interface OutcomeInfo {
+  result: "win" | "loss" | "draw";
+  title: string;
+  detail: string;
+  /** Sim seconds at the end. */
+  timeS: number;
+}
+
 export interface HudState {
   activeShip: ActiveShipInfo | null;
   alerts: AlertInfo[];
@@ -84,6 +93,8 @@ export interface HudState {
   compressionIndex: number;
   compressionSteps: number[];
   notice: string | null;
+  /** Set when the fight is over (win, loss or draw). */
+  outcome: OutcomeInfo | null;
 }
 
 let state: HudState = {
@@ -105,6 +116,7 @@ let state: HudState = {
   compressionIndex: 0,
   compressionSteps: [1],
   notice: null,
+  outcome: null,
 };
 const listeners = new Set<() => void>();
 
@@ -141,6 +153,10 @@ export interface HudActions {
   /** PDC mode for one mount (0-based) or all. */
   setPdcMode(mount: number | "all", mode: "auto" | "manual" | "hold"): void;
   setPdcBurst(burst: BurstInfo): void;
+  /** Starts the scenario again from the beginning. */
+  restart(): void;
+  /** Goes back to the skirmish setup screen. */
+  backToSetup(): void;
 }
 
 export const hudActions: HudActions = {
@@ -152,4 +168,6 @@ export const hudActions: HudActions = {
   setLaunchMode() {},
   setPdcMode() {},
   setPdcBurst() {},
+  restart() {},
+  backToSetup() {},
 };

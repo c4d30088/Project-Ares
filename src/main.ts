@@ -25,21 +25,35 @@ import { createDropLines } from "./render/dropLines";
 import { palette } from "./render/palette";
 import { createHolotable } from "./render/holotable";
 import { Hud } from "./ui/Hud";
+import { SetupScreen } from "./ui/SetupScreen";
 import { hudActions, hudStore } from "./ui/store";
 import { timeTuning } from "./data/time";
 import { defaultScenario, scenarios } from "./data/scenarios";
+import { buildSkirmish, parseSkirmish, skirmishMaps } from "./data/skirmish";
 import { effectsTuning } from "./data/effects";
 import { tuningRoots } from "./data/tuningRoots";
 
-// Scenario from the URL (?scenario=holotable-test), else the default.
-const scenarioName = new URLSearchParams(location.search).get("scenario") ?? defaultScenario;
-const game = createGame(scenarios[scenarioName] ?? scenarios[defaultScenario]);
+// What to play, from the page address: ?skirmish=open-duel&enemies=2&ai=hunter (the setup
+// screen's choice), or ?scenario=holotable-test. Neither: the skirmish setup screen, with a
+// paused scene behind it.
+const params = new URLSearchParams(location.search);
+const skirmish = parseSkirmish(params);
+const showSetup = !skirmish && !params.has("scenario");
+const scenarioName = skirmish ? `skirmish: ${skirmish.map}` : params.get("scenario") ?? defaultScenario;
+const game = createGame(
+  skirmish
+    ? buildSkirmish(skirmish)
+    : showSetup
+      ? buildSkirmish({ map: skirmishMaps[0].id, enemies: 1, personality: "duelist" })
+      : scenarios[scenarioName] ?? scenarios[defaultScenario],
+);
+if (showSetup) game.paused = true;
 const view = createTableView(document.getElementById("table")!);
 createDebugPanel(scenarioName, () => {
   game.restart();
   impacts.clear();
 });
-createRoot(document.getElementById("hud")!).render(createElement(Hud));
+createRoot(document.getElementById("hud")!).render(createElement(showSetup ? SetupScreen : Hud));
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.
 for (const [k, v] of Object.entries(palette)) document.documentElement.style.setProperty(`--${k}`, v);
@@ -83,6 +97,10 @@ const orders = createOrderInput(game, view, (x, y) => icons.pick(x, y));
 
 hudActions.togglePause = () => game.togglePause();
 hudActions.setCompression = (i) => game.setCompression(i);
+hudActions.restart = () => game.restart();
+hudActions.backToSetup = () => {
+  location.href = location.pathname;
+};
 hudActions.startOrder = (kind) => orders.start(kind as OrderKind);
 hudActions.setG = (g) => orders.setG(g);
 hudActions.setSalvo = (n) => {
@@ -219,6 +237,7 @@ function frame(now: number) {
       compressionIndex: game.compressionIndex,
       compressionSteps: timeTuning.compressionSteps,
       notice: game.notice,
+      outcome: game.outcome ? { result: game.outcome.result, title: game.outcome.title, detail: game.outcome.detail, timeS: game.outcome.tick * DT } : null,
     });
   }
   view.cam.update(dt);

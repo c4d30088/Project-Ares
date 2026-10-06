@@ -7,7 +7,7 @@ import { loadScenario, type Scenario } from "../src/sim/scenario";
 import { DT, step } from "../src/sim/sim";
 import { length, sub } from "../src/sim/vec3";
 import { predictImpact } from "../src/sim/weapons/torpedo";
-import type { World } from "../src/sim/world";
+import type { SkirmisherScript, World } from "../src/sim/world";
 
 const firstFight = () => loadScenario(scenarios["first-fight"] as Scenario);
 const dist = (w: World, a: string, b: string) => length(sub(w.ships.find((s) => s.id === a)!.position, w.ships.find((s) => s.id === b)!.position));
@@ -26,7 +26,7 @@ describe("scripted enemy", () => {
 
   it("closes to its engagement range at Cruise G and holds there", () => {
     const w = firstFight();
-    const range = w.ai[0].engageRange;
+    const range = (w.ai[0] as SkirmisherScript).engageRange;
     let strainAtArrival = -1;
     for (let i = 0; i < 1100 / DT; i++) {
       step(w);
@@ -66,7 +66,7 @@ describe("scripted enemy", () => {
       fired = w.events.some((e) => e.type === "railgunFired" && e.faction === "red");
     }
     expect(fired).toBe(true);
-    expect(Math.min(dist(w, "red-ff1", "blue-ff1"), dist(w, "red-ff2", "blue-ff1"))).toBeLessThan(w.ai[0].railgunRange);
+    expect(Math.min(dist(w, "red-ff1", "blue-ff1"), dist(w, "red-ff2", "blue-ff1"))).toBeLessThan((w.ai[0] as SkirmisherScript).railgunRange);
   });
 
   it("the same fight twice ends the same", () => {
