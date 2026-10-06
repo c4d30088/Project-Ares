@@ -17,6 +17,36 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-05, milestone M4 (Sensors Lite): built, ready for the checkpoint playtest
+Next session: start with the playtest. The owner plays Moon shadow and Open duel (and anything else) and reports: could you tell whether the enemy knew where you were, and why; did going dark feel worth it; were the lost-contact markers clear; did Evade or Evasive maneuvers save you; were the weapon rings useful. Claude Code writes the M4 entry from it, then tunes (every number has a debug slider: Sensors folder, Weapon range rings, Nav computer, AI captain).
+
+How to play
+- `npm run dev`, open http://localhost:5173/ and pick Moon shadow or Open duel on the setup screen (1 v 1, Duelist is a good start).
+- You start dark: drive off, Sensors off. The enemy starts knowing where you were at the start, and you where it was (orange LAST SEEN markers).
+- Being seen: burning your drive (and 15 s after it stops), Sensors on, or firing (10 s) makes you visible at any range unless a moon or asteroid is in the way. Inside 1,000 km you are always seen. With Sensors on you find dark ships and cold torpedoes within 3,000 km.
+- Running dark heats you up (left rail HEAT bar, about 10 minutes for a frigate); you cool only while visible.
+- A contact nobody sees any more stays as a hollow orange marker where it was last seen ("LAST SEEN 01:20 AGO") with one dashed line along its last course. Orders and weapons fired at it aim along that line.
+- Keys: `S` Sensors, `E` Evade (one 8 degree bend in your route for 30 s; you still arrive), `V` Evasive maneuvers (corkscrew at your G setting; cancels the route; the alert strip suggests it when something is inbound), `W` hides or shows your weapon range rings. Click an enemy to see its rings in red (orange and dashed if it is lost).
+- Alerts: CONTACT, CONTACT LOST, ENEMY SENSORS ACTIVE, HEAT, HEAT CRITICAL. Time drops to 1x on a new contact.
+- Debug panel: God view (Sensors folder) shows everything as it really is, to compare.
+
+What Claude Code saw playing every map with bots (not a real playtest)
+- A player who sits still, dark, PDCs on Auto: the enemy flies to where it was told you were and finds you with its sensors after 9 to 11 minutes on the long maps, then wins. On Moon shadow neither side sees the other for about 8 to 10 minutes.
+- An AI Duelist standing in for you: beats Duelist on all five maps and Skulker on four (one draw); loses to Hunter on four (one draw).
+- Knife fight: an asteroid sits exactly between the ships at the start, so neither sees the other until someone moves (about a minute).
+- Rock garden against a Skulker: if you never shoot, it hides behind a rock with only its railgun left and the fight never ends. This happened before sensors too.
+
+Worth your judgement (measured with PDCs held so only the dodge counts)
+- Running straight away at Max G already beat every torpedo fired from 1,000 km or more before this milestone (M3 torpedo tuning). The corkscrew also beats torpedoes fired from about 1,500 km or more; from 1,000 km it does not help. Against the railgun almost any steady maneuvering spoils the shot at 150 km and beyond. If torpedoes feel too easy to dodge, the knobs are torpedo delta-v and homing reserve (Torpedoes folder).
+- Slugs are still seen by both sides when fired (firing makes the shooter visible anyway).
+
+Known limits
+- No contact list; contacts gained and lost go in the alert log.
+- Jamming, decoys, telescope and bearing-only tracks, lidar locks and sensor shadows are parked (ideas list).
+- Torpedoes can be shot at only once seen: a dark (coasting) torpedo shows as a lost marker with a course line until it lights or comes within 1,000 km.
+
+---
+
 ## 2026-10-05, milestone M4: Sensors Lite planned
 Decided (owner): bring M4 back, much simpler. What made the first build hard: too many sensors, and the prediction clouds when a contact was lost. The new plan (ROADMAP M4, "Sensors Lite"): one Sensors switch; loud ships (burning, sensors on, just fired) are seen at any range in line of sight; anything inside 1,000 km is seen; Sensors on finds dark ships and cold torpedoes within 3,000 km; a lost contact leaves one LAST SEEN marker and one dashed course line; a heat limit on running dark. Also weapon range rings on the grid, and two new orders: Evade (one slight bend per press) and Evasive maneuvers (corkscrew).
 Claude Code pointed out: Knife fight and Rock garden start inside 1,000 km, so stealth does not change them; Evade needs the drive, so it gives you away; the corkscrew sweeps your PDC arcs.

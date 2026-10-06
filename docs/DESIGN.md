@@ -122,6 +122,7 @@ The prediction is produced by running the same autopilot forward on a copy of th
 ### Torpedoes
 
 - Self-guided missiles with their own drive. Starting values: 30 g acceleration, 15 km/s delta-v budget, with part of it reserved for terminal homing.
+- Guidance leads the target's drive acceleration averaged over the last 15 s, not this instant's, so a corkscrewing target does not send it chasing empty space (2026-10-05).
 - Launch modes: **Hot** (drive lights at launch, fast and visible) or **Cold** (ejected and coasting, drive lights late, hard to detect).
 - Salvo size and spread are player choices. Small salvos are easy to stop. Large salvos empty the magazine.
 - A salvo bigger than the ship's tubes still arrives as one wave: the first torpedoes out wait beside the ship, drive dark, until the last leaves its tube, then all light together (decided 2026-10-03; without it a two-tube ship's salvo arrived in pairs and four PDCs stopped every pair).
@@ -194,6 +195,7 @@ Planets, moons, and asteroids block all sensors. A ship hidden behind a moon can
 - When nobody on your side sees a contact any more, it is lost: a hollow orange marker stays frozen where it was last seen, labelled `LAST SEEN mm:ss`, with one dashed line along its last course. There is no uncertainty cloud and no moving guess: where it went is your call.
 - Weapons fired at a lost contact aim where its course line says it would be now.
 - The marker fades after a few minutes unless someone sees the contact again.
+- **Briefing:** a fight starts with each side knowing where every enemy ship was at the start, as a lost contact (built 2026-10-05). Without it a ship that stays dark could never be found, and nobody would know where to look.
 
 ### Datalink: the shared picture
 
@@ -248,7 +250,7 @@ Hits land on subsystems based on the direction the hit came from relative to the
 - AI ships use the same `Command` interface as the player and see only their own faction's sensor picture. No cheating.
 - Starting approach: utility AI that scores a small set of behaviors (approach, keep range, launch salvo, go dark, hide behind body, evade, retreat) each second.
 - Personality settings for variety: aggression, caution, emissions discipline.
-- Built in M5 (`src/sim/ai/captain.ts`, numbers in `src/data/ai.ts`, all with debug sliders): once a second a captain scores station (close to its hold range and hold it), orient (swing so the railgun can bear), evade (burn across the line of torpedoes about to land), cover (put a body between itself and the enemy) and retreat (burn away; a ship that gets 10,000 km clear has escaped). Torpedo salvos and railgun fire run alongside, with group salvos timed to arrive together. PDCs stay on Auto. Personality moves every number: aggression sets how close it presses, salvo size and gap, and how late it retreats; caution sets how soon it evades, hides and retreats; emissions discipline sets how many salvos go cold (and will decide whether it runs dark once sensors return in M4). Presets: Hunter, Duelist, Skulker.
+- Built in M5 (`src/sim/ai/captain.ts`, numbers in `src/data/ai.ts`, all with debug sliders): once a second a captain scores station (close to its hold range and hold it), orient (swing so the railgun can bear), evade (burn across the line of torpedoes about to land), cover (put a body between itself and the enemy) and retreat (burn away; a ship that gets 10,000 km clear has escaped). Torpedo salvos and railgun fire run alongside, with group salvos timed to arrive together. PDCs stay on Auto. Personality moves every number: aggression sets how close it presses, salvo size and gap, and how late it retreats; caution sets how soon it evades, hides and retreats; emissions discipline sets how many salvos go cold and, with Sensors Lite (2026-10-05), how it uses sensors: below 0.35 it runs them all the time; above, only when it has seen no enemy for a while (searching), and from 0.6 it holds its range coasting dark instead of burning to match speed. Every captain shows itself to cool down when it is hot. With no enemy in sight it hunts: it flies to where its enemy was last known to be and searches there. Its evade behavior uses Evasive maneuvers. Presets: Hunter, Duelist, Skulker.
 - Win and loss (M5, `src/sim/outcome.ts`): you lose when none of your ships is left; you win when no hostile ship is left (destroyed or escaped) and none of their torpedoes is still hunting; both gone at once is a draw. Time stops and a banner shows.
 - Later: group and fleet AI for the player's own subordinates, driven by doctrine settings.
 

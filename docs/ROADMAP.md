@@ -149,6 +149,8 @@ Build order (one commit per step):
 8. Evade and Evasive maneuvers, with tests of arrival and of how much the corkscrew helps.
 9. Tuning with bots on every map, docs and handoff.
 
+**Status (2026-10-05):** all nine steps are built on branch `claude/m4-sensors-lite` (one commit each). Added while building: each side starts briefed on where every enemy ship was (as a lost contact), so a dark ship can be hunted; torpedo guidance leads the target's average acceleration so a corkscrew does not fool it. Next: the owner plays the checkpoint below and reports; tuning follows.
+
 **Checkpoint (Sensors Lite):** On Moon shadow and Open duel, you can say whether the enemy knows where you are, and why. Going dark behind the moon and launching cold torpedoes works sometimes and fails for a reason you can see (you burned, you fired, or they had sensors on within 3,000 km). The rings tell you, before you move, when you are about to enter enemy torpedo or railgun reach.
 
 ---
