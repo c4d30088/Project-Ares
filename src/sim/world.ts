@@ -45,6 +45,9 @@ export interface Ship {
   sensorsOn: boolean;
   /** Seconds the ship stays loud after its drive stops or it fires (see sensors/detect.ts). */
   loudS: number;
+  /** Heat from running dark, 0 (cool) to 1 (full: damage), and time held at full (heat.ts). */
+  heat: number;
+  overheatS: number;
   /** Test aid: show this ship as an unknown contact (perfect-information pictures only). */
   testShowAsUnknown?: boolean;
 }

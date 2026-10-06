@@ -28,6 +28,8 @@ export function makeShip(over: Partial<Ship> & { id: string; shipClass?: ShipCla
     weapons,
     sensorsOn: false,
     loudS: 0,
+    heat: 0,
+    overheatS: 0,
     ...over,
   };
 }

@@ -24,6 +24,8 @@ export interface ActiveShipInfo {
    *  away right now: SENSORS, DRIVE, VISIBLE (drive just stopped, or just fired) or DARK. */
   sensorsOn: boolean;
   emissions: "SENSORS" | "DRIVE" | "VISIBLE" | "DARK";
+  /** Heat from running dark, 0..1. */
+  heat: number;
 }
 
 export interface AlertInfo {

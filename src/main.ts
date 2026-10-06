@@ -231,6 +231,7 @@ function frame(now: number) {
             health: own.health,
             sensorsOn: sensorsOn(own.id),
             emissions: own.sensorsOn ? "SENSORS" : own.thrust > 0 ? "DRIVE" : own.loud ? "VISIBLE" : "DARK",
+            heat: own.heat,
           }
         : null,
       weapons: own

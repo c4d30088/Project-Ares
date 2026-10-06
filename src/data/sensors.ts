@@ -21,6 +21,17 @@ export const sensorTuning = {
   lostFadeS: 300,
   /** Ships start with Sensors off unless the scenario says otherwise. */
   startSensorsOn: false,
+  /** Running dark: heat builds while a ship is dark and cools whenever it is loud (burning,
+   *  Sensors on, just fired). Seconds a ship of each class can stay dark from cold. Damaged
+   *  radiators shorten it. */
+  darkLimitS: { corvette: 480, frigate: 600, destroyer: 720, cruiser: 900, capital: 1200 },
+  /** Cooling is this many times faster than heating. */
+  coolFactor: 2,
+  /** At full heat, crew and radiators take this much damage every heatDamageIntervalS. */
+  heatDamage: 0.05,
+  heatDamageIntervalS: 20,
+  /** HEAT n% shows in the alert strip above this. */
+  heatWarn: 0.75,
   /** Debug: the table shows ground truth instead of the player's picture. The sim, the AI and
    *  the alerts still use sensors. */
   godView: false,

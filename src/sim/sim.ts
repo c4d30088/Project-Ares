@@ -15,6 +15,7 @@ import { updateStrain } from "./crew";
 import { runAi } from "./ai";
 import { markFired, updateLoudness } from "./sensors/detect";
 import { sweepSensors } from "./sensors/tracks";
+import { updateHeat } from "./heat";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -197,6 +198,7 @@ export function step(world: World): void {
     if (firer) markFired(firer);
   }
   for (const s of world.ships) if (s.weapons.pdcs.some((m) => m.firing)) markFired(s);
+  updateHeat(world, DT, events);
   // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 

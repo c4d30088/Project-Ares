@@ -110,6 +110,8 @@ export interface OwnShip {
    *  drive burning or just stopped, Sensors on, or just fired). */
   sensorsOn: boolean;
   loud: boolean;
+  /** Heat from running dark, 0..1 (1: taking damage). */
+  heat: number;
   /** G-strain 0..1, and crew efficiency (1 = fresh and whole). */
   strain: number;
   efficiency: number;
@@ -243,6 +245,7 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       health: { ...s.health },
       sensorsOn: s.sensorsOn,
       loud: isLoud(s),
+      heat: s.heat,
       strain: s.strain,
       efficiency: crewEfficiency(s),
       torpedoes: {

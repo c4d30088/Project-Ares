@@ -106,6 +106,8 @@ export function loadScenario(scenario: Scenario): World {
       weapons: initWeapons(s.shipClass),
       sensorsOn: s.sensorsOn ?? sensorTuning.startSensorsOn,
       loudS: 0,
+      heat: 0,
+      overheatS: 0,
       ...(s.testShowAsUnknown ? { testShowAsUnknown: true } : {}),
     };
   });

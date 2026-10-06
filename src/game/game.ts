@@ -412,6 +412,8 @@ export function createGame(scenario: Scenario): Game {
       else if (ship.health.drive < 1) list.push({ text: `DRIVE DAMAGED ${Math.round(ship.health.drive * 100)}%`, tone: "warn" });
       if ((ship.health.railgun ?? 1) <= 0) list.push({ text: "RAILGUN OFFLINE", tone: "threat" });
       if ((ship.health.tubes ?? 1) <= 0) list.push({ text: "TUBES OFFLINE", tone: "threat" });
+      if (ship.heat >= 1) list.push({ text: "HEAT CRITICAL", tone: "threat", blink: true });
+      else if (ship.heat > sensorTuning.heatWarn) list.push({ text: `HEAT ${Math.round(ship.heat * 100)}%`, tone: "warn" });
       if (ship.strain >= 1) list.push({ text: "G-STRAIN MAX", tone: "threat" });
       else if (ship.strain > crewTuning.strainWarn) list.push({ text: `G-STRAIN ${Math.round(ship.strain * 100)}%`, tone: "warn" });
     }

@@ -188,6 +188,13 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   sen.add(sensorTuning, "lostAfterS", 0, 30, 0.5).name("lost after unseen (s)");
   sen.add(sensorTuning, "lostFadeS", 10, 3600, 10).name("lost marker fades over (s)");
   sen.add(sensorTuning, "startSensorsOn").name("ships start with sensors on");
+  for (const cls of ["corvette", "frigate", "destroyer", "cruiser", "capital"] as const) {
+    sen.add(sensorTuning.darkLimitS, cls, 30, 3600, 10).name(`${cls}: dark for (s)`);
+  }
+  sen.add(sensorTuning, "coolFactor", 0.1, 10, 0.1).name("cooling speed (x)");
+  sen.add(sensorTuning, "heatDamage", 0, 0.5, 0.01).name("overheat damage");
+  sen.add(sensorTuning, "heatDamageIntervalS", 1, 120, 1).name("overheat damage every (s)");
+  sen.add(sensorTuning, "heatWarn", 0, 1, 0.05).name("heat warning above");
   sen.add(pathTuning, "lostSymbolOpacity", 0, 1, 0.05).name("lost contact brightness");
   sen.add(pathTuning, "lostCourseS", 0, 3600, 30).name("lost course line ahead (s)");
   sen.add(pathTuning, "lostCourseOpacity", 0, 1, 0.05).name("lost course line opacity");

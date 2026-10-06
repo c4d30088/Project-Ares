@@ -99,4 +99,6 @@ export type SimEvent =
   | { type: "railgunFired"; ship: string; faction: string; slug: string }
   | { type: "slugHit"; slug: string; faction: string; hit: string; position: Vec3 }
   /** Crew losses from holding full G-strain. */
-  | { type: "crewCasualties"; ship: string };
+  | { type: "crewCasualties"; ship: string }
+  /** Full heat from running dark: crew and radiators damaged. */
+  | { type: "overheat"; ship: string };
