@@ -10,7 +10,7 @@ import { initWeapons } from "./weapons/torpedo";
 import type { Body, Faction, GSetting, Ship, Station, Torpedo, World, SkirmisherScript } from "./world";
 import { resolvePersonality, type Personality, type PersonalityName } from "../data/ai";
 import { sensorTuning } from "../data/sensors";
-import { sweepSensors } from "./sensors/tracks";
+import { briefSides, sweepSensors } from "./sensors/tracks";
 
 export interface SalvoSpec {
   idPrefix: string;
@@ -58,6 +58,9 @@ export interface Scenario {
   commands?: { faction: string; command: Command; atS?: number }[];
   /** "perfect": every side sees everything (no sensor rules). Default: sensors. */
   sensors?: "perfect" | "sensors";
+  /** "start" (default): each side knows where every enemy ship was at the start, as a lost
+   *  contact. "none": each side knows only what it sees. */
+  intel?: "start" | "none";
 }
 
 /** An AI entry as written in a scenario file. A captain's personality is a preset name or the three numbers. */
@@ -174,7 +177,7 @@ export function loadScenario(scenario: Scenario): World {
           behavior: "captain" as const,
           ...(a.group ? { group: a.group } : {}),
           personality: resolvePersonality(a.personality),
-          state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null, mode: null, issuedMode: null },
+          state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null, mode: null, issuedMode: null, lastKnown: null, unseenS: 0, cooling: false },
         };
       }
       return { ...a, state: { nextThinkTick: 0, salvos: 0, navIssuedS: -Infinity, launchAtS: null } };
@@ -183,7 +186,10 @@ export function loadScenario(scenario: Scenario): World {
     sensors: Object.fromEntries(scenario.factions.map((f) => [f.id, {}])),
     ...(scenario.sensors === "perfect" ? { perfectInfo: true } : {}),
   };
-  if (!world.perfectInfo) sweepSensors(world);
+  if (!world.perfectInfo) {
+    sweepSensors(world);
+    if (scenario.intel !== "none") briefSides(world);
+  }
   return world;
 }
 

@@ -241,6 +241,14 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   ai.add(aiTuning, "retreatDistanceM", 1000000, 100000000, 1000000).name("retreat distance (m)");
   ai.add(aiTuning, "retreatStrainLimit", 0.1, 1, 0.05).name("retreat strain limit");
   ai.add(aiTuning, "escapeRangeM", 1000000, 100000000, 1000000).name("escape range (m)");
+  ai.add(aiTuning, "sensorsAlwaysBelow", 0, 1, 0.05).name("sensors always on below discipline");
+  ai.add(aiTuning, "searchSensorsMinS", 0, 600, 5).name("search with sensors after, loose (s)");
+  ai.add(aiTuning, "searchSensorsMaxS", 0, 600, 5).name("search with sensors after, disciplined (s)");
+  ai.add(aiTuning, "coolAboveHeat", 0, 1, 0.05).name("show itself to cool above heat");
+  ai.add(aiTuning, "coolBelowHeat", 0, 1, 0.05).name("cooled below heat");
+  ai.add(aiTuning, "darkHoldDiscipline", 0, 1, 0.05).name("holds range dark from discipline");
+  ai.add(aiTuning, "darkHoldRelSpeed", 0, 1000, 5).name("holds range dark below (m/s)");
+  ai.add(aiTuning, "huntArriveM", 1000, 1000000, 1000).name("hunt: stop this close (m)");
   ai.close();
 
   const pdc = gui.addFolder("PDCs");

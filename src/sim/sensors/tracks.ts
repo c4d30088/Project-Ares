@@ -95,3 +95,33 @@ export function sideSees(world: World, faction: FactionId, id: string): boolean 
   if (world.perfectInfo) return true;
   return (world.sensors[faction]?.[id]?.seenBy.length ?? 0) > 0;
 }
+
+/**
+ * At the start of a fight each side knows where every enemy ship was (a briefing), as a
+ * lost contact: LAST SEEN at the start, with its motion then. Without it a dark ship could
+ * never be found and nobody would know where to look.
+ */
+export function briefSides(world: World): void {
+  if (world.perfectInfo) return;
+  const lostTick = world.tick - Math.round(S.lostAfterS * TICK_RATE) - 1;
+  for (const f of world.factions) {
+    const recs = (world.sensors[f.id] ??= {});
+    for (const s of world.ships) {
+      if (s.faction === f.id || recs[s.id]) continue;
+      recs[s.id] = {
+        id: s.id,
+        kind: "ship",
+        faction: s.faction,
+        name: s.name,
+        shipClass: s.shipClass,
+        seenBy: [],
+        seenTick: lostTick,
+        position: clone(s.position),
+        velocity: clone(s.velocity),
+        heading: clone(s.heading),
+        burning: false,
+        sensorsOn: s.sensorsOn,
+      };
+    }
+  }
+}

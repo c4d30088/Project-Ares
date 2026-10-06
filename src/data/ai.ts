@@ -2,8 +2,9 @@
 // src/sim/ai/captain.ts, and the personality presets.
 
 /** Each 0 to 1. Aggression: presses close, salvoes big and often, retreats late. Caution:
- *  evades incoming torpedoes sooner, takes cover, retreats earlier. Emissions discipline:
- *  prefers quiet (cold) launches; it has no effect on being seen until sensors return (M4). */
+ *  evades incoming torpedoes sooner, takes cover, retreats earlier. Emissions discipline
+ *  (M4 Sensors Lite): prefers quiet (cold) launches, keeps its Sensors off unless it is
+ *  searching, and holds its range coasting dark instead of burning to match speed. */
 export interface Personality {
   aggression: number;
   caution: number;
@@ -82,4 +83,23 @@ export const aiTuning = {
   retreatStrainLimit: 0.7,
   /** A retreating ship this far from every enemy ship has escaped and leaves the fight, m. */
   escapeRangeM: 10_000_000,
+
+  // Sensors (M4 Sensors Lite).
+  /** Below this emissions discipline a captain runs its Sensors all the time. */
+  sensorsAlwaysBelow: 0.35,
+  /** With no enemy in sight, it switches its Sensors on to search after this long, s: from
+   *  discipline 0 to 1. */
+  searchSensorsMinS: 10,
+  searchSensorsMaxS: 120,
+  /** Running dark: above this heat it shows itself (Sensors on) to cool, until below the low mark. */
+  coolAboveHeat: 0.85,
+  coolBelowHeat: 0.3,
+  /** At or above this discipline, it holds its range coasting dark when the target's speed
+   *  relative to it is under darkHoldRelSpeed (m/s), instead of burning to match. */
+  darkHoldDiscipline: 0.6,
+  darkHoldRelSpeed: 60,
+  /** Hunting: it flies to where its enemy was last known to be, and stops this close, m.
+   *  Close, so it goes round any body hiding that spot (inside proximity range, line of
+   *  sight is all that can hide a ship). */
+  huntArriveM: 20_000,
 };

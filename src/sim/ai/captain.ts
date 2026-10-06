@@ -17,10 +17,10 @@
 
 import { aiTuning as A, type Personality } from "../../data/ai";
 import { submit, TICK_RATE } from "../sim";
-import { buildPerfectPicture, type ChartedBody, type OwnShip, type SensorPicture, type Track } from "../sensors/picture";
+import { buildSensorPicture, type ChartedBody, type OwnShip, type SensorPicture, type Track } from "../sensors/picture";
 import { segmentHitsSphere } from "../collide";
 import { railgunBlocked } from "../weapons/railgun";
-import { add, cross, dot, length, normalize, scale, sub, type Vec3 } from "../vec3";
+import { add, clone, cross, dot, length, normalize, scale, sub, type Vec3 } from "../vec3";
 import { finishGroupLaunch, groupMembers, planGroupSalvo, type SalvoMember } from "./salvo";
 import type { CaptainMode, CaptainScript, World } from "../world";
 
@@ -69,7 +69,9 @@ export interface Situation {
   coverAvailable: boolean;
 }
 
-export type Scores = Record<CaptainMode, number>;
+/** The scored behaviors. Hunting is not scored: it is what a captain does when it sees no one. */
+export type ScoredMode = Exclude<CaptainMode, "hunt">;
+export type Scores = Record<ScoredMode, number>;
 
 export function scoreBehaviors(sit: Situation, p: Personality, params: CaptainParams = captainParams(p)): Scores {
   const hullScore = clamp01((params.retreatHull + A.retreatFadeHull - sit.hull) / A.retreatFadeHull);
@@ -85,13 +87,13 @@ export function scoreBehaviors(sit: Situation, p: Personality, params: CaptainPa
   };
 }
 
-const ORDER: CaptainMode[] = ["retreat", "evade", "cover", "orient", "station"];
+const ORDER: ScoredMode[] = ["retreat", "evade", "cover", "orient", "station"];
 
 /** The best-scoring behavior; the current one stays unless another beats it by the switch margin. */
-export function chooseMode(scores: Scores, current: CaptainMode | null): CaptainMode {
+export function chooseMode(scores: Scores, current: CaptainMode | null): ScoredMode {
   // Earlier entries win ties, so safety beats station.
   const best = ORDER.reduce((b, m) => (scores[m] > scores[b] ? m : b), ORDER[0]);
-  if (current && scores[current] > 0 && scores[best] < scores[current] + A.switchMargin) return current;
+  if (current && current !== "hunt" && scores[current] > 0 && scores[best] < scores[current] + A.switchMargin) return current;
   return best;
 }
 
@@ -127,10 +129,21 @@ function inboundTorpedoes(pic: SensorPicture, me: OwnShip): Track[] {
   return pic.tracks.filter((t) => t.kind === "torpedo" && t.allegiance === "hostile" && t.impact?.targetId === me.id);
 }
 
-/** The picture this captain decides from. Until sensors return (M4) it is perfect; going
- *  through this one function means the AI needs no change when they do. */
+/** The picture this captain decides from: its own side's sensors, never ground truth. */
 function pictureFor(world: World, faction: string): SensorPicture {
-  return buildPerfectPicture(world, faction);
+  return buildSensorPicture(world, faction);
+}
+
+/**
+ * Sensors (M4 Sensors Lite). A captain with little emissions discipline runs them all the
+ * time; a disciplined one keeps them off unless it has seen no enemy for a while (then it
+ * searches). Any captain shows itself to cool down when running dark has heated it up.
+ */
+export function wantsSensors(p: Personality, state: CaptainScript["state"], heat: number, seesEnemy: boolean): boolean {
+  if (heat >= A.coolAboveHeat) state.cooling = true;
+  else if (heat <= A.coolBelowHeat) state.cooling = false;
+  if (state.cooling || p.emissionsDiscipline < A.sensorsAlwaysBelow) return true;
+  return !seesEnemy && state.unseenS >= lerp(A.searchSensorsMinS, A.searchSensorsMaxS, p.emissionsDiscipline);
 }
 
 export function runCaptains(world: World): void {
@@ -151,19 +164,34 @@ function think(world: World, ai: CaptainScript, t: number): void {
   const me = pic.ownShips.find((s) => s.id === ai.ship)!;
   const order = (command: Parameters<typeof submit>[2]) => submit(world, faction, command);
 
+  // The nearest enemy ship it sees now.
   let target: Track | null = null;
   let d = Infinity;
   for (const tr of pic.tracks) {
-    if (tr.kind !== "ship" || tr.allegiance !== "hostile") continue;
+    if (tr.kind !== "ship" || tr.allegiance !== "hostile" || tr.lost) continue;
     const dd = length(sub(tr.position, me.position));
     if (dd < d) {
       d = dd;
       target = tr;
     }
   }
+  const st = ai.state;
+  if (target) {
+    st.lastKnown = { id: target.id, position: clone(target.position), velocity: clone(target.velocity), tick: world.tick };
+    st.unseenS = 0;
+  } else {
+    st.unseenS += A.thinkS;
+    // Nothing remembered yet: start from the most recent sighting its side still has.
+    if (!st.lastKnown) {
+      const lost = pic.tracks.filter((tr) => tr.kind === "ship" && tr.allegiance === "hostile" && tr.lost).sort((a, b) => b.lastUpdateTick - a.lastUpdateTick)[0];
+      if (lost) st.lastKnown = { id: lost.id, position: clone(lost.position), velocity: clone(lost.velocity), tick: lost.lastUpdateTick };
+    }
+  }
+  const sensors = wantsSensors(ai.personality, st, me.heat, !!target);
+  if (sensors !== me.sensorsOn) order({ type: "setSensors", ship: ai.ship, on: sensors });
+
   if (!target) {
-    if (me.orderType) order({ type: "coast", ship: ai.ship });
-    ai.state.mode = ai.state.issuedMode = null;
+    hunt(world, ai, me, t, order);
     return;
   }
 
@@ -257,6 +285,12 @@ function think(world: World, ai: CaptainScript, t: number): void {
           order({ type: "burnTo", ship: ai.ship, point, g: "cruise" });
           issued();
         }
+      } else if (ai.personality.emissionsDiscipline >= A.darkHoldDiscipline && length(sub(me.velocity, target.velocity)) < A.darkHoldRelSpeed) {
+        // Disciplined: drift with the target, drive dark, rather than burn to match it.
+        if (me.orderType) {
+          order({ type: "coast", ship: ai.ship });
+          issued();
+        }
       } else if (fresh || me.orderType !== "matchVelocity") {
         order({ type: "matchVelocity", ship: ai.ship, target: tgt, g: "combat" });
         issued();
@@ -282,4 +316,56 @@ function think(world: World, ai: CaptainScript, t: number): void {
 
   // Railgun: whenever it is ready and the target is in its arc.
   if (!gunBlock) order({ type: "fireRailgun", ship: ai.ship, target: tgt });
+}
+
+/** Where the captain thinks its enemy is now: its last sighting carried along its motion. */
+function lastKnownNow(world: World, lk: NonNullable<CaptainScript["state"]["lastKnown"]>): Vec3 {
+  return add(lk.position, scale(lk.velocity, (world.tick - lk.tick) / TICK_RATE));
+}
+
+/**
+ * No enemy in sight. Hunting: fly to where it was last known to be (its sensors come on as
+ * it searches, see wantsSensors); there, with nothing found, wait. A captain that was
+ * retreating, or has nothing left to fight with, keeps going away instead, and escapes
+ * once far enough from where the enemy was.
+ */
+function hunt(world: World, ai: CaptainScript, me: OwnShip, t: number, order: (c: Parameters<typeof submit>[2]) => void): void {
+  const st = ai.state;
+  const lk = st.lastKnown;
+  const dry = me.torpedoes.magazine + me.torpedoes.queued === 0 && !(me.railgun && me.railgun.slugs > 0);
+  if (lk && (st.mode === "retreat" || dry)) {
+    const where = lastKnownNow(world, lk);
+    if (length(sub(me.position, where)) > A.escapeRangeM) {
+      const ship = world.ships.find((s) => s.id === ai.ship)!;
+      ship.escaped = true;
+      world.events.push({ type: "escaped", ship: ship.id, faction: ship.faction });
+      return;
+    }
+    if (st.issuedMode !== "retreat") {
+      const away = normalize(sub(me.position, where));
+      order({ type: "burnTo", ship: ai.ship, point: add(me.position, scale(away, A.retreatDistanceM)), g: "cruise" });
+      st.issuedMode = st.mode = "retreat";
+      st.navIssuedS = t;
+    }
+    return;
+  }
+  st.mode = "hunt";
+  if (!lk) {
+    if (me.orderType) order({ type: "coast", ship: ai.ship });
+    st.issuedMode = null;
+    return;
+  }
+  const where = lastKnownNow(world, lk);
+  if (length(sub(where, me.position)) < A.huntArriveM) {
+    // Nothing here: wait, searching, until something shows itself.
+    st.lastKnown = null;
+    if (me.orderType) order({ type: "coast", ship: ai.ship });
+    st.issuedMode = null;
+    return;
+  }
+  if (st.issuedMode !== "hunt" || t - st.navIssuedS > A.replanS) {
+    order({ type: "burnTo", ship: ai.ship, point: where, g: "cruise" });
+    st.issuedMode = "hunt";
+    st.navIssuedS = t;
+  }
 }

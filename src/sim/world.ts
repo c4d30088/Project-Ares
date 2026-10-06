@@ -225,7 +225,7 @@ export interface ContactRecord {
 export type AiScript = SkirmisherScript | CaptainScript;
 
 /** What a captain is doing with its ship right now (src/sim/ai/captain.ts). */
-export type CaptainMode = "station" | "orient" | "evade" | "retreat" | "cover";
+export type CaptainMode = "station" | "orient" | "evade" | "retreat" | "cover" | "hunt";
 
 /** An AI captain: scores its options each second from its own side's picture. */
 export interface CaptainScript {
@@ -242,6 +242,11 @@ export interface CaptainScript {
     /** The behavior it chose, and the one whose order it last gave (to avoid repeating orders). */
     mode: CaptainMode | null;
     issuedMode: CaptainMode | null;
+    /** Where it last knew its enemy to be (M4 Sensors Lite): it hunts there when it sees no one. */
+    lastKnown: { id: string; position: Vec3; velocity: Vec3; tick: number } | null;
+    /** Seconds since it last saw an enemy ship, and whether it is showing itself to cool down. */
+    unseenS: number;
+    cooling: boolean;
   };
 }
 
