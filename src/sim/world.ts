@@ -41,7 +41,11 @@ export interface Ship {
   escaped?: boolean;
   /** Weapons state: magazine, tubes, queued launches. */
   weapons: Weapons;
-  /** Test aid until real sensors exist (M4): show this ship as an unknown contact. */
+  /** Sensors switch (M4 Sensors Lite): on finds dark contacts nearby but makes the ship loud. */
+  sensorsOn: boolean;
+  /** Seconds the ship stays loud after its drive stops or it fires (see sensors/detect.ts). */
+  loudS: number;
+  /** Test aid: show this ship as an unknown contact (perfect-information pictures only). */
   testShowAsUnknown?: boolean;
 }
 
@@ -179,6 +183,34 @@ export interface World {
   ai: AiScript[];
   /** Shared state of scripted ships acting together, by group name. */
   aiGroups: Record<string, { nextSalvoS: number; salvoAtS: number | null }>;
+  /** What each side knows (M4 Sensors Lite): its contacts, by entity id. One datalink
+   *  network per side, so a side's ships share one set (see sensors/tracks.ts). */
+  sensors: Record<FactionId, Record<string, ContactRecord>>;
+  /** Everyone sees everything (tests and scenarios written before sensors). */
+  perfectInfo?: boolean;
+  /** A prediction's copy of the world: sensors are not swept, what each side knew at the
+   *  copy is kept as it was. */
+  ghost?: boolean;
+}
+
+/** What a side knows about one contact. Seen means known (class, name, motion). */
+export interface ContactRecord {
+  id: string;
+  kind: "ship" | "torpedo";
+  faction: FactionId;
+  /** Seen means known: name and class come with the first sighting. */
+  name: string;
+  shipClass?: ShipClass;
+  /** Own ships that see it right now (CLAUDE.md rule 11). Empty while it is not seen. */
+  seenBy: string[];
+  /** When it was last seen, and its motion then. */
+  seenTick: number;
+  position: Vec3;
+  velocity: Vec3;
+  heading: Vec3;
+  burning: boolean;
+  /** Its Sensors were on when last seen (ships). */
+  sensorsOn: boolean;
 }
 
 /** A scripted ship and its settings (scenario `ai` entries): the fixed routine of M3 or

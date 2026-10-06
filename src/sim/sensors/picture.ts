@@ -1,8 +1,9 @@
 // The sensor picture: everything one faction knows. The renderer and HUD read only this,
 // never the World directly (CLAUDE.md rule 6).
 //
-// Until real sensors arrive in M4, buildPerfectPicture() reports ground truth.
-// The shape of the picture is already the final one, so the renderer will not change.
+// buildPicture() gives a side's sensor picture (M4 Sensors Lite, sensors/tracks.ts): only
+// contacts it sees, plus lost contacts frozen where they were last seen. buildPerfectPicture()
+// reports ground truth: for the debug God view and perfect-information worlds.
 
 import { clone, type Vec3 } from "../vec3";
 import { bodyMu } from "../gravity";
@@ -13,7 +14,9 @@ import { crewEfficiency } from "../crew";
 import { pdcTuning } from "../../data/weapons";
 import { loadouts } from "../../data/combat";
 import type { NavOrder, NavPhase } from "../commands";
-import { areHostile, type BodyKind, type FactionId, type GSetting, type ShipClass, type World } from "../world";
+import { contactOf, contactStatus, estimatePosition } from "./tracks";
+import { isLoud } from "./detect";
+import { areHostile, type BodyKind, type ContactRecord, type FactionId, type GSetting, type ShipClass, type World } from "../world";
 
 export type Allegiance = "friendly" | "neutral" | "hostile" | "unknown";
 export type TrackKind = "ship" | "torpedo" | "station";
@@ -40,6 +43,11 @@ export interface Track {
   impact?: { position: Vec3; t: number; targetId: string | null };
   /** Ships: where its PDCs are firing this tick (PDC fire is visible). */
   pdcFire?: PdcAim[];
+  /** Ships: its Sensors were on when last seen. */
+  sensorsOn?: boolean;
+  /** Set when nobody on our side sees it any more: `position`, `velocity` and `heading` are
+   *  as last seen. ageS = seconds since then; fade goes from 1 to 0 before it is dropped. */
+  lost?: { ageS: number; fade: number };
 }
 
 /**
@@ -96,6 +104,10 @@ export interface OwnShip {
   phase: NavPhase;
   /** Subsystem health, 1 = intact. */
   health: Record<string, number>;
+  /** Sensors switch, and whether the ship is loud now (seen at any range in line of sight:
+   *  drive burning or just stopped, Sensors on, or just fired). */
+  sensorsOn: boolean;
+  loud: boolean;
   /** G-strain 0..1, and crew efficiency (1 = fresh and whole). */
   strain: number;
   efficiency: number;
@@ -173,6 +185,7 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       contributors: [...contributors],
       lastUpdateTick: world.tick,
       pdcFire: pdcAims(world, s).flatMap((p) => (p ? [p] : [])),
+      sensorsOn: s.sensorsOn,
     });
   }
 
@@ -225,6 +238,8 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       phase: s.nav.phase,
       orbit: orbitInfo(world, s),
       health: { ...s.health },
+      sensorsOn: s.sensorsOn,
+      loud: isLoud(s),
       strain: s.strain,
       efficiency: crewEfficiency(s),
       torpedoes: {
@@ -269,4 +284,61 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
     }),
     bodies: world.bodies.map((b) => ({ ...b, position: clone(b.position), gm: bodyMu(b) })),
   };
+}
+
+/**
+ * What a side knows (M4 Sensors Lite). Contacts it sees now are exact (seen means known);
+ * one seen only a moment ago is carried along its last motion; a lost one stays where it
+ * was last seen, with its motion then, until it fades. Its own ships and torpedoes,
+ * stations, charted bodies and railgun shots are as in the perfect picture.
+ */
+export function buildSensorPicture(world: World, faction: FactionId): SensorPicture {
+  const pic = buildPerfectPicture(world, faction);
+  if (world.perfectInfo) return pic;
+  const allegianceOf = (f: FactionId): Allegiance => (areHostile(world, faction, f) ? "hostile" : "neutral");
+  const tracks: Track[] = [];
+  const listed = new Set<string>();
+  for (const t of pic.tracks) {
+    if (t.kind === "station" || (t.kind === "torpedo" && t.allegiance === "friendly")) {
+      tracks.push(t);
+      continue;
+    }
+    const rec = contactOf(world, faction, t.id);
+    if (!rec) continue;
+    listed.add(t.id);
+    const st = contactStatus(world, rec);
+    if (rec.seenBy.length) tracks.push({ ...t, contributors: [...rec.seenBy] });
+    else if (st.live) tracks.push({ ...t, position: estimatePosition(world, rec), velocity: clone(rec.velocity), contributors: [], pdcFire: [], impact: undefined });
+    else tracks.push(lostTrack(rec, st, allegianceOf));
+  }
+  // Lost contacts that no longer exist (destroyed out of sight): still remembered.
+  for (const rec of Object.values(world.sensors[faction] ?? {})) {
+    if (listed.has(rec.id)) continue;
+    tracks.push(lostTrack(rec, contactStatus(world, rec), allegianceOf));
+  }
+  return { ...pic, tracks };
+}
+
+function lostTrack(rec: ContactRecord, st: ReturnType<typeof contactStatus>, allegianceOf: (f: FactionId) => Allegiance): Track {
+  return {
+    id: rec.id,
+    kind: rec.kind,
+    allegiance: allegianceOf(rec.faction),
+    ...(rec.shipClass ? { shipClass: rec.shipClass } : {}),
+    identified: true,
+    label: rec.name,
+    position: clone(rec.position),
+    velocity: clone(rec.velocity),
+    heading: clone(rec.heading),
+    burning: false,
+    contributors: [],
+    lastUpdateTick: rec.seenTick,
+    ...(rec.kind === "ship" ? { sensorsOn: rec.sensorsOn } : {}),
+    lost: { ageS: st.ageS, fade: st.fade },
+  };
+}
+
+/** The picture a side's player or captain gets: sensors, or ground truth in God view. */
+export function buildPicture(world: World, faction: FactionId, godView = false): SensorPicture {
+  return godView ? buildPerfectPicture(world, faction) : buildSensorPicture(world, faction);
 }

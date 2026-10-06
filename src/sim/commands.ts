@@ -22,7 +22,10 @@ export type Command =
   /** Fires one railgun slug at a target (a ship: at its lead point). Never automatic. */
   | { type: "fireRailgun"; ship: string; target: Target }
   /** Burst fire for PDCs on Auto: rounds per burst and the pause between bursts. */
-  | { type: "setPdcBurst"; ship: string; enabled: boolean; rounds: number; intervalS: number };
+  | { type: "setPdcBurst"; ship: string; enabled: boolean; rounds: number; intervalS: number }
+  /** Sensors on or off (M4 Sensors Lite): on finds dark contacts nearby, but makes the ship
+   *  loud. Never changes the nav order. */
+  | { type: "setSensors"; ship: string; on: boolean };
 
 export interface QueuedCommand {
   tick: number;

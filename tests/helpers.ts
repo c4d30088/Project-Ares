@@ -26,6 +26,8 @@ export function makeShip(over: Partial<Ship> & { id: string; shipClass?: ShipCla
     strain: 0,
     casualtyS: 0,
     weapons,
+    sensorsOn: false,
+    loudS: 0,
     ...over,
   };
 }
@@ -47,6 +49,10 @@ export function makeWorld(ships: Ship[]): World {
     aiGroups: {},
     stations: [],
     bodies: [],
+    sensors: { blue: {}, red: {} },
+    // Most sim tests are about physics and weapons, not sensors: everyone sees everything.
+    // Sensor tests turn this off.
+    perfectInfo: true,
   };
 }
 

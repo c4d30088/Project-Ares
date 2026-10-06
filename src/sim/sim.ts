@@ -13,6 +13,8 @@ import { runPdcs, setBurst, setPdcs } from "./weapons/pdc";
 import { fireRailgun, moveSlugs, rechargeRailguns } from "./weapons/railgun";
 import { updateStrain } from "./crew";
 import { runAi } from "./ai";
+import { markFired, updateLoudness } from "./sensors/detect";
+import { sweepSensors } from "./sensors/tracks";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
@@ -64,6 +66,9 @@ function applyCommand(world: World, q: QueuedCommand): void {
       if (why) reject(world, q, why);
       return;
     }
+    case "setSensors":
+      ship.sensorsOn = c.on;
+      return;
     case "coast":
       ship.order = null;
       break;
@@ -184,6 +189,14 @@ export function step(world: World): void {
   fuseTorpedoes(world, torpedoesBefore, shipsBefore, events);
   moveSlugs(world, DT, shipsBefore, events);
   updateStrain(world, DT, events);
+  // A drive that just stopped is still bright; firing lights a ship up (sensors/detect.ts).
+  updateLoudness(world.ships, DT);
+  for (const e of events) {
+    const firer =
+      e.type === "railgunFired" || (e.type === "torpedoLaunched" && e.mode === "hot") ? world.ships.find((s) => s.id === e.ship) : undefined;
+    if (firer) markFired(firer);
+  }
+  for (const s of world.ships) if (s.weapons.pdcs.some((m) => m.firing)) markFired(s);
   // Stations hold position on their own thrusters: no gravity.
   for (const s of world.stations) integrate(s.position, s.velocity, { x: 0, y: 0, z: 0 }, DT);
 
@@ -192,6 +205,8 @@ export function step(world: World): void {
   if (world.torpedoes.some((t) => t.destroyed)) world.torpedoes = world.torpedoes.filter((t) => !t.destroyed);
 
   world.tick++;
+  // What each side sees now, after everything moved (sensors/tracks.ts).
+  sweepSensors(world);
 }
 
 /** Anything that flies into a body is destroyed. */

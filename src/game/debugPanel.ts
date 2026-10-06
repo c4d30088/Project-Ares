@@ -9,6 +9,7 @@ import { physicsTuning } from "../data/physics";
 import { timeTuning } from "../data/time";
 import { pdcTuning, railgunTuning, torpedoTuning } from "../data/weapons";
 import { aiTuning } from "../data/ai";
+import { sensorTuning } from "../data/sensors";
 import { crewTuning } from "../data/crew";
 import { pathTuning } from "../data/paths";
 import { impactTuning } from "../data/impacts";
@@ -176,6 +177,16 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   torp.add(pathTuning, "interceptOpacity", 0, 1, 0.05).name("intercept line opacity");
   torp.add(pathTuning, "interceptDotScale", 0.0005, 0.02, 0.0005).name("intercept dot size");
   torp.close();
+
+  const sen = gui.addFolder("Sensors");
+  sen.add(sensorTuning, "proximityRange", 10000, 10000000, 10000).name("always seen within (m)");
+  sen.add(sensorTuning, "sensorRange", 100000, 50000000, 100000).name("sensors find dark within (m)");
+  sen.add(sensorTuning, "plumeFadeS", 0, 120, 1).name("loud after drive stops (s)");
+  sen.add(sensorTuning, "firedLoudS", 0, 120, 1).name("loud after firing (s)");
+  sen.add(sensorTuning, "lostAfterS", 0, 30, 0.5).name("lost after unseen (s)");
+  sen.add(sensorTuning, "lostFadeS", 10, 3600, 10).name("lost marker fades over (s)");
+  sen.add(sensorTuning, "startSensorsOn").name("ships start with sensors on");
+  sen.close();
 
   const rings = gui.addFolder("Weapon range rings");
   rings.add(pathTuning, "showOwnRings").name("our ships' rings (W)");

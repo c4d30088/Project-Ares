@@ -12,6 +12,7 @@ import { labelTuning } from "./labels";
 import { navTuning } from "./nav";
 import { pathTuning } from "./paths";
 import { physicsTuning } from "./physics";
+import { sensorTuning } from "./sensors";
 import { symbolTuning } from "./symbols";
 import { timeTuning } from "./time";
 import { pdcTuning, railgunTuning, torpedoTuning } from "./weapons";
@@ -19,4 +20,5 @@ import { pdcTuning, railgunTuning, torpedoTuning } from "./weapons";
 export const tuningRoots = {
   cameraTuning, holotableTuning, symbolTuning, effectsTuning, navTuning, timeTuning, bodyTuning,
   physicsTuning, torpedoTuning, pdcTuning, railgunTuning, crewTuning, pathTuning, impactTuning, labelTuning, aiTuning,
+  sensorTuning,
 };
