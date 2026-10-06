@@ -106,7 +106,7 @@ Build order (one commit per step):
 
 ---
 
-### M4. Sensors and stealth (4 to 6 sessions)
+### M4. Sensors and stealth (4 to 6 sessions; rebuilt as Sensors Lite, see below)
 
 **Build**
 - Signatures: drive plume, heat, radar cross-section, emissions
@@ -125,6 +125,31 @@ Build order (one commit per step):
 - Unit tests for detection ranges, line of sight, and stale tracks
 
 **Checkpoint:** Play a scenario where the enemy starts behind a moon. You should feel the difference between knowing where they are and guessing. Try one ambush: launch cold torpedoes from cover and light them late. It should work sometimes and fail for a reason you can see.
+
+**Iceboxed (2026-10-04).** Steps 1 to 6 of the first M4 plan (telescope, radar and lidar; tracks with uncertainty clouds; classification; contact list; weapons and the scripted enemy on the picture) were built and played. Owner: "the whole milestone makes the game very complicated and hard to play." The code was set aside on branch `icebox/m4-sensors` and never merged to main; M5 was built on perfect information instead.
+
+**Sensors Lite: approved plan (2026-10-05).** M4 returns, much simpler. The owner names what made the first version hard: too many sensors, and the prediction clouds when a contact was lost. It is rebuilt on today's main (with the M5 AI captain), reusing pieces of the icebox code.
+- One switch: **Sensors** on or off (radar and lidar merged; no telescope, no lidar lock). Seen means known: class, name and weapon rings at once, no UNKNOWN steps.
+- A ship sees a contact when there is line of sight (bodies block it) and any one of these holds: the contact is **loud** (drive burning, Sensors on, or fired a weapon in the last 10 s), seen at any range even with your sensors off; the contact is within **1,000 km** (proximity); or the observer has **Sensors on** and the contact is within **3,000 km** (how dark ships and cold torpedoes are found). Dark means coasting, sensors off, not firing. Cold torpedoes follow the same rules.
+- A lost contact (or cold torpedo) leaves a hollow orange marker frozen where it was last seen, `LAST SEEN mm:ss`, and one dashed line along its last course. No clouds, no moving guess. It fades after a few minutes. Weapons fired at it aim where the line says it would be now.
+- Heat: one bar fills while dark (about 10 minutes for a frigate) and cools whenever you are loud. To cool down you must show yourself. At full heat the ship takes slow damage (HEAT CRITICAL).
+- Weapon range rings on the grid: flat rings under each ship (torpedo, railgun, PDC). Own ships always (a key hides them); a selected enemy in red; a lost one dashed orange at its last-seen marker.
+- Two new orders. **Evade**: each press bends the current route a few degrees for about 30 s; the nav computer steers back and still arrives. **Evasive maneuvers**: cancels the route and corkscrews at the chosen G; the hull turns with the thrust, so PDC arcs sweep. Manual only; the alert strip suggests it when something is inbound.
+- Dropped (parking lot): jamming, decoys, telescope and bearing-only tracks, lidar locks, classification confidence, uncertainty clouds, contact list tab, sensor shadows. The datalink stays internal: one network per side, every track records which ships see it (hard rule 11), no UI.
+- Known: Knife fight (150 km) and Rock garden (900 km) start inside the 1,000 km proximity range, so stealth does not change those two maps.
+
+Build order (one commit per step):
+1. Docs (this plan, DESIGN.md, playtest log).
+2. Weapon range rings.
+3. Sensors in the sim: seeing rules, line of sight, Sensors command, per-side pictures with contributors, lost contacts, God view. Tests.
+4. Table and HUD: last-seen marker and course line, Sensors button, emissions state in the left rail, CONTACT / CONTACT LOST / ENEMY SENSORS ACTIVE alerts.
+5. Weapons use the picture: torpedo seekers need a sighting (else fly on the last one), PDC Auto only at what the side sees, aim at a lost contact's line.
+6. Heat.
+7. AI captain and scripted enemy on their own picture: emissions discipline decides sensors and running dark; a hunt behavior so no one waits forever.
+8. Evade and Evasive maneuvers, with tests of arrival and of how much the corkscrew helps.
+9. Tuning with bots on every map, docs and handoff.
+
+**Checkpoint (Sensors Lite):** On Moon shadow and Open duel, you can say whether the enemy knows where you are, and why. Going dark behind the moon and launching cold torpedoes works sometimes and fails for a reason you can see (you burned, you fired, or they had sensors on within 3,000 km). The rings tell you, before you move, when you are about to enter enemy torpedo or railgun reach.
 
 ---
 

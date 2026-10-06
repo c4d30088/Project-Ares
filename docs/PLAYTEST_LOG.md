@@ -17,6 +17,20 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-05, milestone M4: Sensors Lite planned
+Decided (owner): bring M4 back, much simpler. What made the first build hard: too many sensors, and the prediction clouds when a contact was lost. The new plan (ROADMAP M4, "Sensors Lite"): one Sensors switch; loud ships (burning, sensors on, just fired) are seen at any range in line of sight; anything inside 1,000 km is seen; Sensors on finds dark ships and cold torpedoes within 3,000 km; a lost contact leaves one LAST SEEN marker and one dashed course line; a heat limit on running dark. Also weapon range rings on the grid, and two new orders: Evade (one slight bend per press) and Evasive maneuvers (corkscrew).
+Claude Code pointed out: Knife fight and Rock garden start inside 1,000 km, so stealth does not change them; Evade needs the drive, so it gives you away; the corkscrew sweeps your PDC arcs.
+Next session: build the steps in ROADMAP M4 in order.
+
+---
+
+## 2026-10-04, milestone M4: played, then iceboxed
+Played: M4 steps 1 to 6 (sensors: tracks and uncertainty, contact list, radar and lidar, weapons and the enemy on the sensor picture, Behind the moon).
+Felt wrong (owner): the whole milestone makes the game very complicated and hard to play.
+Decided (owner): put M4 in the icebox. The code went back to the M3 game (perfect information); the M4 work is saved on the branch `icebox/m4-sensors`. (This entry was written on a branch that never reached main; copied here on 2026-10-05.)
+
+---
+
 ## 2026-10-04, milestone M5: build complete, ready for the checkpoint playtest
 Next session: start with the playtest. The owner plays 10 skirmishes and reports: did you win some and lose some; when you lost, could you name what the AI did; did any personality feel wrong; was any map unfair or dull. Claude Code writes the M5 playtest entry from it, then tunes (every AI number has a debug slider under "AI captain").
 
@@ -149,4 +163,5 @@ Features for later. Not for the current milestone.
 - Orbit: choose the altitude by dragging; fuel-efficient transfers instead of stop-then-spin-up.
 - Gravity: moving bodies (moons on their own orbits) and slingshot planning.
 - Combat stims (DESIGN.md section 9): raise the G-strain limit for a while, then reduced efficiency; limited supply.
+- From the first M4 build, dropped by Sensors Lite (2026-10-05): jamming, decoys and ghost contacts, telescope and bearing-only tracks, triangulation, lidar locks, classification confidence, uncertainty clouds, a contact list tab, sensor shadow volumes, datalink lines and cut links. The code is on branch `icebox/m4-sensors`.
 - Destructible asteroids: asteroids take damage from railgun slugs and torpedoes and break into fragments. Fragments become new objects (debris) that drift, block shots and routes, and can be cleared by PDCs (DESIGN.md already lists debris as a target). Moons and planets stay intact. Best after M3, once railguns exist; it changes cover, so look at it alongside M4 sensors and line of sight.
