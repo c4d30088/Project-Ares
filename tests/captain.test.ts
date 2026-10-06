@@ -98,11 +98,13 @@ describe("behavior scores", () => {
 });
 
 /** Blue (the "player") against one red captain; a moon near red if asked for. */
-function duel(opts: { red?: keyof typeof personalityPresets; blueAi?: keyof typeof personalityPresets; range?: number; moon?: boolean; torpedo?: Torpedo } = {}): World {
+function duel(opts: { red?: keyof typeof personalityPresets; blueAi?: keyof typeof personalityPresets; range?: number; moon?: boolean; torpedo?: Torpedo; sensors?: boolean } = {}): World {
   const range = opts.range ?? 7e6;
   const scenario: Scenario = {
     name: "duel",
     seed: 7,
+    // These tests are about the captain's choices; sensors have their own tests.
+    ...(opts.sensors ? {} : { sensors: "perfect" as const }),
     playerFaction: "blue",
     factions: [
       { id: "blue", name: "B", hostileTo: ["red"] },

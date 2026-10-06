@@ -95,6 +95,8 @@ export function pathMarkers(predictions: Iterable<Prediction>, simTick: number, 
 export interface InterceptLine {
   points: Vec3[];
   hostile: boolean;
+  /** Our torpedo has lost sight of its target: drawn in the uncertain color. */
+  blind?: boolean;
 }
 
 /**
@@ -118,9 +120,9 @@ export function torpedoOverlays(
     const path = paths.get(tr.id);
     if (path) {
       const elapsed = (simTick - path.startTick) * dt;
-      lines.push({ points: [tr.position, ...path.points.filter((p) => p.t > elapsed).map((p) => p.position)], hostile });
+      lines.push({ points: [tr.position, ...path.points.filter((p) => p.t > elapsed).map((p) => p.position)], hostile, blind: tr.blind });
     } else if (tr.impact) {
-      lines.push({ points: [tr.position, tr.impact.position], hostile });
+      lines.push({ points: [tr.position, tr.impact.position], hostile, blind: tr.blind });
     }
     if (!tr.impact) continue;
     // One X per target (per point for point-targeted torpedoes), per side.

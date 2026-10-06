@@ -89,3 +89,9 @@ export function estimatePosition(world: World, r: ContactRecord): Vec3 {
 export function contactOf(world: World, faction: FactionId, id: string): ContactRecord | undefined {
   return world.sensors[faction]?.[id];
 }
+
+/** The side sees this ship or torpedo right now (or the world is perfect information). */
+export function sideSees(world: World, faction: FactionId, id: string): boolean {
+  if (world.perfectInfo) return true;
+  return (world.sensors[faction]?.[id]?.seenBy.length ?? 0) > 0;
+}

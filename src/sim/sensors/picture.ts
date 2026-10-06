@@ -45,6 +45,8 @@ export interface Track {
   pdcFire?: PdcAim[];
   /** Ships: its Sensors were on when last seen. */
   sensorsOn?: boolean;
+  /** Our torpedo has lost sight of its target and flies on its last sighting. */
+  blind?: boolean;
   /** Set when nobody on our side sees it any more: `position`, `velocity` and `heading` are
    *  as last seen. ageS = seconds since then; fade goes from 1 to 0 before it is dropped. */
   lost?: { ageS: number; fade: number };
@@ -203,6 +205,7 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       contributors: t.faction === faction ? [] : [...contributors],
       lastUpdateTick: world.tick,
       impact: predictImpact(world, t) ?? undefined,
+      ...(t.faction === faction && t.guidance?.blind ? { blind: true } : {}),
     });
   }
 

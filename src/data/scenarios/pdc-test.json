@@ -1,6 +1,7 @@
 {
   "name": "PDC test",
   "seed": 3141,
+  "sensors": "perfect",
   "playerFaction": "blue",
   "factions": [
     { "id": "blue", "name": "Own forces", "hostileTo": ["red"] },

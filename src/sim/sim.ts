@@ -50,13 +50,13 @@ function applyCommand(world: World, q: QueuedCommand): void {
       return;
     }
     case "setPdcs": {
-      if (c.mode === "manual" && c.target && !resolveTarget(world, c.target)) return reject(world, q, "unknown target");
+      if (c.mode === "manual" && c.target && !resolveTarget(world, c.target, q.faction)) return reject(world, q, "unknown target");
       const why = setPdcs(ship, c.mount, c.mode, c.target ?? null);
       if (why) reject(world, q, why);
       return;
     }
     case "fireRailgun": {
-      if (c.target.kind !== "point" && !resolveTarget(world, c.target)) return reject(world, q, "unknown target");
+      if (c.target.kind !== "point" && !resolveTarget(world, c.target, q.faction)) return reject(world, q, "unknown target");
       const why = fireRailgun(world, ship, c.target, world.events);
       if (why) reject(world, q, why);
       return;
@@ -77,15 +77,15 @@ function applyCommand(world: World, q: QueuedCommand): void {
       ship.order = { type: "burnTo", point: clampOutsideBodies(world.bodies, c.point, cruiseAccel(ship)).point };
       break;
     case "intercept":
-      if (!resolveTarget(world, c.target)) return reject(world, q, "unknown target");
+      if (!resolveTarget(world, c.target, q.faction)) return reject(world, q, "unknown target");
       ship.order = { type: "intercept", target: c.target, mode: c.mode };
       break;
     case "matchVelocity":
-      if (!resolveTarget(world, c.target)) return reject(world, q, "unknown target");
+      if (!resolveTarget(world, c.target, q.faction)) return reject(world, q, "unknown target");
       ship.order = { type: "matchVelocity", target: c.target };
       break;
     case "stationKeep": {
-      const t = resolveTarget(world, c.target);
+      const t = resolveTarget(world, c.target, q.faction);
       if (!t) return reject(world, q, "unknown target");
       // Hold the current offset from a ship or object; hold exactly at a point.
       const offset = c.target.kind === "point" ? { x: 0, y: 0, z: 0 } : sub(ship.position, t.position);
@@ -94,7 +94,7 @@ function applyCommand(world: World, q: QueuedCommand): void {
       break;
     }
     case "orient":
-      if (!resolveTarget(world, c.target)) return reject(world, q, "unknown target");
+      if (!resolveTarget(world, c.target, q.faction)) return reject(world, q, "unknown target");
       ship.order = { type: "orient", target: c.target };
       break;
     case "orbit": {

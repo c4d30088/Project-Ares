@@ -430,7 +430,7 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
 
   switch (order.type) {
     case "orient": {
-      const t = resolveTarget(world, order.target);
+      const t = resolveTarget(world, order.target, ship.faction);
       if (!t) return coast(ship);
       const heading = normalize(sub(t.position, ship.position));
       return { heading, thrust: 0, phase: "turn" };
@@ -450,7 +450,7 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
     }
 
     case "stationKeep": {
-      const t = resolveTarget(world, order.target);
+      const t = resolveTarget(world, order.target, ship.faction);
       if (!t) return coast(ship);
       const goal = add(t.position, order.offset);
       const r = sub(goal, ship.position);
@@ -477,7 +477,7 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
     }
 
     case "intercept": {
-      const t = resolveTarget(world, order.target);
+      const t = resolveTarget(world, order.target, ship.faction);
       if (!t) return coast(ship);
       const r = sub(t.position, ship.position);
       const v = sub(ship.velocity, t.velocity);
@@ -490,7 +490,7 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
       return orbit(world, ship, order, gShip, events);
 
     case "matchVelocity": {
-      const t = resolveTarget(world, order.target);
+      const t = resolveTarget(world, order.target, ship.faction);
       if (!t) return coast(ship);
       const dv = sub(t.velocity, ship.velocity);
       const speed = length(dv);

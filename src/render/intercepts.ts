@@ -63,8 +63,9 @@ export function createInterceptLayer(scene: THREE.Scene) {
 
   return {
     update(lines: InterceptLine[], focus: Vec3, cameraDistance: number, streaks: InterceptLine[] = [], courses: InterceptLine[] = []) {
-      rebuild(course, courses, focus, cameraDistance, true, T.lostCourseOpacity, T.interceptDotScale * 3);
-      rebuild(own, lines.filter((l) => !l.hostile), focus, cameraDistance);
+      // Lost contacts' courses, and our torpedoes flying blind on their last sighting: orange.
+      rebuild(course, [...courses, ...lines.filter((l) => l.blind)], focus, cameraDistance, true, T.lostCourseOpacity, T.interceptDotScale * 3);
+      rebuild(own, lines.filter((l) => !l.hostile && !l.blind), focus, cameraDistance);
       rebuild(hostile, lines.filter((l) => l.hostile), focus, cameraDistance);
       rebuild(ownStreaks, streaks.filter((l) => !l.hostile), focus, cameraDistance, false);
       rebuild(hostileStreaks, streaks.filter((l) => l.hostile), focus, cameraDistance, false);

@@ -143,6 +143,10 @@ export interface TorpedoGuidance {
   searchS: number;
   /** Salvo hold: waiting, dark, for the rest of this salvo to leave the tubes. */
   holdSalvo?: number;
+  /** The target as the seeker last saw it (M4 Sensors Lite). Out of sight, the torpedo flies
+   *  on this; `blind` is set while it does. */
+  seen?: { position: Vec3; velocity: Vec3; tick: number };
+  blind?: boolean;
 }
 
 export interface Station {
