@@ -25,7 +25,12 @@ export type Command =
   | { type: "setPdcBurst"; ship: string; enabled: boolean; rounds: number; intervalS: number }
   /** Sensors on or off (M4 Sensors Lite): on finds dark contacts nearby, but makes the ship
    *  loud. Never changes the nav order. */
-  | { type: "setSensors"; ship: string; on: boolean };
+  | { type: "setSensors"; ship: string; on: boolean }
+  /** Evade: bends the current route slightly for a while (a random direction); the nav
+   *  computer then steers back. Keeps the order. */
+  | { type: "evade"; ship: string }
+  /** Evasive maneuvers: cancels the route and corkscrews at the ship's G setting. */
+  | { type: "evasive"; ship: string; g?: GSetting };
 
 export interface QueuedCommand {
   tick: number;
@@ -42,7 +47,10 @@ export type NavOrder =
   | { type: "orient"; target: Target }
   /** Circular orbit around a body: radius, plane normal (motion is counter-clockwise about
    *  it) and the entry point relative to the body's center. */
-  | { type: "orbit"; target: Target; radius: number; normal: Vec3; entry: Vec3 };
+  | { type: "orbit"; target: Target; radius: number; normal: Vec3; entry: Vec3 }
+  /** Corkscrew: thrust circles `axis` (the line of travel when ordered); `side` is where
+   *  the circle starts. */
+  | { type: "evasive"; axis: Vec3; side: Vec3; startTick: number };
 
 /** What the nav computer is doing right now, for display and events. */
 /** "avoid": body avoidance has taken over to swerve clear of a body. */

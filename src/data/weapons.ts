@@ -8,6 +8,9 @@ export const torpedoTuning = {
   terminalReserve: 3_000,
   /** Final homing starts this many seconds before impact. */
   terminalPhaseS: 30,
+  /** Guidance leads the target's drive acceleration averaged over this long, s, so a
+   *  target whose thrust keeps turning (Evasive maneuvers) is not chased into empty space. */
+  targetAccelSmoothS: 15,
   /** Detonates when it passes within this distance of a hostile ship, m. */
   fuseRadius: 100,
   /** Seeker range for point-targeted torpedoes and lost targets, m. Perfect info until M4. */

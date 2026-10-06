@@ -422,6 +422,23 @@ export function swerveDirection(
   return take ? take.dir : null;
 }
 
+/**
+ * Evade (one press): while it lasts, the nav computer aims evadeAngleDeg off the real line,
+ * toward the chosen side, so it steers along the bend instead of fighting it; afterwards it
+ * aims true again and steers back. `r` is the way to the goal.
+ */
+function evadeAim(world: World, ship: Ship, r: Vec3): Vec3 {
+  const e = ship.evade;
+  if (!e || world.tick >= e.untilTick) return r;
+  const d = length(r);
+  if (d < 1) return r;
+  const u = scale(r, 1 / d);
+  let p = sub(e.side, scale(u, dot(e.side, u)));
+  if (length(p) < 1e-6) p = cross(u, { x: 0, y: 0, z: 1 });
+  const a = (N.evadeAngleDeg * Math.PI) / 180;
+  return scale(add(scale(u, Math.cos(a)), scale(normalize(p), Math.sin(a))), d);
+}
+
 function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
   const order = ship.order;
   if (!order) return coast(ship);
@@ -438,7 +455,7 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
 
     case "burnTo": {
       const route = routeAim(world, ship.position, order.point, cruiseAccel(ship), ship.velocity);
-      const r = sub(route.aim, ship.position);
+      const r = evadeAim(world, ship, sub(route.aim, ship.position));
       const { out, arrived } = arrive(ship, r, ship.velocity, N.arriveDistance, N.arriveSpeed, events, true, route.pathLength);
       if (arrived) {
         complete(ship, events);
@@ -471,7 +488,7 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
       ship.nav.travelling = true;
       // The first trip to station announces its flip like any trip; later small corrections
       // stay quiet so they never trigger auto-slowdown.
-      const { out, arrived } = arrive(ship, sub(route.aim, ship.position), v, N.arriveDistance, N.arriveSpeed, events, !ship.nav.complete, route.pathLength);
+      const { out, arrived } = arrive(ship, evadeAim(world, ship, sub(route.aim, ship.position)), v, N.arriveDistance, N.arriveSpeed, events, !ship.nav.complete, route.pathLength);
       if (arrived) ship.nav.braking = false;
       return withCancel(out, cancel);
     }
@@ -479,7 +496,7 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
     case "intercept": {
       const t = resolveTarget(world, order.target, ship.faction);
       if (!t) return coast(ship);
-      const r = sub(t.position, ship.position);
+      const r = evadeAim(world, ship, sub(t.position, ship.position));
       const v = sub(ship.velocity, t.velocity);
       const cancel = sub(gShip, targetGravity(world, order.target));
       if (order.mode === "rendezvous") return withCancel(rendezvous(world, ship, r, v, events), cancel);
@@ -488,6 +505,9 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
 
     case "orbit":
       return orbit(world, ship, order, gShip, events);
+
+    case "evasive":
+      return corkscrew(world, ship, order);
 
     case "matchVelocity": {
       const t = resolveTarget(world, order.target, ship.faction);
@@ -506,6 +526,22 @@ function guide(world: World, ship: Ship, events: SimEvent[]): NavOutput {
       return withCancel(out, sub(gShip, targetGravity(world, order.target)));
     }
   }
+}
+
+/**
+ * Evasive maneuvers: full thrust at the G setting, the direction circling the order's axis
+ * at the cone angle, so the ship spirals along its line of travel. The hull turns with the
+ * thrust (PDC arcs sweep round). The circle is slowed to what the ship can turn.
+ */
+function corkscrew(world: World, ship: Ship, order: NavOrder & { type: "evasive" }): NavOutput {
+  const cone = (N.evasiveConeDeg * Math.PI) / 180;
+  const period = Math.max(N.evasivePeriodS, (2 * Math.PI * Math.sin(cone)) / (turnRate(ship) * 0.8));
+  const phi = (2 * Math.PI * (world.tick - order.startTick) * DT_NAV) / period;
+  const u = order.side;
+  const v = cross(order.axis, u);
+  const around = add(scale(u, Math.cos(phi)), scale(v, Math.sin(phi)));
+  const heading = normalize(add(scale(order.axis, Math.cos(cone)), scale(around, Math.sin(cone))));
+  return { heading, thrust: maxAccel(ship), phase: burnPhase(ship, heading, false) };
 }
 
 /**

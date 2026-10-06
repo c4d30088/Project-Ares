@@ -6,7 +6,7 @@
 // Movement behaviors (one at a time):
 //   station  close to the personality's hold range, then hold it
 //   orient   swing the ship so the railgun's arc covers the target
-//   evade    burn hard across the line of incoming torpedoes
+//   evade    corkscrew at Max G (Evasive maneuvers) while torpedoes are about to land
 //   cover    put a body between the ship and the enemy and stay there
 //   retreat  burn directly away from the enemy
 // Weapons run alongside, whatever the behavior: coordinated torpedo salvos on a timer, and
@@ -20,15 +20,12 @@ import { submit, TICK_RATE } from "../sim";
 import { buildSensorPicture, type ChartedBody, type OwnShip, type SensorPicture, type Track } from "../sensors/picture";
 import { segmentHitsSphere } from "../collide";
 import { railgunBlocked } from "../weapons/railgun";
-import { add, clone, cross, dot, length, normalize, scale, sub, type Vec3 } from "../vec3";
+import { add, clone, dot, length, normalize, scale, sub, type Vec3 } from "../vec3";
 import { finishGroupLaunch, groupMembers, planGroupSalvo, type SalvoMember } from "./salvo";
 import type { CaptainMode, CaptainScript, World } from "../world";
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-/** Re-aim an evasion burn this often while it lasts, s. */
-const EVADE_REAIM_S = 15;
 
 /** The numbers a personality works out to. */
 export interface CaptainParams {
@@ -239,13 +236,9 @@ function think(world: World, ai: CaptainScript, t: number): void {
       break;
     }
     case "evade": {
-      if (fresh || t - ai.state.navIssuedS > EVADE_REAIM_S) {
-        const soonest = inbound.reduce((a, b) => (b.impact!.t < a.impact!.t ? b : a));
-        const bearing = normalize(sub(soonest.position, me.position));
-        // Across the torpedo's line, in whichever direction the ship is already drifting.
-        let across = sub(me.velocity, scale(bearing, dot(me.velocity, bearing)));
-        if (length(across) < 1) across = cross(bearing, Math.abs(bearing.z) > 0.9 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 0, z: 1 });
-        order({ type: "burnTo", ship: ai.ship, point: add(me.position, scale(normalize(across), 2_000_000)), g: "max" });
+      // Corkscrew at Max G: spoils the torpedoes' homing (and any railgun lead).
+      if (fresh || me.orderType !== "evasive") {
+        order({ type: "evasive", ship: ai.ship, g: "max" });
         issued();
       }
       break;

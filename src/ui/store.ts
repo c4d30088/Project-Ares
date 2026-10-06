@@ -26,6 +26,8 @@ export interface ActiveShipInfo {
   emissions: "SENSORS" | "DRIVE" | "VISIBLE" | "DARK";
   /** Heat from running dark, 0..1. */
   heat: number;
+  /** An Evade bend is in progress. */
+  evading: boolean;
 }
 
 export interface AlertInfo {

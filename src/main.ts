@@ -150,7 +150,7 @@ view.dom.addEventListener("dblclick", (e) => {
   }
 });
 
-const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", l: "launch", d: "pdcTarget", g: "railgun" };
+const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", e: "evade", v: "evasive", l: "launch", d: "pdcTarget", g: "railgun" };
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
@@ -232,6 +232,7 @@ function frame(now: number) {
             sensorsOn: sensorsOn(own.id),
             emissions: own.sensorsOn ? "SENSORS" : own.thrust > 0 ? "DRIVE" : own.loud ? "VISIBLE" : "DARK",
             heat: own.heat,
+            evading: own.evading,
           }
         : null,
       weapons: own

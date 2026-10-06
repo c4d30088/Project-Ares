@@ -17,9 +17,10 @@ import { markFired, updateLoudness } from "./sensors/detect";
 import { sweepSensors } from "./sensors/tracks";
 import { updateHeat } from "./heat";
 import { cross, dot, length, normalize, scale, sub, type Vec3 } from "./vec3";
+import { Rng } from "./rng";
 import type { NavOrder } from "./commands";
 import type { Target } from "./target";
-import type { Body } from "./world";
+import type { Body, Ship } from "./world";
 import type { World } from "./world";
 
 export const TICK_RATE = 20;
@@ -70,6 +71,22 @@ function applyCommand(world: World, q: QueuedCommand): void {
     case "setSensors":
       ship.sensorsOn = c.on;
       return;
+    case "evade": {
+      // Keeps the order: only the burn bends for a while (see step).
+      ship.evade = { untilTick: world.tick + Math.round(navTuning.evadeDurationS * TICK_RATE), side: randomUnit(world) };
+      return;
+    }
+    case "evasive": {
+      // The line of travel; at rest, the bow.
+      const speed = length(ship.velocity);
+      const axis = speed > 50 ? scale(ship.velocity, 1 / speed) : ship.heading;
+      let side = randomUnit(world);
+      side = sub(side, scale(axis, dot(side, axis)));
+      if (length(side) < 1e-6) side = cross(axis, Math.abs(axis.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 });
+      ship.order = { type: "evasive", axis, side: normalize(side), startTick: world.tick };
+      delete ship.evade;
+      break;
+    }
     case "coast":
       ship.order = null;
       break;
@@ -169,6 +186,16 @@ export function step(world: World): void {
         if (mag > 1e-9) wantHeading = scale(v, 1 / mag);
       }
     }
+    // Evade: a burning nav computer aims off-line itself (autopilot evadeAim); a ship with
+    // its drive off makes a gentle sideways burn instead. Steering back follows by itself.
+    if (ship.evade) {
+      if (world.tick >= ship.evade.untilTick) delete ship.evade;
+      else if (wantThrust <= 0) {
+        const nudge = evadeNudge(ship);
+        wantHeading = nudge.heading;
+        wantThrust = nudge.thrust;
+      }
+    }
     ship.heading = slerpToward(ship.heading, wantHeading, turnRate(ship) * DT);
     const aligned = angleBetween(ship.heading, wantHeading) <= alignTol;
     const thrust = aligned ? Math.min(wantThrust, maxAccel(ship)) : 0;
@@ -209,6 +236,26 @@ export function step(world: World): void {
   world.tick++;
   // What each side sees now, after everything moved (sensors/tracks.ts).
   sweepSensors(world);
+}
+
+/** A unit vector in a random direction, from the seeded RNG (CLAUDE.md rule 3). */
+function randomUnit(world: World): Vec3 {
+  const rng = new Rng(0);
+  rng.setState(world.rngState);
+  const z = rng.range(-1, 1);
+  const a = rng.range(0, 2 * Math.PI);
+  world.rngState = rng.getState();
+  const r = Math.sqrt(1 - z * z);
+  return { x: r * Math.cos(a), y: r * Math.sin(a), z };
+}
+
+/** Evade with the drive off: a gentle sideways burn, across the line of travel toward the side. */
+function evadeNudge(ship: Ship): { heading: Vec3; thrust: number } {
+  const side = ship.evade!.side;
+  const v = length(ship.velocity) > 1 ? normalize(ship.velocity) : ship.heading;
+  let p = sub(side, scale(v, dot(side, v)));
+  if (length(p) < 1e-6) p = cross(v, { x: 0, y: 0, z: 1 });
+  return { heading: normalize(p), thrust: cruiseAccel(ship) * navTuning.evadeCoastAccelFrac };
 }
 
 /** Anything that flies into a body is destroyed. */

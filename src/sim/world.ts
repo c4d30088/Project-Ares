@@ -45,6 +45,8 @@ export interface Ship {
   sensorsOn: boolean;
   /** Seconds the ship stays loud after its drive stops or it fires (see sensors/detect.ts). */
   loudS: number;
+  /** Evade in progress: until this tick the burn is bent toward `side` (a unit vector). */
+  evade?: { untilTick: number; side: Vec3 };
   /** Heat from running dark, 0 (cool) to 1 (full: damage), and time held at full (heat.ts). */
   heat: number;
   overheatS: number;
@@ -150,6 +152,8 @@ export interface TorpedoGuidance {
    *  on this; `blind` is set while it does. */
   seen?: { position: Vec3; velocity: Vec3; tick: number };
   blind?: boolean;
+  /** The target's drive acceleration, averaged over targetAccelSmoothS (guidance leads this). */
+  aEst?: Vec3;
 }
 
 export interface Station {

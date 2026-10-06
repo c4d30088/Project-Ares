@@ -1,6 +1,16 @@
 // Nav computer tunables. Distances in meters, speeds in m/s, times in seconds.
 
 export const navTuning = {
+  /** Evade (one press): the burn turns this far off-line, in a random direction, for this
+   *  long; the nav computer then steers back to the destination. Coasting, the ship makes
+   *  a sideways burn instead, at this fraction of its Cruise G. */
+  evadeAngleDeg: 8,
+  evadeDurationS: 30,
+  evadeCoastAccelFrac: 0.3,
+  /** Evasive maneuvers (corkscrew): the thrust circles the line of travel at this angle,
+   *  once every this many seconds (slower if the ship cannot turn that fast). */
+  evasiveConeDeg: 25,
+  evasivePeriodS: 20,
   /** The main drive only fires when the bow is within this angle of the wanted direction. */
   alignToleranceDeg: 1.5,
   /** Burn to point is complete inside this distance and below this speed. */

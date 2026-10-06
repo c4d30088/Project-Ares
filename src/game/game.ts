@@ -396,6 +396,8 @@ export function createGame(scenario: Scenario): Game {
     const ship = world.ships.find((s) => s.id === game.activeShipId && s.faction === faction);
     if (impactIn !== null) list.push({ text: "IMPACT", tone: "threat", countdown: impactIn });
     if (slugImpactIn !== null) list.push({ text: "SLUG", tone: "threat", countdown: slugImpactIn });
+    // Something inbound: suggest the corkscrew (never automatic).
+    if ((impactIn !== null || slugImpactIn !== null) && ship && ship.order?.type !== "evasive") list.push({ text: "EVASIVE MANEUVERS: V", tone: "warn" });
     if (ship) {
       const recentHit = realClock - lastHullHit < timeTuning.damageAlertS;
       if (recentHit || ship.health.hull < timeTuning.hullAlert) list.push({ text: `HULL BREACH ${Math.round(ship.health.hull * 100)}%`, tone: "threat", blink: recentHit });

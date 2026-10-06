@@ -316,6 +316,7 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
       g.stage = "flight";
       g.reserve = g.fuel * (TT.terminalReserve / TT.deltaV);
       delete g.seen;
+      delete g.aEst;
       tgt = seekerView(world, t, true);
     } else if (g.searchS >= TT.mineLifetimeS) {
       events.push({ type: "torpedoExpired", torpedo: t.id, reason: "timeout" });
@@ -332,7 +333,11 @@ export function guideTorpedo(world: World, t: Torpedo, dt: number, events: SimEv
     else {
       const r = sub(tgt.position, t.position);
       const v = sub(t.velocity, tgt.velocity);
-      const aT = sub(add(tgt.thrust, gravityAt(world.bodies, tgt.position)), gravityAt(world.bodies, t.position));
+      // Lead the target's average drive acceleration, not this instant's: a corkscrewing
+      // target's thrust keeps turning, and leading each instant would chase phantoms.
+      const k = Math.min(1, dt / Math.max(dt, TT.targetAccelSmoothS));
+      g.aEst = g.aEst ? add(g.aEst, scale(sub(tgt.thrust, g.aEst), k)) : { ...tgt.thrust };
+      const aT = sub(add(g.aEst, gravityAt(world.bodies, tgt.position)), gravityAt(world.bodies, t.position));
       const vc = dot(v, normalize(r));
       const tgo = vc > 0 ? length(r) / vc : Infinity;
       const boosting = g.fuel > g.reserve;

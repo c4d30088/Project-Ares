@@ -254,7 +254,7 @@ export function buildDisplayList(picture: SensorPicture, markers: PathMarker[] =
   for (const t of picture.tracks) {
     const lost = t.lost;
     let label = t.kind === "torpedo" ? null : t.label;
-    if (lost && label) label = `${label} · LAST SEEN ${formatCountdown(lost.ageS)}`;
+    if (lost && label) label = `${label} · LAST SEEN ${formatCountdown(lost.ageS)} AGO`;
     const shape: SymbolShape =
       t.kind === "torpedo" ? "torpedo" :
       t.kind === "station" ? "station" :

@@ -69,6 +69,11 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   time.close();
 
   const nav = gui.addFolder("Nav computer");
+  nav.add(navTuning, "evadeAngleDeg", 1, 45, 0.5).name("evade: bend (deg)");
+  nav.add(navTuning, "evadeDurationS", 5, 300, 5).name("evade: lasts (s)");
+  nav.add(navTuning, "evadeCoastAccelFrac", 0, 1, 0.05).name("evade: sideways burn when coasting (x cruise)");
+  nav.add(navTuning, "evasiveConeDeg", 5, 80, 1).name("evasive: corkscrew angle (deg)");
+  nav.add(navTuning, "evasivePeriodS", 5, 120, 1).name("evasive: one turn every (s)");
   nav.add(navTuning, "alignToleranceDeg", 0.2, 10, 0.1);
   nav.add(navTuning, "arriveDistance", 5, 1000, 5);
   nav.add(navTuning, "arriveSpeed", 0.05, 5, 0.05);
@@ -165,6 +170,7 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   torp.add(torpedoTuning, "terminalReserve", 0, 10000, 100).name("homing reserve (m/s)");
   torp.add(torpedoTuning, "terminalPhaseS", 5, 120, 1).name("final homing (s)");
   torp.add(torpedoTuning, "fuseRadius", 10, 1000, 10).name("fuse radius (m)");
+  torp.add(torpedoTuning, "targetAccelSmoothS", 0.5, 120, 0.5).name("lead target accel averaged over (s)");
   torp.add(torpedoTuning, "seekerRange", 10000, 10000000, 10000).name("seeker range (m)");
   torp.add(torpedoTuning, "pointArrival", 1000, 500000, 1000).name("point arrival (m)");
   torp.add(torpedoTuning, "mineLifetimeS", 60, 14400, 60).name("mine lifetime (s)");

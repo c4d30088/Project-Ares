@@ -112,6 +112,8 @@ export interface OwnShip {
   loud: boolean;
   /** Heat from running dark, 0..1 (1: taking damage). */
   heat: number;
+  /** An Evade bend is in progress. */
+  evading: boolean;
   /** G-strain 0..1, and crew efficiency (1 = fresh and whole). */
   strain: number;
   efficiency: number;
@@ -246,6 +248,7 @@ export function buildPerfectPicture(world: World, faction: FactionId): SensorPic
       sensorsOn: s.sensorsOn,
       loud: isLoud(s),
       heat: s.heat,
+      evading: !!s.evade,
       strain: s.strain,
       efficiency: crewEfficiency(s),
       torpedoes: {
