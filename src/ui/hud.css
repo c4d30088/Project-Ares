@@ -367,3 +367,6 @@
 .control-row.listening { background: color-mix(in srgb, var(--friendly) 18%, transparent); }
 .control-row.listening .control-key { color: var(--uncertain); box-shadow: inset 0 0 0 1px var(--uncertain); }
 .controls-message { flex: 1; min-height: 1.4em; }
+
+/* Build stamp on the setup screen (which build a playtester played). */
+.build-stamp { position: absolute; right: 16px; bottom: 12px; font-size: 10px; color: var(--textDim); letter-spacing: 0.06em; text-transform: none; }

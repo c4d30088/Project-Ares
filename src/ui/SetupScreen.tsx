@@ -113,6 +113,9 @@ export function SetupScreen() {
           </section>
         </div>
       </Panel>
+      <div className="build-stamp mono" title="Which build this is: name it in a playtest report">
+        BUILD {__BUILD__}
+      </div>
       {showSettings && <SettingsScreen inFight={false} onClose={() => setShowSettings(false)} />}
     </div>
   );

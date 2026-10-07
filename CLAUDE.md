@@ -20,6 +20,7 @@ Reference images are in `UX reference/` and `The Expanse UI Reference/`. They ar
 - `npm run dev`: start the game locally at http://localhost:5173
 - `npm test`: run unit tests (includes `tests/simRules.test.ts`, which enforces hard rules 1 and 3 on `src/sim`)
 - `npm run build`: type-check, then production build to `dist/`
+- `npm run preview`: serve the production build from `dist/` at http://localhost:4173 (what Cloudflare Pages serves; see `docs/DEPLOY.md`)
 - `npm run shot`: headless screenshot of the current scene to `shots/latest.png` (options: `-- --wait 1500 --width 1600 --height 900`)
 
 Debug panel (lil-gui): press `` ` `` in the game. The search box at the top finds a control by name or by what it does; every control has a one-line explanation under it ("show explanations" hides them). "copy values" puts all tunables on the clipboard as JSON.
