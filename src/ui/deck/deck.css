@@ -5,6 +5,7 @@
    status line and slanted tabs (system control screen). */
 
 :root {
+  /* Weapons and helm both get the taller one's height (measured by fit.ts); this is the least. */
   --deck-h: 172px;
   --deck-bottom: 16px;
   /* Set by fit.ts from the window width: the deck's scale, how far the time panel lifts on
@@ -30,8 +31,8 @@
   background: color-mix(in srgb, var(--panelBg) 82%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chrome) 45%, transparent);
 }
-.dk.left { left: 16px; height: var(--deck-h); transform: scale(var(--deck-scale)); transform-origin: bottom left; }
-.dk.right { right: 16px; height: var(--deck-h); transform: scale(var(--deck-scale)); transform-origin: bottom right; }
+.dk.left { left: 16px; min-height: var(--deck-h); transform: scale(var(--deck-scale)); transform-origin: bottom left; }
+.dk.right { right: 16px; min-height: var(--deck-h); transform: scale(var(--deck-scale)); transform-origin: bottom right; }
 .dk.mid { left: 50%; bottom: calc(var(--deck-bottom) + var(--deck-mid-lift)); width: 250px; transform: translateX(-50%) scale(var(--deck-scale)); transform-origin: bottom center; }
 
 /* Title band across the top, and a tick ruler under it. */
@@ -70,6 +71,7 @@
 .dk-col { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .readout-line { font-size: 10.5px; padding-left: 4px; margin-top: auto; white-space: nowrap; }
 .readout-line .dim { color: var(--textDim); }
+.dk-empty { width: 574px; padding: 4px 2px; }
 .dk-note { font-size: 9px; color: var(--textDim); }
 .dk-note.warn { color: var(--uncertain); }
 .dk-note.bad { color: var(--threat); }

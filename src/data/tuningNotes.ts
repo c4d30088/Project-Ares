@@ -23,6 +23,12 @@ export const tuningNotes: Record<string, string> = {
   // --- Sound ---
   "panel.sound": "Pick any game sound to hear it on demand: alarms, weapons, hits, or a few seconds of the drive, PDC fire or the impact countdown.",
   "panel.playSound": "Plays the sound picked above, so you can judge it and tune the volumes without waiting for it in a fight.",
+  "effectsTuning.hitFlicker": "How hard the table stutters when our ship is hit (color split, torn bands, scanlines, labels jitter). 0 turns it off.",
+  "effectsTuning.hitFlickerS": "How long the hit flicker lasts, in seconds.",
+  "effectsTuning.hitFlickerPdc": "How hard PDC rounds striking our hull make the table flicker (a heavy hit flickers more).",
+  "effectsTuning.hitFlickerMin": "The least a torpedo or slug hit makes the table flicker, before adding for the hull it took.",
+  "effectsTuning.hitFlickerPerHull": "Extra flicker for a heavy hit per whole hull lost: a hit taking 20% of the hull adds 0.2 times this.",
+  "effectsTuning.alertAnim": "Strength of the alert strip animations: new alerts flash in, danger alerts pulse, the strip flashes red on new danger. 0 turns them off.",
   "audioTuning.muted": "Turns all sound off. The N key and the SOUND button at the bottom do the same.",
   "audioTuning.master": "Overall volume of every sound in the game.",
   "audioTuning.alarms": "Volume of the bridge alarms: launch and railgun warnings, contact pings, impact countdown beeps, heat and damage alarms.",

@@ -8,6 +8,7 @@
 // player's sensor picture will be filtered here.
 
 import { impactTuning as T } from "../data/impacts";
+import { effectsTuning as FX } from "../data/effects";
 import type { SimEvent } from "../sim/commands";
 import type { Vec3 } from "../sim/vec3";
 import type { PaletteToken } from "./palette";
@@ -109,6 +110,19 @@ export function impactsFromEvents(events: SimEvent[], ctx: ImpactContext): Impac
     }
   }
   return out;
+}
+
+/** How hard the table should flicker for this frame's hits on our side, 0..1 (0: none).
+ *  Losing a ship is the full flicker; a torpedo or slug hit flickers harder the more hull it
+ *  took; PDC rounds on our hull flicker lightly. Scaled later by effectsTuning.hitFlicker. */
+export function hitFlickerFromEvents(events: SimEvent[], ctx: ImpactContext): number {
+  let f = 0;
+  for (const e of events) {
+    if (e.type === "damage" && e.faction === ctx.playerFaction) {
+      f = Math.max(f, e.cause === "pdc" ? FX.hitFlickerPdc : Math.min(1, FX.hitFlickerMin + e.hull * FX.hitFlickerPerHull));
+    } else if (e.type === "destroyed" && e.kind === "ship" && ctx.factionOf(e.id) === ctx.playerFaction) f = 1;
+  }
+  return f;
 }
 
 /** Hits on the same ship in the same color add up into one label. Returns null if they can't. */

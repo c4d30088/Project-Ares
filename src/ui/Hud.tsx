@@ -15,6 +15,7 @@ import { TimeDeck } from "./deck/TimeDeck";
 import { useDeckFit } from "./deck/fit";
 import { formatCountdown } from "./format";
 import { useHud } from "./store";
+import { useRef } from "react";
 
 /** Alerts shown at once in the top strip (most urgent first). */
 const MAX_ALERTS = 3;
@@ -23,11 +24,18 @@ const MAX_ALERTS = 3;
 export function Hud() {
   const hud = useHud();
   useDeckFit();
+  // The strip flashes red once when a danger alert appears that was not there before.
+  const seenThreats = useRef(new Set<string>());
+  const flash = useRef(0);
+  const threats = hud.alerts.filter((a) => a.tone === "threat").map((a) => a.text);
+  if (threats.some((t) => !seenThreats.current.has(t))) flash.current++;
+  seenThreats.current = new Set(threats);
   return (
     <div className="hud">
       <Panel className="alert-strip">
+        {flash.current > 0 && <div key={flash.current} className="strip-flash" />}
         {hud.alerts.slice(0, MAX_ALERTS).map((a) => (
-          <span key={a.text} className={`mono alert ${a.tone} ${a.blink ? "blink" : ""}`}>
+          <span key={a.text} className={`mono alert ${a.tone} ${a.blink ? "blink" : ""} ${a.countdown !== undefined && a.countdown < 10 ? "urgent" : ""}`}>
             {a.text}
             {a.countdown !== undefined ? ` T-${formatCountdown(a.countdown)}` : ""}
           </span>

@@ -337,7 +337,8 @@ Weapon fire has its own colors, separate from allegiance (decided 2026-10-03): o
 
 - Bloom on lines and icons so they glow
 - A slight chromatic split on holographic lines (seen in the reference holograms)
-- Subtle flicker when the ship is hit
+- Subtle flicker when the ship is hit: the table stutters (color split, torn bands, scanlines), harder for heavier hits (M6)
+- Alert strip: new alerts flash in, danger alerts pulse, the strip flashes red on new danger (M6)
 - Static, noise, and line dissolve when jammed
 
 Readability comes first. Every effect has an intensity slider in the debug panel and an accessibility setting to reduce it.

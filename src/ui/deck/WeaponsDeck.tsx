@@ -55,7 +55,7 @@ export function WeaponsDeck() {
   if (!ship) {
     return (
       <DeckPanel side="left" title="Weapons control" code="NO SHIP">
-        <div className="dk-note">NO SHIP SELECTED</div>
+        <div className="dk-note dk-empty">NO SHIP SELECTED</div>
       </DeckPanel>
     );
   }
@@ -154,7 +154,7 @@ export function WeaponsDeck() {
                 </Key>
               ))}
             </Keys>
-            <Keys cols={4}>
+            <Keys cols={Math.min(4, pdcs.length)}>
               {pdcs.map((m, i) => {
                 const dead = m.health <= 0 || m.rounds === 0;
                 return (

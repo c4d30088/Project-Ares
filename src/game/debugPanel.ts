@@ -195,6 +195,12 @@ export function createDebugPanel(currentScenario: string, restart: () => void, s
   fx.add(effectsTuning, "chromaticPx", 0, 5, 0.05);
   fx.add(effectsTuning, "chromaticRadialPx", 0, 8, 0.05);
   fx.add(effectsTuning, "dustOpacity", 0, 1, 0.01);
+  fx.add(effectsTuning, "hitFlicker", 0, 1, 0.05).name("hit flicker");
+  fx.add(effectsTuning, "hitFlickerS", 0.1, 3, 0.05).name("hit flicker lasts (s)");
+  fx.add(effectsTuning, "hitFlickerPdc", 0, 1, 0.05).name("flicker: PDC hits");
+  fx.add(effectsTuning, "hitFlickerMin", 0, 1, 0.05).name("flicker: heavy hit at least");
+  fx.add(effectsTuning, "hitFlickerPerHull", 0, 10, 0.1).name("flicker: per hull lost");
+  fx.add(effectsTuning, "alertAnim", 0, 1, 0.05).name("alert animations");
   fx.close();
 
   const torp = gui.addFolder("Torpedoes");

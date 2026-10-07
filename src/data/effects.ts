@@ -12,4 +12,15 @@ export const effectsTuning = {
   chromaticRadialPx: 0.1,
   /** Faint floating dust for depth. 0 hides it. */
   dustOpacity: 0.27,
+  /** Hit flicker (M6): how hard the table stutters when our ship is hit, 0..1 (0 off). */
+  hitFlicker: 0.7,
+  /** How long the flicker lasts after a hit, seconds. */
+  hitFlickerS: 0.7,
+  /** Flicker for PDC rounds striking us, and the least a heavy hit gives, 0..1. */
+  hitFlickerPdc: 0.25,
+  hitFlickerMin: 0.5,
+  /** A heavy hit flickers harder by this much per whole hull lost (0.2 of the hull adds 0.2 x this). */
+  hitFlickerPerHull: 2.5,
+  /** Alert strip animations (M6): new alerts flash in, danger alerts pulse, 0..1 (0 off). */
+  alertAnim: 1,
 };

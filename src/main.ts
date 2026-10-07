@@ -19,7 +19,7 @@ import { G0 } from "./data/ships";
 import { createOrderInput, type OrderKind, type SalvoSize } from "./game/input";
 import { createIconLayer } from "./render/icons";
 import { createImpactLayer } from "./render/impacts";
-import { impactsFromEvents } from "./render/impactModel";
+import { hitFlickerFromEvents, impactsFromEvents } from "./render/impactModel";
 import { areHostile } from "./sim/world";
 import { createBodyLayer } from "./render/bodies";
 import { createDropLines } from "./render/dropLines";
@@ -210,6 +210,8 @@ let last = performance.now();
 let lastRenderTime = game.renderTime;
 let firstFrame = true;
 let hudTimer = 0;
+/** Hit flicker level, 0..1, fading after each hit on our side. */
+let hitFlicker = 0;
 function frame(now: number) {
   applyLabelStyle();
   const dt = Math.min(0.1, (now - last) / 1000);
@@ -223,6 +225,7 @@ function frame(now: number) {
   hudTimer -= dt;
   if (hudTimer <= 0) {
     hudTimer = 0.1;
+    document.documentElement.style.setProperty("--alert-anim", String(effectsTuning.alertAnim));
     const own = game.picture.ownShips.find((s) => s.id === game.activeShipId);
     const pred = own ? game.predictions.get(own.id) : undefined;
     const elapsed = pred ? (game.world.tick - pred.startTick) * DT : 0;
@@ -372,6 +375,9 @@ function frame(now: number) {
     factionOf: (id: string) => game.factionOf(id),
   };
   const fx = impactsFromEvents(events, eventCtx);
+  // Hit flicker: jumps on a hit on our side, then fades over hitFlickerS.
+  hitFlicker = Math.max(hitFlicker - dt / Math.max(0.05, effectsTuning.hitFlickerS), hitFlickerFromEvents(events, eventCtx));
+  view.setGlitch(effectsTuning.enabled ? Math.max(0, hitFlicker) * effectsTuning.hitFlicker : 0);
   sound.play([...cuesFromEvents(events, eventCtx), ...cuesFromSignals(game.takeSignals())]);
   {
     const own = game.picture.ownShips.find((s) => s.id === game.activeShipId);

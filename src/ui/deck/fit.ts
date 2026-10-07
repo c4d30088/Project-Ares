@@ -13,6 +13,8 @@ const EDGE = 16;
 const GAP = 12;
 /** Space between the lifted time panel and the panels below it, px. */
 const LIFT_GAP = 10;
+/** The least height of the weapons and helm panels, px. */
+const MIN_DECK_H = 172;
 
 export interface DeckFit {
   scale: number;
@@ -38,9 +40,14 @@ export function useDeckFit(): void {
       const m = panel("mid");
       const r = panel("right");
       if (!l || !m || !r) return;
+      // Weapons and helm are always the same height: the taller one's natural height (a ship
+      // with many PDC mounts needs more rows), never less than MIN_DECK_H. Measured with the
+      // shared height lifted for a moment; nothing paints in between.
+      root.style.setProperty("--deck-h", "0px");
+      const deckH = Math.max(MIN_DECK_H, l.offsetHeight, r.offsetHeight);
+      root.style.setProperty("--deck-h", `${deckH}px`);
       // offsetWidth and offsetHeight ignore transforms: these are the natural sizes.
       const fit = fitDeck(window.innerWidth, l.offsetWidth, m.offsetWidth, r.offsetWidth);
-      const deckH = Math.max(l.offsetHeight, r.offsetHeight);
       const lift = fit.lifted ? deckH * fit.scale + LIFT_GAP : 0;
       root.style.setProperty("--deck-scale", String(fit.scale));
       root.style.setProperty("--deck-mid-lift", `${lift}px`);
