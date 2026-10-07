@@ -409,6 +409,6 @@ Decide these when the relevant milestone arrives. None of them block the combat 
 2. **Captain death.** In the career, what happens when the player's own ship is destroyed? Options: escape pod and demotion, or career ends.
 3. **Gravity in battle.** Decided in M2: on. Bodies stay on fixed positions but pull on everything that moves. Still open: moving bodies (moons on their own orbits) and slingshot planning.
 4. **Power management.** Should the player route reactor power between drive, weapons, sensors, and jamming? Adds depth and complexity.
-5. **Audio direction.** Alarms, PDC fire, drive rumble, comms chatter.
+5. **Audio direction.** Decided in M6: realistic and heavy, heard from the bridge (a hull echo, alarms through the ship's speakers); you hear your own ship and what your side has detected, never a hidden enemy. All sounds synthesized in the browser. Still open: comms chatter.
 6. **Datalink model.** Line-of-sight laser links with relay (current assumption) or simple range-based links.
 7. **Input.** Assumed desktop browser with mouse and keyboard. Touch and controller are out of scope for now.

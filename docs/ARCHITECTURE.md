@@ -44,10 +44,11 @@ Project Ares/
       volumes.ts         PDC domes, sensor shadows, uncertainty clouds
       effects.ts         bloom, chromatic split, jamming static
     audio/               Web Audio synth: every sound made live, no sound files (M6)
-    ui/                  React HUD panels
-    game/                main loop, input, sim-to-render bridge
+    ui/                  React HUD panels; ui/deck/ is the bottom deck (weapons, time, helm, replay)
+    game/                main loop, input, sim-to-render bridge; player settings, key map, replay
     data/                ship classes, weapons, sensors, scenarios (all tunables)
-  tests/                 Vitest tests for src/sim
+  tests/                 Vitest tests (sim rules, and the pure rules of game, render and ui)
+  mockups/               design mockups served by the dev server, not part of the build
   scripts/               screenshot script and other tools
 ```
 

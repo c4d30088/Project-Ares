@@ -17,6 +17,49 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-07, milestone M6: built, ready for the checkpoint
+Next session: the owner connects Cloudflare Pages (docs/DEPLOY.md), plays the branch preview link, then runs the checkpoint: give the link to 3 to 5 people who have not seen the game and watch them play without explaining. Claude Code writes the M6 entry from the owner's notes, then fixes what the testers stumbled on first. Still unplayed by the owner: the M4 (Sensors Lite) and M5 (AI captain, 10 skirmishes) checkpoints; the testers' games will cover some of that ground.
+
+How to play
+- The link (once connected) opens the skirmish setup screen; locally `npm run dev`, http://localhost:5173. The setup screen shows the build bottom right (BUILD commit · date): note it with the playtest notes.
+- Bottom deck: Weapons control on the left (Torpedoes, Railgun, Point defense), Time in the middle (click a speed on the ruler, or `[` `]`, Space to pause), Helm on the right (order tiles light their status line while the order runs; thrust tabs; Sensors tile says what gives you away).
+- SET in the Time panel opens Settings: colors (Standard, Red-green safe, Blue-yellow safe), Reduce effects, volume, UI scale, and Controls (rebind any key). Cmd/Ctrl + and − change the UI scale anywhere.
+- After a fight: Replay on the result banner. Timeline (click or drag), Our view / Their view / All. Esc leaves the replay.
+
+What M6 built (branch claude/m6-feel-polish, PR c4d30088/Project-Ares#7; 364 tests)
+- Sound, synthesized live: drive rumble with flame flicker, PDC fire from single rounds, railgun transformer charge (from G, also while paused) and zip release, hits, kills, alarms through a ship-speaker filter, impact countdown beeps. You hear your own ship and what your side has detected. `N` mutes; the debug panel's Sound folder plays any sound on demand.
+- Bottom deck (owner's pick D of four mockups in `mockups/hud-clusters.html`), centered as a group; it scales on narrower windows and lifts the Time panel above the row when it does not fit.
+- Hit flicker on the table and alert strip animations, each with a slider; both off with Reduce effects.
+- Settings with color-blind palettes (checked by a color-blindness simulation test), Reduce effects, volume, UI scale, remappable keys. Saved in the browser.
+- After-action replay that re-runs the fight exactly from saved copies and your commands.
+- Cloudflare Pages: repository ready, owner's steps in docs/DEPLOY.md.
+
+Owner decisions this milestone
+- Sound: realistic and serious, not playful (three rounds: hull echo, horn klaxon, single-round PDC, no bell tones; a rumblier, flickering drive; the railgun as a transformer charge and a zip release). Voice recordings are not usable (Claude Code cannot hear audio); descriptions and sound words work.
+- Bottom HUD: option D, the console deck after the UX references, not hexes; weapons and helm the same height; bigger click targets for the time speeds.
+- Large screens: UI scale on Cmd/Ctrl + and −; the deck centered next to the Time panel.
+- Hosting: Cloudflare Pages.
+- Jamming static left out: jamming itself is parked.
+
+What Claude Code saw (not a real playtest)
+- A Moon shadow skirmish against a Hunter, left to run with no orders: lost at 13:42 to overheating while running dark. In the replay's Their view the enemy did not know where we were until about 12:40; that is the kind of "why did I lose" the replay is for.
+- Every control on the deck, every Settings option and the replay were clicked through in the browser; the production build was played through `npm run preview`.
+
+Watch the testers for (the M6 checkpoint)
+- Where they hesitate: finding how to move (the Helm), how to fire (the Weapons stations, then clicking a target), how to speed up time.
+- What they never use: Sensors, Evade and Evasive, PDC modes, burst fire, the replay, Settings.
+- When they lean in: the first launch warning and countdown beeps, the swarm, the railgun charge.
+- Whether anyone can tell why they won or lost (and whether the replay helps).
+
+Known limits
+- No onboarding: a new player gets the setup screen and the table, nothing more. Expect hesitation; that is what the checkpoint measures.
+- The debug panel (backquote key) is in the playtest build too; testers will not find it unless told.
+- Labels on the 3D table do not follow the UI scale (they have their own sizes in the debug panel).
+- A palette change reloads the game, so mid-fight it restarts the fight (the screen says so).
+- Sound starts after the first click or key press (a browser rule).
+
+---
+
 ## 2026-10-05, milestone M4 (Sensors Lite): built, ready for the checkpoint playtest
 Next session: start with the playtest. The owner plays Moon shadow and Open duel (and anything else) and reports: could you tell whether the enemy knew where you were, and why; did going dark feel worth it; were the lost-contact markers clear; did Evade or Evasive maneuvers save you; were the weapon rings useful. Claude Code writes the M4 entry from it, then tunes (every number has a debug slider: Sensors folder, Weapon range rings, Nav computer, AI captain).
 
@@ -193,5 +236,7 @@ Features for later. Not for the current milestone.
 - Orbit: choose the altitude by dragging; fuel-efficient transfers instead of stop-then-spin-up.
 - Gravity: moving bodies (moons on their own orbits) and slingshot planning.
 - Combat stims (DESIGN.md section 9): raise the G-strain limit for a while, then reduced efficiency; limited supply.
-- From the first M4 build, dropped by Sensors Lite (2026-10-05): jamming, decoys and ghost contacts, telescope and bearing-only tracks, triangulation, lidar locks, classification confidence, uncertainty clouds, a contact list tab, sensor shadow volumes, datalink lines and cut links. The code is on branch `icebox/m4-sensors`.
+- From the first M4 build, dropped by Sensors Lite (2026-10-05): jamming, decoys and ghost contacts, telescope and bearing-only tracks, triangulation, lidar locks, classification confidence, uncertainty clouds, a contact list tab, sensor shadow volumes, datalink lines and cut links. The code is on branch `icebox/m4-sensors`. Jamming static on the table (M6 list) comes back with jamming.
+- Comms chatter (DESIGN.md open question 5): short crew call-outs on launches, hits and contacts. Left out of M6's sound pass.
+- Onboarding (Phase 4 in the roadmap) may need to come earlier if the M6 testers cannot find their way.
 - Destructible asteroids: asteroids take damage from railgun slugs and torpedoes and break into fragments. Fragments become new objects (debris) that drift, block shots and routes, and can be cleared by PDCs (DESIGN.md already lists debris as a target). Moons and planets stay intact. Best after M3, once railguns exist; it changes cover, so look at it alongside M4 sensors and line of sight.
