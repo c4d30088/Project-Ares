@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bottom HUD Mockups</title>
+<!-- M6 step 2 mockups (not part of the game build). Open with the dev server running:
+     http://localhost:5173/mockups/hud-clusters.html  (best at 1600 x 900 or larger)
+     The live game runs behind (iframe, same origin) with its old bottom bar hidden. The
+     controls here are clickable for feel only; they do not command the game. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #05080C; --friendly: #39C6FF; --text: #DCE6EA; --textDim: #8A9BA4; --chrome: #7C93A0;
+    --uncertain: #FFB020; --fire: #3DF56B; --panelBg: #05080C;
+    --pod: 240px; --gap: 14px; --max-side: calc((100vw - var(--pod) - 2 * var(--gap) - 32px) / 2); --side: var(--max-side);
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  body { font-family: "Oxanium", sans-serif; color: var(--text); text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; }
+  .mono { font-family: "Share Tech Mono", monospace; letter-spacing: 0.04em; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .variant { display: none; }
+  .variant.on { display: block; }
+
+  #switcher { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 10; }
+  #notes { position: absolute; top: 94px; left: 50%; transform: translateX(-50%); width: min(660px, 56vw); z-index: 10;
+    background: color-mix(in srgb, var(--panelBg) 88%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chrome) 50%, transparent);
+    padding: 10px 14px; text-transform: none; letter-spacing: 0.02em; font-size: 12px; line-height: 1.5; }
+  #notes b { color: var(--friendly); font-weight: 600; }
+  #notes .hide { float: right; cursor: pointer; color: var(--textDim); margin-left: 12px; }
+
+  /* Chamfered frame: outer = border color, inner = fill (the game's panel trick). */
+  .frame { position: absolute; bottom: 16px; --cut: 16px; background: color-mix(in srgb, var(--chrome) 55%, transparent);
+    clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%, 0 var(--cut)); }
+  .frame::before { content: ""; position: absolute; inset: 1px; background: color-mix(in srgb, var(--panelBg) 80%, transparent); clip-path: inherit; }
+  .frame.left { left: 16px; width: var(--side); }
+  .frame.right { right: 16px; width: var(--side); }
+  .frame.pod { left: calc(50% - var(--pod) / 2); width: var(--pod); --cut: 12px; }
+  .title { position: absolute; top: 8px; left: 20px; right: 20px; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 10px; color: var(--textDim); }
+  .title::after { content: ""; flex: 1; height: 4px; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--chrome) 50%, transparent) 0 1px, transparent 1px 6px); }
+  .body { position: absolute; left: 18px; right: 18px; top: 26px; bottom: 10px; display: flex; gap: 18px; align-items: center; }
+  .right .body { flex-direction: row-reverse; }
+  .col { display: flex; flex-direction: column; gap: 9px; }
+  .row { display: flex; gap: 14px; align-items: flex-end; }
+  .spacer { flex: 1; }
+
+  /* Rectangular chamfered button */
+  .btn { --cut: 6px; font-family: "Oxanium", sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text); background: color-mix(in srgb, var(--chrome) 14%, transparent); border: none; padding: 6px 9px; cursor: pointer;
+    clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chrome) 55%, transparent); white-space: nowrap; }
+  .btn:hover { background: color-mix(in srgb, var(--chrome) 28%, transparent); }
+  .btn.on { background: color-mix(in srgb, var(--chrome) 45%, transparent); color: #fff; }
+  .btn.warn { color: var(--uncertain); }
+  .btn.warn.on { background: color-mix(in srgb, var(--uncertain) 30%, transparent); }
+  .key { color: var(--friendly); opacity: 0.85; font-family: "Share Tech Mono", monospace; font-weight: 400; margin-left: 5px; letter-spacing: 0; }
+
+  /* Segmented strip: a setting, one segment lit */
+  .strip { display: flex; gap: 2px; }
+  .strip .btn { --cut: 0px; clip-path: none; padding: 5px 8px; }
+  .strip .btn:first-child { clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px); }
+  .strip .btn:last-child { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%); }
+  .label { font-size: 9px; color: var(--textDim); margin-bottom: 3px; letter-spacing: 0.14em; }
+  .readout { font-family: "Share Tech Mono", monospace; letter-spacing: 0.04em; font-size: 11px; white-space: nowrap; }
+  .dim { color: var(--textDim); }
+  .ok { color: var(--friendly); }
+
+  /* Hexagons. Outer = border, inner = fill, both clipped. Flat-topped by default; .pt = pointy-topped. */
+  .comb { position: relative; flex: none; }
+  .hex { position: absolute; width: var(--w); height: calc(var(--w) * 0.866); cursor: pointer; transform: translate(-50%, -50%);
+    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: color-mix(in srgb, var(--chrome) 60%, transparent); }
+  .hex.pt { height: calc(var(--w) * 1.1547); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+  .hex::before { content: ""; position: absolute; inset: 1.5px; clip-path: inherit; background: color-mix(in srgb, var(--panelBg) 80%, var(--chrome) 20%); }
+  .hex > span { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;
+    font-weight: 600; font-size: 9px; letter-spacing: 0.08em; text-align: center; line-height: 1.12; }
+  .hex .key { margin: 3px 0 0; font-size: 10px; }
+  .hex .sub { font-family: "Share Tech Mono", monospace; font-weight: 400; font-size: 9px; color: var(--textDim); letter-spacing: 0.02em; margin-top: 2px; }
+  .hex.ready .sub { color: var(--friendly); }
+  .hex.big > span { font-size: 10.5px; }
+  .hex:hover::before { background: color-mix(in srgb, var(--panelBg) 62%, var(--chrome) 38%); }
+  .hex.on { background: var(--friendly); }
+  .hex.on::before { background: color-mix(in srgb, var(--panelBg) 55%, var(--friendly) 45%); }
+  .hex.on > span { color: #fff; }
+  .hex.warn { background: color-mix(in srgb, var(--uncertain) 70%, transparent); }
+  .hex.warn::before { background: color-mix(in srgb, var(--panelBg) 82%, var(--uncertain) 18%); }
+  .hex.warn > span { color: var(--uncertain); }
+  .hex.warn.on::before { background: color-mix(in srgb, var(--panelBg) 55%, var(--uncertain) 45%); }
+
+  /* Time pod */
+  .pod .read { position: absolute; top: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: baseline; gap: 12px; }
+  .pod .x { font-size: 17px; color: #fff; }
+  .pod .pips { position: absolute; top: 33px; left: 0; right: 0; text-align: center; }
+  .pip { display: inline-block; width: 8px; height: 4px; margin: 0 1px; background: color-mix(in srgb, var(--chrome) 35%, transparent); }
+  .pip.on { background: var(--friendly); }
+  .chev { font-family: "Share Tech Mono", monospace; font-size: 12px; letter-spacing: -0.12em; }
+  .snd { position: absolute; top: 8px; right: 10px; padding: 3px 6px !important; font-size: 9px !important; }
+
+  .pips4 { display: flex; gap: 3px; }
+  .mount { font-family: "Share Tech Mono", monospace; font-size: 10px; padding: 3px 5px; cursor: pointer; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chrome) 55%, transparent); }
+  .mount.firing { box-shadow: inset 0 0 0 1px var(--fire); color: var(--fire); }
+  .glabel { position: absolute; font-size: 9px; font-weight: 600; color: var(--textDim); letter-spacing: 0.16em; transform: translateX(-50%); white-space: nowrap; }
+  .tip { position: fixed; pointer-events: none; z-index: 20; background: var(--panelBg); box-shadow: inset 0 0 0 1px var(--chrome); padding: 5px 8px;
+    font-size: 11px; text-transform: none; letter-spacing: 0.02em; max-width: 280px; display: none; }
+</style>
+</head>
+<body>
+<iframe id="game" src="/?scenario=first-fight&paused=1"></iframe>
+<div id="switcher">
+  <button class="btn on" data-v="A">A · Honeycomb</button>
+  <button class="btn" data-v="B">B · Hex rows</button>
+  <button class="btn" data-v="C">C · Command wings</button>
+</div>
+<div id="notes"></div>
+<div class="tip" id="tip"></div>
+<div class="variant on" id="A"></div>
+<div class="variant" id="B"></div>
+<div class="variant" id="C"></div>
+
+<script>
+// ---- What each control is ----
+const O = {
+  burnTo: { label: "Burn<br>to", flat: "Burn to", key: "B", tip: "Burn to a point you place (click the plane, drag for height)." },
+  rendezvous: { label: "Inter-<br>cept", flat: "Intercept", key: "I", tip: "Rendezvous: arrive alongside a target, at its speed." },
+  fastPass: { label: "Fast<br>pass", flat: "Fast pass", key: "P", tip: "Fly past a target at speed, without braking." },
+  match: { label: "Match<br>vel", flat: "Match vel", key: "M", tip: "Match a target's velocity." },
+  stationKeep: { label: "Station", flat: "Station", key: "K", tip: "Hold position here, or at a point." },
+  orbit: { label: "Orbit", flat: "Orbit", key: "R", tip: "Orbit a body (click a moon or asteroid)." },
+  orient: { label: "Orient", flat: "Orient", key: "O", tip: "Turn to face a point or target, to bring guns to bear." },
+  coast: { label: "Coast", flat: "Coast", key: "C", tip: "Cut the drive and drift." },
+  evade: { label: "Evade", flat: "Evade", key: "E", tip: "Bend the current route slightly for a while. You still arrive." },
+  evasive: { label: "Evasive", flat: "Evasive", key: "V", tip: "Corkscrew at your G setting. Cancels the route.", warn: true },
+  launch: { label: "Launch", flat: "Launch", key: "L", sub: "12 · 2/2", tip: "Launch a salvo (L), then click a ship, an object or a point. Shows torpedoes left and tubes ready." },
+  railgun: { label: "Fire<br>RG", flat: "Fire RG", key: "G", sub: "READY · 40", ready: true, tip: "Fire the railgun (G), then click a target. Ships are shot at their lead point. Shows state and slugs." },
+  assign: { label: "Assign<br>PDC", flat: "Assign", key: "D", sub: "AUTO", tip: "Assign all PDCs to a target (D): sets them to Manual." },
+};
+const G = [{ label: "Cruise", key: "1" }, { label: "Combat", key: "2" }, { label: "Max", key: "3", warn: true }];
+const SALVO = ["1", "2", "4", "6"].map((label) => ({ label }));
+const HOTCOLD = [{ label: "Hot", tip: "Drive lights at launch: fast, but seen." }, { label: "Cold", tip: "Coasts dark, lights near the target." }];
+const PDCMODE = [{ label: "Auto" }, { label: "Man" }, { label: "Hold" }];
+
+// ---- Builders ----
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
+function frame(parent, side, h, title) {
+  const f = el("div", "frame " + side); f.style.height = h + "px";
+  if (title) f.appendChild(el("div", "title", title));
+  const b = el("div", "body"); f.appendChild(b); parent.appendChild(f); return b;
+}
+function comb(parent, w, h) { const c = el("div", "comb"); c.style.width = w + "px"; c.style.height = h + "px"; parent.appendChild(c); return c; }
+function hex(parent, x, y, w, id, opts = {}) {
+  const o = typeof id === "string" ? O[id] : id;
+  const h = el("div", "hex" + (opts.pt ? " pt" : "") + (opts.big ? " big" : "") + (o.warn ? " warn" : "") + (o.ready ? " ready" : ""));
+  h.style.setProperty("--w", w + "px"); h.style.left = x + "px"; h.style.top = y + "px";
+  h.innerHTML = `<span>${o.label}${o.key ? `<span class="key">${o.key}</span>` : ""}${o.sub && !opts.noSub ? `<span class="sub">${o.sub}</span>` : ""}</span>`;
+  if (o.tip) h.dataset.tip = o.tip;
+  h.dataset[opts.toggle ? "toggle" : "order"] = "1";
+  parent.appendChild(h); return h;
+}
+function strip(parent, label, items, onIdx) {
+  const wrap = el("div");
+  if (label) wrap.appendChild(el("div", "label", label));
+  const s = el("div", "strip");
+  items.forEach((it, i) => {
+    const b = el("button", "btn mono" + (i === onIdx ? " on" : "") + (it.warn ? " warn" : ""), it.label + (it.key ? `<span class="key">${it.key}</span>` : ""));
+    if (it.tip) b.dataset.tip = it.tip;
+    b.onclick = () => { s.querySelectorAll(".btn").forEach((x) => x.classList.remove("on")); b.classList.add("on"); };
+    s.appendChild(b);
+  });
+  wrap.appendChild(s); parent.appendChild(wrap); return wrap;
+}
+function orderBtn(parent, id) { const o = O[id]; const b = el("button", "btn" + (o.warn ? " warn" : ""), `${o.flat}<span class="key">${o.key}</span>`); b.dataset.tip = o.tip; b.dataset.order = "1"; parent.appendChild(b); return b; }
+function mounts(parent, label) {
+  const wrap = el("div"); if (label) wrap.appendChild(el("div", "label", label));
+  const p = el("div", "pips4");
+  ["1A", "2A", "3A", "4A"].forEach((t, i) => { const d = el("span", "mount" + (i === 1 ? " firing" : ""), t); d.dataset.tip = `PDC ${i + 1}: click to cycle Auto, Manual, Hold. Green while firing.`; p.appendChild(d); });
+  wrap.appendChild(p); parent.appendChild(wrap); return wrap;
+}
+function sensors(parent) {
+  const b = el("button", "btn", "Sensors off<span class='key'>S</span>"); b.dataset.toggle = "1";
+  b.dataset.tip = "Sensors on finds dark ships and cold torpedoes nearby, but you can be seen at any range.";
+  parent.appendChild(b); return b;
+}
+function timePod(parent, h, hexy) {
+  const f = el("div", "frame pod"); f.style.height = h + "px"; parent.appendChild(f);
+  const r = el("div", "read mono", `<span class="x">16×</span><span>T+00:12:48</span>`); f.appendChild(r);
+  const p = el("div", "pips", [1, 4, 16, 64, 256, 1024].map((c, i) => `<span class="pip ${i <= 2 ? "on" : ""}"></span>`).join("")); f.appendChild(p);
+  const snd = el("button", "btn on snd", "SND<span class='key'>N</span>"); snd.dataset.toggle = "1"; snd.dataset.tip = "Sound on or off (N)"; f.appendChild(snd);
+  const c = el("div", "comb"); Object.assign(c.style, { position: "absolute", left: "50%", top: "44px", width: "0", height: "0" }); f.appendChild(c);
+  const slower = { label: `<span class="chev">◀◀</span>`, key: "[", tip: "Slower: one step down in time compression ([)." };
+  const faster = { label: `<span class="chev">▶▶</span>`, key: "]", tip: "Faster: one step up in time compression (])." };
+  const pause = { label: "Pause", key: "Space", tip: "Pause and resume (Space). Orders still work while paused." };
+  if (hexy) {
+    const big = 72, sm = 50;
+    hex(c, -(big * 0.75 + 4), (h - 44) / 2 - 2, sm, slower, { pt: false });
+    hex(c, 0, (h - 44) / 2 - 2, big, pause, { big: true, toggle: true });
+    hex(c, big * 0.75 + 4, (h - 44) / 2 - 2, sm, faster);
+  } else {
+    const row = el("div", "strip"); Object.assign(row.style, { position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: "10px" });
+    for (const [o, wide] of [[slower], [pause, true], [faster]]) {
+      const b = el("button", "btn", `${o.label}${o === pause ? `<span class="key">␣</span>` : ""}`); if (wide) b.style.padding = "6px 22px";
+      b.dataset.tip = o.tip; if (o === pause) b.dataset.toggle = "1"; row.appendChild(b);
+    }
+    f.appendChild(row);
+  }
+}
+
+// ============================ A: Honeycomb ============================
+(function () {
+  const root = document.getElementById("A");
+  root.style.setProperty("--side", "min(520px, var(--max-side))");
+  // Weapons: three big hexes nested together (one per weapon, showing its ammo and state);
+  // their settings face the center.
+  const wb = frame(root, "left", 214, "Weapons");
+  const BW = 92, BH = BW * 0.866;
+  const wc = comb(wb, BW * 1.75 + 6, BH * 2 + 4);
+  hex(wc, BW / 2, BH / 2, BW, "launch", { big: true });
+  hex(wc, BW / 2, BH * 1.5 + 4, BW, "railgun", { big: true });
+  hex(wc, BW * 1.25 + 4, BH + 2, BW, "assign", { big: true });
+  const ws = el("div", "col"); wb.appendChild(ws);
+  const r1 = el("div", "row"); ws.appendChild(r1); strip(r1, "Torpedo salvo", SALVO, 1); strip(r1, "Launch", HOTCOLD, 0);
+  const r2 = el("div", "row"); ws.appendChild(r2); strip(r2, "PDC mode, all", PDCMODE, 0); mounts(r2, "PDC mounts");
+  ws.appendChild(el("div", "readout", `<span class="dim">RAILGUN</span> <span class="ok">READY</span> · 40 SLUGS`));
+
+  // Maneuver: Burn to in the middle, the other travel orders around it, the dodges in an
+  // outer column; thrust and sensors face the center.
+  const mb = frame(root, "right", 214, "Maneuver");
+  const W = 68, H = W * 0.866, dx = W * 0.75 + 2, cy = 1.5 * H + 2;
+  const mc = comb(mb, 3 * dx + W, 3 * H + 6);
+  const x0 = W / 2, x1 = x0 + dx, x2 = x1 + dx, x3 = x2 + dx;
+  const gy = H + 2;
+  hex(mc, x0, cy - gy / 2, W, "orient"); hex(mc, x0, cy + gy / 2, W, "orbit");
+  hex(mc, x1, cy - gy, W, "rendezvous"); hex(mc, x1, cy, W, "burnTo", { big: true }); hex(mc, x1, cy + gy, W, "stationKeep");
+  hex(mc, x2, cy - gy / 2, W, "fastPass"); hex(mc, x2, cy + gy / 2, W, "match");
+  hex(mc, x3, cy - gy, W, "coast"); hex(mc, x3, cy, W, "evade"); hex(mc, x3, cy + gy, W, "evasive");
+  const ms = el("div", "col"); ms.style.alignItems = "flex-end"; mb.appendChild(ms);
+  strip(ms, "Thrust", G, 0);
+  sensors(ms);
+  ms.appendChild(el("div", "readout", `<span class="dim">ORDER</span> COAST · <span class="dim">ETA</span> --`));
+
+  timePod(root, 112, true);
+})();
+
+// ============================ B: Hex rows ============================
+(function () {
+  const root = document.getElementById("B");
+  const W = 60, HH = W * 1.1547, rowDy = HH * 0.75 + 2, step = W + 3;
+  // Maneuver: two honeycomb rows of pointy hexes. Top: travel. Bottom: hold and dodge.
+  const mb = frame(root, "right", 160, "Maneuver");
+  const mc = comb(mb, 5 * step + step / 2, HH + rowDy);
+  ["burnTo", "rendezvous", "fastPass", "orbit", "match"].forEach((id, i) => hex(mc, W / 2 + i * step, HH / 2, W, id, { pt: true }));
+  ["stationKeep", "orient", "coast", "evade", "evasive"].forEach((id, i) => hex(mc, W / 2 + step / 2 + i * step, HH / 2 + rowDy, W, id, { pt: true }));
+  const ms = el("div", "col"); ms.style.alignItems = "flex-end"; mb.appendChild(ms);
+  strip(ms, "Thrust", G, 0); sensors(ms);
+
+  // Weapons: one pointy hex per weapon, its readout and settings beside it.
+  const wb = frame(root, "left", 160, "Weapons");
+  wb.style.gap = "22px";
+  function weapon(id, title, read, settings) {
+    const g = el("div", "row"); g.style.alignItems = "center"; g.style.gap = "10px"; wb.appendChild(g);
+    const c = comb(g, W + 4, HH); hex(c, (W + 4) / 2, HH / 2, W + 4, id, { pt: true, noSub: true, big: true });
+    const s = el("div", "col"); s.style.gap = "6px"; g.appendChild(s);
+    s.appendChild(el("div", "readout", `<span class="dim">${title}</span> ${read}`));
+    settings(s);
+  }
+  weapon("launch", "TORP", "12 · TUBES 2/2", (s) => { strip(s, "", SALVO, 1); strip(s, "", HOTCOLD, 0); });
+  weapon("railgun", "RG", `<span class="ok">READY</span> · 40`, () => {});
+  weapon("assign", "PDC", "3,000 ×4", (s) => { strip(s, "", PDCMODE, 0); mounts(s); });
+
+  timePod(root, 104, true);
+})();
+
+// ============================ C: Command wings ============================
+(function () {
+  const root = document.getElementById("C");
+  const mb = frame(root, "right", 96, "Maneuver");
+  const mg = el("div", "col"); mg.style.gap = "4px"; mb.appendChild(mg);
+  const r1 = el("div", "strip"); mg.appendChild(r1); ["burnTo", "rendezvous", "fastPass", "orbit", "match"].forEach((id) => orderBtn(r1, id));
+  const r2 = el("div", "strip"); mg.appendChild(r2); ["stationKeep", "orient", "coast", "evade", "evasive"].forEach((id) => orderBtn(r2, id));
+  const ms = el("div", "col"); ms.style.alignItems = "flex-end"; ms.style.gap = "4px"; mb.appendChild(ms);
+  strip(ms, "", G, 0); sensors(ms);
+
+  const wb = frame(root, "left", 96, "Weapons");
+  const wg = el("div", "col"); wg.style.gap = "4px"; wb.appendChild(wg);
+  const a = el("div", "row"); a.style.alignItems = "center"; a.style.gap = "8px"; wg.appendChild(a);
+  a.appendChild(el("span", "readout", `<span class="dim">TORP</span> 12 · 2/2`)); strip(a, "", SALVO, 1); strip(a, "", HOTCOLD, 0); orderBtn(a, "launch");
+  const b = el("div", "row"); b.style.alignItems = "center"; b.style.gap = "8px"; wg.appendChild(b);
+  b.appendChild(el("span", "readout", `<span class="dim">RG</span> <span class="ok">READY</span> · 40`)); orderBtn(b, "railgun");
+  b.appendChild(el("span", "readout dim", "PDC")); strip(b, "", PDCMODE, 0); orderBtn(b, "assign");
+
+  timePod(root, 80, false);
+})();
+
+// ---- Notes per variant ----
+const NOTES = {
+  A: `<b>A · Honeycomb.</b> Weapons on the left, time in the center, maneuver on the right. <b>Hexes are actions, strips are settings</b>, and the settings face the center on both sides.
+      Maneuver is a true honeycomb: <b>Burn to</b> in the middle, the other travel orders around it, and Coast, Evade, Evasive in an outer column (Evasive in amber).
+      Weapons are three big hexes nested together, each showing its ammo and state.
+      <br><span class="dim">About 215 px tall, so the side rails get shorter. Most distinctive; slowest to scan for a new player.</span>`,
+  B: `<b>B · Hex rows.</b> Same three clusters, flatter. Maneuver orders are pointy hexes in two honeycomb rows: travel on top (Burn to, Intercept, Fast pass, Orbit, Match), hold and dodge below (Station, Orient, Coast, Evade, Evasive).
+      Weapons are three columns (torpedoes, railgun, PDC), each a hex with its readout and settings beside it.
+      <br><span class="dim">About 160 px tall. A middle path: keeps the hex look, takes less of the table.</span>`,
+  C: `<b>C · Command wings.</b> No hexes: two wings of chamfered buttons in two rows, and a small time console in the middle.
+      Closest to today's style, but cleanly split into weapons, time and maneuver.
+      <br><span class="dim">About 95 px tall. The safe option, for comparison.</span>`,
+};
+const notes = document.getElementById("notes");
+function show(v) {
+  document.querySelectorAll(".variant").forEach((x) => x.classList.toggle("on", x.id === v));
+  document.querySelectorAll("#switcher .btn").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+  notes.innerHTML = `<span class="hide">hide ✕</span>` + NOTES[v]; notes.style.display = "";
+  notes.querySelector(".hide").onclick = () => (notes.style.display = "none");
+  restyleGame(v);
+}
+document.querySelectorAll("#switcher .btn").forEach((b) => (b.onclick = () => show(b.dataset.v)));
+
+// ---- Feel: an order lights while you would be placing it; toggles flip; tooltips ----
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-order], [data-toggle]");
+  if (!t || t.closest("#switcher")) return;
+  if (t.dataset.toggle) {
+    t.classList.toggle("on");
+    if (t.textContent.startsWith("Sensors")) t.innerHTML = (t.classList.contains("on") ? "Sensors on" : "Sensors off") + "<span class='key'>S</span>";
+    return;
+  }
+  const was = t.classList.contains("on");
+  document.querySelectorAll(".variant.on [data-order].on").forEach((x) => x.classList.remove("on"));
+  if (!was) t.classList.add("on");
+});
+const tip = document.getElementById("tip");
+document.addEventListener("mousemove", (e) => {
+  const t = e.target.closest("[data-tip]");
+  if (!t) { tip.style.display = "none"; return; }
+  tip.textContent = t.dataset.tip; tip.style.display = "block";
+  tip.style.left = Math.min(innerWidth - 300, e.clientX + 14) + "px"; tip.style.top = e.clientY - 44 + "px";
+});
+
+// ---- The game behind: hide its bottom bar; shorten the rails to clear each variant ----
+const HEIGHT = { A: 214, B: 160, C: 96 };
+function restyleGame(v) {
+  const doc = document.getElementById("game").contentDocument;
+  if (!doc || !doc.head) return;
+  let s = doc.getElementById("mockup-style");
+  if (!s) { s = doc.createElement("style"); s.id = "mockup-style"; doc.head.appendChild(s); }
+  const clear = HEIGHT[v] + 28;
+  s.textContent = `.bottom-bar{display:none!important} .rail-left,.rail-right{bottom:${clear}px!important} .scale-readout{bottom:${clear - 4}px!important}`;
+}
+document.getElementById("game").addEventListener("load", () => setTimeout(() => restyleGame(document.querySelector(".variant.on").id), 300));
+show("A");
+</script>
+</body>
+</html>
