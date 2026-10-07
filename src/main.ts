@@ -60,7 +60,7 @@ createDebugPanel(
     game.restart();
     impacts.clear();
   },
-  () => sound.applyVolumes(),
+  sound,
 );
 createRoot(document.getElementById("hud")!).render(createElement(showSetup ? SetupScreen : Hud));
 
@@ -395,4 +395,4 @@ function frame(now: number) {
 requestAnimationFrame(frame);
 
 // Debug handle for the browser console and inspection scripts (dev builds only).
-if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view, impacts, tuning: tuningRoots };
+if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view, impacts, sound, tuning: tuningRoots };

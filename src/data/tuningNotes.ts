@@ -21,12 +21,15 @@ export const tuningNotes: Record<string, string> = {
   "panel.copyValues": "Copies every tuning value as JSON to the clipboard. Paste it into the chat to save your tweaks as the new defaults.",
 
   // --- Sound ---
+  "panel.sound": "Pick any game sound to hear it on demand: alarms, weapons, hits, or a few seconds of the drive, PDC fire or the impact countdown.",
+  "panel.playSound": "Plays the sound picked above, so you can judge it and tune the volumes without waiting for it in a fight.",
   "audioTuning.muted": "Turns all sound off. The N key and the SOUND button at the bottom do the same.",
   "audioTuning.master": "Overall volume of every sound in the game.",
   "audioTuning.alarms": "Volume of the bridge alarms: launch and railgun warnings, contact pings, impact countdown beeps, heat and damage alarms.",
   "audioTuning.weapons": "Volume of our own weapons: torpedo launches, railgun shots, PDC fire and PDC kills.",
   "audioTuning.impacts": "Volume of hits on our ship, our ship being destroyed, and the boom when an enemy ship dies.",
   "audioTuning.drive": "Volume of the drive rumble, which grows with how hard our ship is accelerating.",
+  "audioTuning.reverb": "How much every sound echoes inside the ship's metal hull. Lower is drier and closer; 0 turns the echo off.",
   "audioTuning.driveFullG": "The drive rumble is at full strength at this acceleration (g). Lower it to hear the drive louder at Cruise.",
   "audioTuning.impactBeepS": "Countdown beeps start when an incoming torpedo or slug is this many seconds from hitting us. 0 turns them off.",
   "audioTuning.beepSlowS": "Seconds between countdown beeps when they start. The beeps speed up from this toward the gap below.",

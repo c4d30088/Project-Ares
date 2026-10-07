@@ -15,6 +15,7 @@ import { pathTuning } from "../data/paths";
 import { impactTuning } from "../data/impacts";
 import { labelTuning } from "../data/labels";
 import { audioTuning } from "../data/audio";
+import { PREVIEW_NAMES, type PreviewName } from "../audio/synth";
 import { scenarios } from "../data/scenarios";
 import { tuningRoots } from "../data/tuningRoots";
 import { decoratePanel } from "./panelSearch";
@@ -22,7 +23,14 @@ import { applyPanelStyle, loadPanelStyle, panelFonts, panelStyle, resetPanelStyl
 
 // Debug panel. Toggle with the backquote key (`).
 // Controls edit the tunable objects in src/data directly; code reads them every frame.
-export function createDebugPanel(currentScenario: string, restart: () => void, applyVolumes: () => void = () => {}): GUI {
+/** What the panel's Sound folder needs from the sound system. */
+export interface PanelSound {
+  applyVolumes(): void;
+  preview(name: PreviewName): void;
+}
+
+export function createDebugPanel(currentScenario: string, restart: () => void, sound: PanelSound = { applyVolumes() {}, preview() {} }): GUI {
+  const applyVolumes = () => sound.applyVolumes();
   loadPanelStyle();
   const gui = new GUI({ title: "Debug  [ ` ]", width: panelStyle.widthPx });
   gui.hide();
@@ -65,11 +73,15 @@ export function createDebugPanel(currentScenario: string, restart: () => void, a
   // Sound (M6): volumes per group, and the rules that keep busy moments listenable.
   const snd = gui.addFolder("Sound");
   snd.add(audioTuning, "muted").name("mute (N)").onChange(applyVolumes).listen();
+  const audition = { sound: "launchWarning" as PreviewName };
+  snd.add(audition, "sound", [...PREVIEW_NAMES]).name("sound to play");
+  snd.add({ playSound: () => sound.preview(audition.sound) }, "playSound").name("play it");
   snd.add(audioTuning, "master", 0, 1, 0.05).name("master volume").onChange(applyVolumes);
   snd.add(audioTuning, "alarms", 0, 1, 0.05).name("alarms and warnings").onChange(applyVolumes);
   snd.add(audioTuning, "weapons", 0, 1, 0.05).name("our weapons").onChange(applyVolumes);
   snd.add(audioTuning, "impacts", 0, 1, 0.05).name("hits and kills").onChange(applyVolumes);
   snd.add(audioTuning, "drive", 0, 1, 0.05).name("drive rumble").onChange(applyVolumes);
+  snd.add(audioTuning, "reverb", 0, 1, 0.05).name("hull echo").onChange(applyVolumes);
   snd.add(audioTuning, "driveFullG", 1, 12, 0.5).name("drive full at (g)");
   snd.add(audioTuning, "impactBeepS", 0, 120, 1).name("impact beeps from (s)");
   snd.add(audioTuning, "beepSlowS", 0.2, 3, 0.05).name("beep gap at start (s)");

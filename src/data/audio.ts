@@ -12,6 +12,8 @@ export const audioTuning = {
   weapons: 0.7,
   impacts: 0.9,
   drive: 0.5,
+  /** How much everything echoes inside the hull, 0..1. */
+  reverb: 0.5,
   /** The drive rumble is at full strength at this acceleration (g). */
   driveFullG: 6,
   /** Impact countdown beeps start when a torpedo or slug is this close to hitting us (sim seconds). */
