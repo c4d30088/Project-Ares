@@ -365,7 +365,7 @@ Both are free (SIL Open Font License) on Google Fonts.
 - Allegiance is coded by shape as well as color
 - Color-blind palette option (M6): Standard, Red-green safe, Blue-yellow safe. Same meanings, other shades (in red-green safe, hostile leans pink); checked by a test that simulates each kind of color blindness. On the player's Settings screen
 - Effect intensity sliders (debug panel), and a single Reduce effects switch for players (M6)
-- Remappable keys
+- Remappable keys (M6): every shortcut in Settings, Controls; a key already in use swaps
 - Pause is always available, and auto-slowdown options make the game playable at any reaction speed
 
 ## 13. What we take from the references

@@ -5,6 +5,8 @@
 // Browser storage can be missing or blocked (private windows, tests in Node), so every read
 // and write is guarded and the game plays on the defaults without it.
 
+import { defaultKeys, keyLabel, parseKeyMap, type ActionId, type KeyMap } from "./keymap";
+
 export type PaletteName = "standard" | "redGreen" | "blueYellow";
 
 export interface PlayerSettings {
@@ -16,16 +18,18 @@ export interface PlayerSettings {
   /** Overall volume the player chose, 0..1 (on top of the debug panel's master volume). */
   volume: number;
   muted: boolean;
+  /** The player's key for every rebindable action (see keymap.ts). */
+  keys: KeyMap;
 }
 
 const KEY = "ares.settings";
 const PALETTES: PaletteName[] = ["standard", "redGreen", "blueYellow"];
 
-export const defaultSettings: PlayerSettings = { palette: "standard", reduceEffects: false, volume: 1, muted: false };
+export const defaultSettings: PlayerSettings = { palette: "standard", reduceEffects: false, volume: 1, muted: false, keys: { ...defaultKeys } };
 
 /** Reads saved settings, keeping only values that make sense. */
 export function parseSettings(raw: string | null): PlayerSettings {
-  const s = { ...defaultSettings };
+  const s = { ...defaultSettings, keys: { ...defaultKeys } };
   if (!raw) return s;
   try {
     const o = JSON.parse(raw) as Partial<PlayerSettings>;
@@ -33,6 +37,7 @@ export function parseSettings(raw: string | null): PlayerSettings {
     if (typeof o.reduceEffects === "boolean") s.reduceEffects = o.reduceEffects;
     if (typeof o.volume === "number" && o.volume >= 0 && o.volume <= 1) s.volume = o.volume;
     if (typeof o.muted === "boolean") s.muted = o.muted;
+    s.keys = parseKeyMap(o.keys);
   } catch {
     // Unreadable: defaults.
   }
@@ -43,7 +48,7 @@ function load(): PlayerSettings {
   try {
     return parseSettings(globalThis.localStorage?.getItem(KEY) ?? null);
   } catch {
-    return { ...defaultSettings };
+    return { ...defaultSettings, keys: { ...defaultKeys } };
   }
 }
 
@@ -58,4 +63,9 @@ export function saveSettings(next: Partial<PlayerSettings>): void {
   } catch {
     // Not saved; still applies for this session.
   }
+}
+
+/** The key shown for an action on buttons and in tooltips: "B", "SPACE", "[". */
+export function hotkey(action: ActionId): string {
+  return keyLabel(settings.keys[action]);
 }

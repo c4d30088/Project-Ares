@@ -36,6 +36,7 @@ import { tuningRoots } from "./data/tuningRoots";
 import { loadouts } from "./data/combat";
 import { audioTuning } from "./data/audio";
 import { saveSettings, settings } from "./game/settings";
+import { actionFor, type ActionId } from "./game/keymap";
 import { createSoundSystem } from "./audio/synth";
 import { cuesFromEvents, cuesFromSignals, driveLevel } from "./game/soundCues";
 
@@ -108,6 +109,9 @@ const orders = createOrderInput(game, view, (x, y) => icons.pick(x, y));
 
 hudActions.togglePause = () => game.togglePause();
 hudActions.applyVolume = () => sound.applyVolumes();
+// A rebind in Settings: the HUD redraws its key letters.
+let keysVersion = 0;
+hudActions.keysChanged = () => hudStore.set({ keysVersion: ++keysVersion });
 // The Settings screen pauses the game while it is open, and puts it back as it was.
 let settingsOpen = false;
 let pausedBeforeSettings = false;
@@ -185,31 +189,42 @@ view.dom.addEventListener("dblclick", (e) => {
   }
 });
 
-const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", e: "evade", v: "evasive", l: "launch", d: "pdcTarget", g: "railgun" };
+// Keys come from the player's key map (src/game/keymap.ts, rebound in Settings). Esc is fixed:
+// it cancels the order being placed, or clears the selection.
+const ORDER_ACTIONS: Partial<Record<ActionId, OrderKind>> = {
+  burnTo: "burnTo", rendezvous: "rendezvous", fastPass: "fastPass", match: "match", stationKeep: "stationKeep", orient: "orient",
+  orbit: "orbit", coast: "coast", evade: "evade", evasive: "evasive", launch: "launch", railgun: "railgun", pdcTarget: "pdcTarget",
+};
+function runAction(action: ActionId) {
+  const order = ORDER_ACTIONS[action];
+  if (order) return orders.start(order);
+  switch (action) {
+    case "gCruise": return orders.setG("cruise");
+    case "gCombat": return orders.setG("combat");
+    case "gMax": return orders.setG("max");
+    case "sensors": return hudActions.toggleSensors();
+    case "focus": return focusSelected();
+    case "topDown": return view.cam.toggleTopDown();
+    case "rangeRings": pathTuning.showOwnRings = !pathTuning.showOwnRings; return;
+    case "pause": return game.togglePause();
+    case "slower": return game.setCompression(game.compressionIndex - 1);
+    case "faster": return game.setCompression(game.compressionIndex + 1);
+    case "mute": return hudActions.toggleMute();
+  }
+}
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
   if (settingsOpen) return; // the Settings screen handles its own keys (Esc closes it)
-  if (e.key === "f" || e.key === "F") focusSelected();
-  if (e.key === "t" || e.key === "T") view.cam.toggleTopDown();
-  if ((e.key === "w" || e.key === "W") && !e.metaKey && !e.ctrlKey) pathTuning.showOwnRings = !pathTuning.showOwnRings;
-  if ((e.key === "s" || e.key === "S") && !e.metaKey && !e.ctrlKey) hudActions.toggleSensors();
   if (e.key === "Escape") {
     if (orders.mode) orders.cancel();
     else game.selectedId = null;
+    return;
   }
-  const order = ORDER_KEYS[e.key.toLowerCase()];
-  if (order && !e.metaKey && !e.ctrlKey) orders.start(order);
-  if (e.key === "1") orders.setG("cruise");
-  if (e.key === "2") orders.setG("combat");
-  if (e.key === "3") orders.setG("max");
-  if (e.key === " ") {
-    e.preventDefault();
-    game.togglePause();
-  }
-  if ((e.key === "n" || e.key === "N") && !e.metaKey && !e.ctrlKey) hudActions.toggleMute();
-  if (e.key === "[") game.setCompression(game.compressionIndex - 1);
-  if (e.key === "]") game.setCompression(game.compressionIndex + 1);
+  const action = actionFor(settings.keys, e);
+  if (!action) return;
+  e.preventDefault(); // Space would scroll, arrows would move the page
+  runAction(action);
 });
 
 // URL options for screenshots and quick checks: ?yaw=-60&pitch=30&dist=5e6&top=1&focus=<id>
@@ -301,6 +316,7 @@ function frame(now: number) {
       notice: game.notice,
       muted: audioTuning.muted,
       settingsOpen,
+      keysVersion,
       outcome: game.outcome ? { result: game.outcome.result, title: game.outcome.title, detail: game.outcome.detail, timeS: game.outcome.tick * DT } : null,
     });
   }

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { hudActions, useHud, type RailgunInfo } from "../store";
 import { DeckPanel, Gauge, Key, Keys, Station, Tile } from "./parts";
+import { hotkey } from "../../game/settings";
 
 const SALVOS = [1, 2, 4, 6];
 const MODES = ["auto", "manual", "hold"] as const;
@@ -69,13 +70,13 @@ export function WeaponsDeck() {
         <div className="stn-row">
           <Tile
             name="Launch"
-            hotkey="L"
+            hotkey={hotkey("launch")}
             sub={empty ? "EMPTY" : tubesDown ? "TUBES OFF" : `SALVO ${w.salvo}`}
             tone={empty || tubesDown ? "bad" : undefined}
             active={hud.orderMode === "launch"}
             disabled={empty || tubesDown}
             onClick={() => hudActions.startOrder("launch")}
-            title="Launch a salvo (L), then click a ship or object, or place a point."
+            title={`Launch a salvo (${hotkey("launch")}), then click a ship or object, or place a point.`}
           />
           <div className="dk-col">
             <Keys cols={4}>
@@ -116,13 +117,13 @@ export function WeaponsDeck() {
         <div className="stn-row">
           <Tile
             name="Fire"
-            hotkey="G"
+            hotkey={hotkey("railgun")}
             sub={rg.health <= 0 ? "DESTROYED" : rg.slugs <= 0 ? "EMPTY" : `${rg.slugs} SLUGS`}
             tone={rg.health <= 0 || rg.slugs <= 0 ? "bad" : ready ? "ready" : rg.slugs < 0.25 * rg.slugsMax ? "warn" : undefined}
             active={hud.orderMode === "railgun"}
             disabled={rg.health <= 0 || rg.slugs <= 0}
             onClick={() => hudActions.startOrder("railgun")}
-            title="Fire the railgun (G), then click a target: a ship is shot at its lead point."
+            title={`Fire the railgun (${hotkey("railgun")}), then click a target: a ship is shot at its lead point.`}
           />
         </div>
         <ChargeGauge rg={rg} />
@@ -140,11 +141,11 @@ export function WeaponsDeck() {
         <div className="stn-row">
           <Tile
             name="Assign"
-            hotkey="D"
+            hotkey={hotkey("pdcTarget")}
             sub={allMode ? `ALL ${MODE_KEY[allMode]}` : "MIXED"}
             active={hud.orderMode === "pdcTarget"}
             onClick={() => hudActions.startOrder("pdcTarget")}
-            title="Assign all PDCs to a target (D): sets them to Manual."
+            title={`Assign all PDCs to a target (${hotkey("pdcTarget")}): sets them to Manual.`}
           />
           <div className="dk-col">
             <Keys cols={3}>

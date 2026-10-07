@@ -109,6 +109,8 @@ export interface HudState {
   muted: boolean;
   /** The Settings screen is open (the game is paused meanwhile). */
   settingsOpen: boolean;
+  /** Changes when the player rebinds a key, so key letters on buttons redraw. */
+  keysVersion: number;
   /** Set when the fight is over (win, loss or draw). */
   outcome: OutcomeInfo | null;
 }
@@ -134,6 +136,7 @@ let state: HudState = {
   notice: null,
   muted: false,
   settingsOpen: false,
+  keysVersion: 0,
   outcome: null,
 };
 const listeners = new Set<() => void>();
@@ -170,6 +173,8 @@ export interface HudActions {
   /** Opens or closes the Settings screen. */
   openSettings(): void;
   closeSettings(): void;
+  /** The key map changed (Settings, Controls). */
+  keysChanged(): void;
   setCompression(index: number): void;
   startOrder(kind: string): void;
   setG(g: "cruise" | "combat" | "max"): void;
@@ -192,6 +197,7 @@ export const hudActions: HudActions = {
   applyVolume() {},
   openSettings() {},
   closeSettings() {},
+  keysChanged() {},
   setCompression() {},
   startOrder() {},
   setG() {},

@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { defaultSettings, parseSettings } from "../src/game/settings";
+import { defaultKeys } from "../src/game/keymap";
 
 describe("player settings", () => {
   it("nothing saved: defaults", () => {
@@ -11,8 +12,12 @@ describe("player settings", () => {
 
   it("reads back what was saved", () => {
     expect(parseSettings(JSON.stringify({ palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true }))).toEqual({
-      palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true,
+      palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true, keys: defaultKeys,
     });
+  });
+
+  it("keeps the player's rebound keys", () => {
+    expect(parseSettings(JSON.stringify({ keys: { burnTo: "x" } })).keys.burnTo).toBe("x");
   });
 
   it("ignores unknown palettes, out-of-range volume and junk", () => {

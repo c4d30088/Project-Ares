@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { saveSettings, settings, type PaletteName } from "../game/settings";
+import { ACTIONS, bindable, defaultKeys, keyLabel, rebind, type ActionId, type KeyMap } from "../game/keymap";
 import { paletteNames, palettes, type PaletteToken } from "../render/palette";
 import { Panel } from "./Panel";
 import { hudActions } from "./store";
@@ -33,6 +34,7 @@ export function SettingsScreen(props: { onClose(): void; inFight: boolean }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") props.onClose();
     };
+    // (While a key is being rebound, ControlsSection takes every key press first.)
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [props]);
@@ -111,7 +113,7 @@ export function SettingsScreen(props: { onClose(): void; inFight: boolean }) {
                   setMuted(settings.muted);
                 }}
               >
-                Sound {muted ? "off" : "on"} <span className="key">N</span>
+                Sound {muted ? "off" : "on"} <span className="key">{keyLabel(settings.keys.mute)}</span>
               </button>
               <span className="settings-note">Volume</span>
               <input
@@ -132,10 +134,7 @@ export function SettingsScreen(props: { onClose(): void; inFight: boolean }) {
             </div>
           </section>
 
-          <section>
-            <div className="settings-head">Controls</div>
-            <div className="settings-note">Rebinding keys comes next (M6 step 5).</div>
-          </section>
+          <ControlsSection />
         </div>
         <div className="settings-foot">
           <span className="settings-note">Saved in this browser.</span>
@@ -145,5 +144,98 @@ export function SettingsScreen(props: { onClose(): void; inFight: boolean }) {
         </div>
       </Panel>
     </div>
+  );
+}
+
+const GROUPS = [...new Set(ACTIONS.map((a) => a.group))];
+
+/** Controls: every rebindable action with its key. Click one, press the new key. A key already
+ *  in use swaps with it, so nothing is ever left without a key. Esc cancels; Esc, ` and Enter
+ *  keep their fixed jobs. */
+function ControlsSection() {
+  const [keys, setKeys] = useState<KeyMap>({ ...settings.keys });
+  const [listening, setListening] = useState<ActionId | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const label = (id: ActionId) => ACTIONS.find((a) => a.id === id)!.label;
+
+  const apply = (next: KeyMap) => {
+    setKeys(next);
+    saveSettings({ keys: next });
+    hudActions.keysChanged();
+  };
+
+  useEffect(() => {
+    if (!listening) return;
+    // Capture phase: this runs before the Settings screen's Esc and the game's own keys.
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        setListening(null);
+        setMessage(null);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) {
+        setMessage("Keys with Cmd, Ctrl or Alt held stay with the browser. Pick a single key.");
+        return;
+      }
+      if (!bindable(e.key)) {
+        setMessage(`${keyLabel(e.key.toLowerCase())} keeps its fixed job. Pick another key.`);
+        return;
+      }
+      const { map, swappedWith } = rebind(keys, listening, e.key);
+      apply(map);
+      setMessage(
+        swappedWith
+          ? `${label(listening)} is now ${keyLabel(map[listening])}. ${label(swappedWith)} had that key, so it moved to ${keyLabel(map[swappedWith])}.`
+          : `${label(listening)} is now ${keyLabel(map[listening])}.`,
+      );
+      setListening(null);
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  });
+
+  const changed = ACTIONS.some((a) => keys[a.id] !== defaultKeys[a.id]);
+  return (
+    <section>
+      <div className="settings-head">Controls</div>
+      <div className="settings-note" style={{ marginBottom: 8 }}>
+        Click an action, then press its new key. Esc, ` (debug panel) and Enter keep their fixed jobs.
+      </div>
+      <div className="controls-grid">
+        {GROUPS.map((g) => (
+          <div key={g} className="controls-group">
+            <div className="controls-group-name">{g}</div>
+            {ACTIONS.filter((a) => a.group === g).map((a) => (
+              <button
+                key={a.id}
+                className={`control-row ${listening === a.id ? "listening" : ""} ${keys[a.id] !== defaultKeys[a.id] ? "changed" : ""}`}
+                onClick={() => {
+                  setListening(listening === a.id ? null : a.id);
+                  setMessage(null);
+                }}
+              >
+                <span className="control-name">{a.label}</span>
+                <span className="control-key mono">{listening === a.id ? "PRESS A KEY" : keyLabel(keys[a.id])}</span>
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="settings-row" style={{ marginTop: 10 }}>
+        <span className="settings-note controls-message">{message ?? (listening ? `Press the new key for ${label(listening)}, or Esc to cancel.` : "")}</span>
+        <button
+          className="hud-btn"
+          disabled={!changed}
+          onClick={() => {
+            apply({ ...defaultKeys });
+            setMessage("All keys back to their defaults.");
+          }}
+        >
+          Reset to defaults
+        </button>
+      </div>
+    </section>
   );
 }
