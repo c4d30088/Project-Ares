@@ -21,7 +21,7 @@ Next session: (the one thing to fix or try first)
 Next session: the owner connects Cloudflare Pages (docs/DEPLOY.md), plays the branch preview link, then runs the checkpoint: give the link to 3 to 5 people who have not seen the game and watch them play without explaining. Claude Code writes the M6 entry from the owner's notes, then fixes what the testers stumbled on first. Still unplayed by the owner: the M4 (Sensors Lite) and M5 (AI captain, 10 skirmishes) checkpoints; the testers' games will cover some of that ground.
 
 How to play
-- The link (once connected) opens the skirmish setup screen; locally `npm run dev`, http://localhost:5173. The setup screen shows the build bottom right (BUILD commit · date): note it with the playtest notes.
+- The link, https://test.project-ares.net/ (live since 2026-10-07, serving main), opens the skirmish setup screen; locally `npm run dev`, http://localhost:5173. The setup screen shows the build bottom right (BUILD commit · date): note it with the playtest notes.
 - Bottom deck: Weapons control on the left (Torpedoes, Railgun, Point defense), Time in the middle (click a speed on the ruler, or `[` `]`, Space to pause), Helm on the right (order tiles light their status line while the order runs; thrust tabs; Sensors tile says what gives you away).
 - SET in the Time panel opens Settings: colors (Standard, Red-green safe, Blue-yellow safe), Reduce effects, volume, UI scale, and Controls (rebind any key). Cmd/Ctrl + and − change the UI scale anywhere.
 - After a fight: Replay on the result banner. Timeline (click or drag), Our view / Their view / All. Esc leaves the replay.
