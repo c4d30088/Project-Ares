@@ -82,6 +82,9 @@ export function createDebugPanel(currentScenario: string, restart: () => void, s
   snd.add(audioTuning, "impacts", 0, 1, 0.05).name("hits and kills").onChange(applyVolumes);
   snd.add(audioTuning, "drive", 0, 1, 0.05).name("drive rumble").onChange(applyVolumes);
   snd.add(audioTuning, "reverb", 0, 1, 0.05).name("hull echo").onChange(applyVolumes);
+  snd.add(audioTuning, "driveFlame", 0, 1, 0.05).name("drive flame flicker");
+  snd.add(audioTuning, "railgunChargeS", 0.2, 4, 0.1).name("railgun charge-up (s)");
+  snd.add(audioTuning, "railgunHold", 0, 1, 0.05).name("railgun charged whine");
   snd.add(audioTuning, "driveFullG", 1, 12, 0.5).name("drive full at (g)");
   snd.add(audioTuning, "impactBeepS", 0, 120, 1).name("impact beeps from (s)");
   snd.add(audioTuning, "beepSlowS", 0.2, 3, 0.05).name("beep gap at start (s)");

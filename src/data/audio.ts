@@ -14,6 +14,12 @@ export const audioTuning = {
   drive: 0.5,
   /** How much everything echoes inside the hull, 0..1. */
   reverb: 0.5,
+  /** How loud the drive's flame flicker and crackle are, 0..1 (part of the drive sound). */
+  driveFlame: 0.6,
+  /** The railgun's capacitors whine up over this many seconds once G is pressed (seconds). */
+  railgunChargeS: 1.1,
+  /** Once charged, the waiting whine drops to this share of its peak while you aim, 0..1. */
+  railgunHold: 0.35,
   /** The drive rumble is at full strength at this acceleration (g). */
   driveFullG: 6,
   /** Impact countdown beeps start when a torpedo or slug is this close to hitting us (sim seconds). */

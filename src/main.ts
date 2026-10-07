@@ -377,6 +377,7 @@ function frame(now: number) {
         drive: own ? driveLevel(own.thrust / G0) : 0,
         pdcsFiring: own ? own.pdcs.filter((m) => m.firing).length : 0,
         impactIn: soonest,
+        railgunCharging: orders.mode === "railgun" && !!own?.railgun && own.railgun.rechargeS <= 0 && own.railgun.slugs > 0 && own.railgun.health > 0,
         quiet: game.paused || !!game.outcome,
       },
       dt,

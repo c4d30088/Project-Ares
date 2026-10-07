@@ -87,11 +87,17 @@ export function createSoundSystem(): SoundSystem {
   let driveGain: GainNode;
   let driveFilter: BiquadFilterNode;
   let driveHiss: GainNode;
+  let driveFlicker: GainNode;
+  let driveCrackle: GainNode;
   let lastDrive = 0;
   const pdcLayers: GainNode[] = [];
   let clock = 0; // real seconds, for throttling
   // A continuous sound being auditioned from the debug panel, until `until` (real seconds).
-  let audition: { name: "drive" | "pdcFire" | "countdown"; from: number; until: number } | null = null;
+  let audition: { name: "drive" | "pdcFire" | "countdown" | "railgun"; from: number; until: number; fired?: boolean } | null = null;
+  // The railgun's charge-up whine while the player aims (see chargeStart), and when to wind it
+  // down if the shot never comes.
+  let charge: { voices: OscillatorNode[]; gain: GainNode } | null = null;
+  let chargeEndAt: number | null = null;
   let nextBeep = 0;
   const throttle = createThrottle();
 
@@ -357,9 +363,64 @@ export function createSoundSystem(): SoundSystem {
       lfo.connect(amt).connect(driveFilter.frequency);
       lfo.start();
     }
+    // ...and flutters quickly and unevenly, like a flame front.
+    const flutter = noiseSource(true);
+    flutter.playbackRate.value = 0.02;
+    const flutterLp = c.createBiquadFilter();
+    flutterLp.type = "lowpass";
+    flutterLp.frequency.value = 18;
+    const flutterDepth = c.createGain();
+    flutterDepth.gain.value = 150;
+    flutter.connect(flutterLp).connect(flutterDepth).connect(driveFilter.frequency);
+    flutter.start(0, 1.1);
     const roar = noiseSource(true);
     roar.connect(driveFilter).connect(saturator(wobble, 2.2));
     roar.start();
+
+    // Flames: a mid-band roar that flickers in random puffs...
+    driveFlicker = c.createGain();
+    driveFlicker.gain.value = 0;
+    driveFlicker.connect(wobble);
+    const puffs = c.createGain();
+    puffs.gain.value = 0;
+    puffs.connect(driveFlicker);
+    const flameBand = c.createBiquadFilter();
+    flameBand.type = "bandpass";
+    flameBand.frequency.value = 340;
+    flameBand.Q.value = 0.7;
+    const flame = noiseSource(true);
+    flame.connect(flameBand).connect(saturator(puffs, 1.8));
+    flame.start(0, 0.4);
+    const puffNoise = noiseSource(true);
+    puffNoise.playbackRate.value = 0.08;
+    const puffLp = c.createBiquadFilter();
+    puffLp.type = "lowpass";
+    puffLp.frequency.value = 30;
+    const puffBoost = c.createGain();
+    puffBoost.gain.value = 12;
+    const puffShape = c.createWaveShaper();
+    // Mostly quiet, with sudden swells: the shape of a flickering flame.
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < curve.length; i++) {
+      const x = (i / (curve.length - 1)) * 2 - 1;
+      curve[i] = x < 0 ? 0.08 : Math.min(1.6, 0.08 + x * x * 1.4);
+    }
+    puffShape.curve = curve;
+    puffNoise.connect(puffLp).connect(puffBoost).connect(puffShape).connect(puffs.gain);
+    puffNoise.start(0, 0.9);
+    // ...and the sparse crackle of a hot exhaust.
+    driveCrackle = c.createGain();
+    driveCrackle.gain.value = 0;
+    driveCrackle.connect(wobble);
+    const crackleBand = c.createBiquadFilter();
+    crackleBand.type = "bandpass";
+    crackleBand.frequency.value = 1100;
+    crackleBand.Q.value = 0.6;
+    const pops = c.createBufferSource();
+    pops.buffer = crackleBuffer(c);
+    pops.loop = true;
+    pops.connect(crackleBand).connect(driveCrackle);
+    pops.start();
 
     // Structure-borne hum: deep tones out of tune with each other, beating slowly. Pushed into
     // saturation so their overtones carry the rumble on small speakers too.
@@ -385,6 +446,22 @@ export function createSoundSystem(): SoundSystem {
     const hissSrc = noiseSource(true);
     hissSrc.connect(band).connect(driveHiss).connect(wobble);
     hissSrc.start(0, 0.7);
+  }
+
+  /** Three seconds of random pops, about 35 a second, for the exhaust crackle. */
+  function crackleBuffer(c: AudioContext): AudioBuffer {
+    const sr = c.sampleRate;
+    const buf = c.createBuffer(1, sr * 3, sr);
+    const d = buf.getChannelData(0);
+    let t = 0;
+    while (t < 3) {
+      t += -Math.log(1 - Math.random()) / 35; // random gaps, like a real crackle
+      const start = Math.floor(t * sr);
+      const amp = Math.pow(Math.random(), 2) * 0.9 + 0.1;
+      const tau = rand(0.0006, 0.003) * sr;
+      for (let n = 0; n < tau * 6 && start + n < d.length; n++) d[start + n] += amp * (Math.random() * 2 - 1) * Math.exp(-n / tau);
+    }
+    return buf;
   }
 
   /** A buffer of PDC fire: each round a crack, a thump and the feed's click, with the slight
@@ -442,6 +519,67 @@ export function createSoundSystem(): SoundSystem {
     }
   }
 
+  // --- The railgun's charge ---
+
+  /** The capacitors charging: a whine climbing to a scream, a buzz underneath, sparks near the
+   *  top. Once charged it settles to a tense, quieter whine until the shot or a cancel. */
+  function chargeStart() {
+    const c = ctx!;
+    const t = c.currentTime + 0.01;
+    const T = Math.max(0.1, A.railgunChargeS);
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.45, t + T);
+    gain.gain.setTargetAtTime(0.45 * Math.max(0.0001, A.railgunHold), t + T + 0.05, 0.4);
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 3500;
+    gain.connect(lp).connect(groups.weapons);
+    const voices: OscillatorNode[] = [];
+    for (const [type, f0, f1, v] of [["sawtooth", 90, 1900, 0.35], ["sine", 180, 3800, 0.25], ["square", 50, 110, 0.18]] as const) {
+      const o = c.createOscillator();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f1, t + T);
+      const g = c.createGain();
+      g.gain.value = v;
+      o.connect(g).connect(gain);
+      o.start(t);
+      voices.push(o);
+    }
+    // Once charged, the whine wavers slightly.
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 6;
+    const depth = c.createGain();
+    depth.gain.setValueAtTime(0, t);
+    depth.gain.linearRampToValueAtTime(14, t + T + 0.2);
+    lfo.connect(depth).connect(voices[0].frequency);
+    lfo.start(t);
+    voices.push(lfo);
+    crackle(groups.weapons, t + T * 0.55, T * 0.45, 7, 2200, 5000, 0.07);
+    charge = { voices, gain };
+    chargeEndAt = null;
+  }
+
+  /** Ends the charge: cut dead by the shot, or winding down if aiming was cancelled. */
+  function chargeEnd(fired: boolean) {
+    if (!charge) return;
+    const t = ctx!.currentTime;
+    charge.gain.gain.cancelScheduledValues(t);
+    charge.gain.gain.setValueAtTime(charge.gain.gain.value, t);
+    charge.gain.gain.setTargetAtTime(0, t, fired ? 0.008 : 0.18);
+    for (const o of charge.voices) {
+      if (!fired) {
+        o.frequency.cancelScheduledValues(t);
+        o.frequency.setValueAtTime(o.frequency.value, t);
+        o.frequency.exponentialRampToValueAtTime(Math.max(1, o.frequency.value * 0.15), t + 0.6);
+      }
+      o.stop(t + (fired ? 0.1 : 0.9));
+    }
+    charge = null;
+    chargeEndAt = null;
+  }
+
   // --- One-shot sounds ---
 
   function playCue(name: CueName, count: number) {
@@ -461,6 +599,7 @@ export function createSoundSystem(): SoundSystem {
         break;
       }
       case "railgunOwn":
+        chargeEnd(true);
         // The capacitors dump: a heavy electric snap, the slug's crack, a deep recoil through the frame.
         hiss(out, t, "bandpass", 1100, 0.8, 0.6, 0.0008, 0.08);
         tone(saturator(out, 4), t, "sawtooth", 420, 28, 0.4, 0.001, 0.3);
@@ -618,6 +757,23 @@ export function createSoundSystem(): SoundSystem {
         if (audition.name === "drive") state.drive = s < 3.5 ? 0.8 : 0;
         if (audition.name === "pdcFire") state.pdcsFiring = s < 1 ? 1 : s < 2.5 ? 3 : 0;
         if (audition.name === "countdown") state.impactIn = Math.max(0, A.impactBeepS - s * 4);
+        if (audition.name === "railgun") {
+          const fireAt = A.railgunChargeS + 0.8;
+          state.railgunCharging = s < fireAt;
+          if (s >= fireAt && !audition.fired) {
+            audition.fired = true;
+            playCue("railgunOwn", 1);
+          }
+        }
+      }
+      // The railgun charges while the player aims it. Aiming ends at the click, a moment
+      // before the shot comes back from the sim, so a cancel winds down only if no shot follows.
+      if (state.railgunCharging && !state.quiet && !A.muted) {
+        if (!charge) chargeStart();
+        chargeEndAt = null;
+      } else if (charge) {
+        if (chargeEndAt === null) chargeEndAt = clock + 0.3;
+        else if (clock >= chargeEndAt) chargeEnd(false);
       }
       const t = ctx.currentTime;
       const drive = state.quiet ? 0 : state.drive;
@@ -629,6 +785,8 @@ export function createSoundSystem(): SoundSystem {
       driveGain.gain.setTargetAtTime(drive * 0.9, t, 0.3);
       driveFilter.frequency.setTargetAtTime(50 + drive * 120, t, 0.3);
       driveHiss.gain.setTargetAtTime(drive * drive * 0.12, t, 0.3);
+      driveFlicker.gain.setTargetAtTime(A.driveFlame * Math.sqrt(drive) * 0.7, t, 0.3);
+      driveCrackle.gain.setTargetAtTime(A.driveFlame * Math.sqrt(drive) * 0.35, t, 0.3);
       const firing = state.quiet ? 0 : state.pdcsFiring;
       pdcLayers[0].gain.setTargetAtTime(firing >= 1 ? 0.55 : 0, t, firing >= 1 ? 0.01 : 0.05);
       pdcLayers[1].gain.setTargetAtTime(firing >= 2 ? 0.45 : 0, t, firing >= 2 ? 0.01 : 0.05);
@@ -645,7 +803,8 @@ export function createSoundSystem(): SoundSystem {
       start();
       if (!ctx) return;
       if (ctx.state !== "running") void ctx.resume();
-      if (name === "drive" || name === "pdcFire" || name === "countdown") {
+      if (name === "railgunOwn") audition = { name: "railgun", from: clock, until: clock + A.railgunChargeS + 1.5 };
+      else if (name === "drive" || name === "pdcFire" || name === "countdown") {
         const length = name === "drive" ? 5 : name === "pdcFire" ? 3.2 : A.impactBeepS / 4;
         audition = { name, from: clock, until: clock + length };
       } else playCue(name, name === "launchOwn" ? 4 : 1);

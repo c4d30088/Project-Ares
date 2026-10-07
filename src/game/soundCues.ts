@@ -165,6 +165,8 @@ export interface SoundState {
   pdcsFiring: number;
   /** Sim seconds to the nearest incoming torpedo or slug on our ships, or null. */
   impactIn: number | null;
+  /** The player is aiming our railgun and it is ready: its capacitors charge. */
+  railgunCharging: boolean;
   /** Paused or fight over: the loops go quiet. */
   quiet: boolean;
 }
