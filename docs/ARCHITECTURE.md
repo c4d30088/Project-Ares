@@ -57,7 +57,7 @@ Project Ares/
 
 `src/sim` is a pure, headless module. It takes commands and advances time. It knows nothing about the screen. This gives us:
 - Unit tests without a browser
-- After-action replays (store the starting state and the command list, re-run)
+- After-action replays (M6, `src/game/replay.ts`, `game.ts`): a copy of the world every 30 sim seconds plus the player's command list; the replay re-runs from the nearest copy (AI commands come from the sim itself) and re-syncs at each copy, so it never drifts
 - AI that runs on the same rules as the player
 - A future multiplayer server that runs the same sim code in Node
 

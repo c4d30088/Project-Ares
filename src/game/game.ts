@@ -19,6 +19,7 @@ import { crewTuning } from "../data/crew";
 import { TorpedoPredictor, type TorpedoPath } from "../sim/weapons/torpedoPredict";
 import { appendDraft, draftsFromEvents, type LogContext, type LogDraft, type LogEntry } from "./alertLog";
 import type { GameSignal } from "./soundCues";
+import { commandsAt, SNAPSHOT_TICKS, snapshotBefore, theirPictureInOurColors, timelineMarks, type Recording, type ReplayView } from "./replay";
 
 /** Never run more than this many ticks in one frame, whatever the compression. */
 const MAX_TICKS_PER_FRAME = 4000;
@@ -75,6 +76,25 @@ export interface Game {
   restart(): void;
   /** Advances the sim by real seconds (scaled by compression) and rebuilds the picture. */
   update(realDt: number): void;
+  /** The after-action replay (M6), or null while playing. */
+  readonly replay: ReplayState | null;
+  /** Replays the fight from the start (normally once it has ended). Commands are ignored. */
+  startReplay(): void;
+  /** Leaves the replay: back to the end of the fight. */
+  exitReplay(): void;
+  /** Jumps the replay to a sim time, seconds. */
+  replaySeek(seconds: number): void;
+  replaySetView(view: ReplayView): void;
+}
+
+export interface ReplayState {
+  view: ReplayView;
+  /** Sim seconds at the end of the recording. */
+  endS: number;
+  /** Notable moments for the timeline. */
+  marks: { t: number; tone: LogEntry["tone"]; text: string }[];
+  /** Changes on every jump, so effects already on screen can be cleared. */
+  epoch: number;
 }
 
 export interface Alert {
@@ -133,6 +153,11 @@ export function createGame(scenario: Scenario): Game {
     }
   };
   snapshotPrev();
+
+  // After-action replay (replay.ts): copies of the world during play, and the player's
+  // commands. While replaying, the sim re-runs from the copies with those commands fed back in.
+  let recording: Recording = { snapshots: [{ tick: world.tick, world: structuredClone(world) }], commands: [] };
+  let replay: (ReplayState & { endTick: number; finalWorld: World; finalLog: LogEntry[]; enemy: string | null }) | null = null;
 
   let accumulator = 0; // fractional ticks
   let overloadFrames = 0;
@@ -455,7 +480,12 @@ export function createGame(scenario: Scenario): Game {
   }
 
   function rebuildPicture(alpha: number) {
-    const pic = buildPicture(world, faction, sensorTuning.godView);
+    // In a replay, whose knowledge is shown: ours, theirs (in our colors), or everything.
+    const view = replay?.view ?? "ours";
+    const pic =
+      view === "all" ? buildPicture(world, faction, true)
+      : view === "theirs" && replay?.enemy ? theirPictureInOurColors(buildPicture(world, replay.enemy))
+      : buildPicture(world, faction, sensorTuning.godView);
     const lerp = (id: string, p: Vec3) => {
       const a = prev.get(id);
       if (!a) return;
@@ -519,6 +549,8 @@ export function createGame(scenario: Scenario): Game {
       return out;
     },
     issue(command) {
+      if (replay) return; // a replay plays back what happened; it takes no new orders
+      recording.commands.push({ tick: world.tick, command: structuredClone(command) });
       submit(world, faction, command);
     },
     setCompression(index) {
@@ -530,6 +562,8 @@ export function createGame(scenario: Scenario): Game {
     restart() {
       world = loadScenario(scenario);
       game.world = world;
+      replay = null;
+      recording = { snapshots: [{ tick: world.tick, world: structuredClone(world) }], commands: [] };
       prev.clear();
       shipFaction.clear();
       shipNames.clear();
@@ -576,8 +610,22 @@ export function createGame(scenario: Scenario): Game {
         const start = performance.now();
         let overloaded = false;
         for (let i = 0; i < ticks; i++) {
+          if (replay) {
+            if (world.tick >= replay.endTick) {
+              game.paused = true; // the end of the recording
+              accumulator = 0;
+              break;
+            }
+            replayStep(true);
+            if (performance.now() - start > timeTuning.maxSimMsPerFrame) {
+              accumulator = 0;
+              break;
+            }
+            continue;
+          }
           snapshotPrev();
           step(world);
+          if (world.tick % SNAPSHOT_TICKS === 0) recording.snapshots.push({ tick: world.tick, world: structuredClone(world) });
           if (world.events.length && eventQueue.length < EVENT_QUEUE_MAX) eventQueue.push(...world.events);
           for (const d of draftsFromEvents(world.events, logContext)) logLine(d);
           for (const e of world.events) if (e.type === "escaped" && areHostile(world, faction, e.faction)) hostileEscaped++;
@@ -586,6 +634,7 @@ export function createGame(scenario: Scenario): Game {
           if (outcome) {
             game.outcome = outcome;
             game.paused = true;
+            recording.snapshots.push({ tick: world.tick, world: structuredClone(world) });
             accumulator = 0;
             logLine({ tone: outcome.result === "win" ? "good" : outcome.result === "loss" ? "threat" : "info", tpl: `${outcome.title}: ${outcome.detail}` });
             signal({ type: "outcome", result: outcome.result });
@@ -608,14 +657,108 @@ export function createGame(scenario: Scenario): Game {
           setNotice(`TIME COMPRESSION LIMITED: SIM LOAD (${game.compression}x)`);
         }
       }
-      updatePredictions();
+      if (replay?.view === "theirs") {
+        // Our routes are ours to know, not theirs.
+        runs.clear();
+        game.predictions.clear();
+      } else updatePredictions();
       updateTorpedoPaths();
       rebuildPicture(accumulator);
       applyTorpedoPaths();
       updateShotPaths();
-      updateAlerts();
+      if (replay) {
+        // The alert log as it stood at this moment of the fight; the strip says what is shown.
+        const t = world.tick * DT;
+        game.alertLog = replay.finalLog.filter((e) => e.t <= t + 1e-6);
+        const label = { ours: "OUR VIEW", theirs: "THEIR VIEW", all: "EVERYTHING (GOD VIEW)" }[replay.view];
+        game.alertList = [{ text: `REPLAY · ${label}`, tone: "warn" }];
+        // Say what the side shown knew about the other, so an empty table reads as "they had
+        // lost you", not as a fault.
+        const ships = (a: string) => game.picture.tracks.filter((t) => t.kind === "ship" && t.allegiance === a);
+        const knew = (list: ReturnType<typeof ships>) => (list.some((t) => !t.lost) ? "seen" : list.length ? "lost" : "none");
+        if (replay.view === "ours") {
+          const k = knew(ships("hostile"));
+          game.alertList.push({ text: k === "seen" ? "WE SEE THEM" : k === "lost" ? "WE HAVE LOST THEM" : "NO CONTACT", tone: k === "seen" ? "good" : "warn" });
+        } else if (replay.view === "theirs") {
+          const k = knew(ships("friendly"));
+          game.alertList.push({ text: k === "seen" ? "THEY SEE YOU" : k === "lost" ? "THEY HAVE LOST YOU" : "THEY DON'T KNOW WHERE YOU ARE", tone: k === "seen" ? "threat" : "good" });
+        }
+      } else updateAlerts();
+    },
+    get replay() {
+      return replay;
+    },
+    startReplay() {
+      if (replay) return;
+      const endTick = world.tick;
+      if (!recording.snapshots.some((s) => s.tick === endTick)) recording.snapshots.push({ tick: endTick, world: structuredClone(world) });
+      const enemy = world.factions.find((f) => areHostile(world, faction, f.id))?.id ?? null;
+      replay = {
+        view: "ours", endS: endTick * DT, marks: timelineMarks(game.alertLog), epoch: 0,
+        endTick, finalWorld: world, finalLog: game.alertLog, enemy,
+      };
+      game.notice = null;
+      seekTo(0);
+      game.compressionIndex = Math.min(2, timeTuning.compressionSteps.length - 1); // fights are long: 16x
+      game.paused = false;
+    },
+    exitReplay() {
+      if (!replay) return;
+      world = replay.finalWorld;
+      game.world = world;
+      game.alertLog = replay.finalLog;
+      replay = null;
+      resetView();
+      game.paused = true;
+    },
+    replaySeek(seconds) {
+      if (replay) seekTo(Math.round(seconds / DT));
+    },
+    replaySetView(view) {
+      if (replay) replay.view = view;
     },
   };
+
+  /** One replay tick: the recorded commands for this tick, the step, and a re-sync to the
+   *  copy of the world taken at the new tick, if there is one (so the replay never drifts). */
+  function replayStep(withEvents: boolean) {
+    for (const c of commandsAt(recording, world.tick)) submit(world, faction, c);
+    snapshotPrev();
+    step(world);
+    if (withEvents && world.events.length && eventQueue.length < EVENT_QUEUE_MAX) eventQueue.push(...world.events);
+    const copy = recording.snapshots.find((s) => s.tick === world.tick);
+    if (copy) {
+      world = structuredClone(copy.world);
+      game.world = world;
+    }
+  }
+
+  /** Jumps the replay to a tick: the latest copy before it, then re-run (no effects) to it. */
+  function seekTo(tick: number) {
+    if (!replay) return;
+    const target = Math.max(0, Math.min(replay.endTick, tick));
+    world = structuredClone(snapshotBefore(recording, target).world);
+    game.world = world;
+    while (world.tick < target) replayStep(false);
+    replay.epoch++;
+    resetView();
+  }
+
+  /** After a jump: nothing carried over from where the picture was. */
+  function resetView() {
+    prev.clear();
+    snapshotPrev();
+    accumulator = 0;
+    eventQueue = [];
+    signals = [];
+    runs.clear();
+    torpedoRuns.clear();
+    game.predictions.clear();
+    game.torpedoPaths.clear();
+    game.shotPaths.clear();
+    threatWarned.clear();
+    game.picture = buildPicture(world, faction, sensorTuning.godView);
+  }
   hostileAtStart = countHostiles();
   updateContacts(); // what is in view at the start is not news
   logLine({ tone: "info", tpl: `${scenario.name.toUpperCase()}: STARTED` });

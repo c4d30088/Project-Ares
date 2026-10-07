@@ -31,7 +31,7 @@ export function fitDeck(windowWidth: number, left: number, mid: number, right: n
 }
 
 /** Measures the deck panels and keeps the CSS variables up to date. */
-export function useDeckFit(): void {
+export function useDeckFit(layoutKey: unknown): void {
   useEffect(() => {
     const root = document.documentElement;
     const apply = () => {
@@ -62,5 +62,5 @@ export function useDeckFit(): void {
       ro.disconnect();
       window.removeEventListener("resize", apply);
     };
-  }, []);
+  }, [layoutKey]); // re-attach when the deck's panels are swapped (the replay replaces them)
 }

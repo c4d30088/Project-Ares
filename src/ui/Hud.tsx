@@ -12,6 +12,7 @@ import { ResultBanner } from "./ResultBanner";
 import { WeaponsDeck } from "./deck/WeaponsDeck";
 import { HelmDeck } from "./deck/HelmDeck";
 import { TimeDeck } from "./deck/TimeDeck";
+import { ReplayDeck } from "./deck/ReplayDeck";
 import { useDeckFit } from "./deck/fit";
 import { formatCountdown } from "./format";
 import { hudActions, useHud } from "./store";
@@ -24,7 +25,7 @@ const MAX_ALERTS = 3;
 // HUD shell. Panels are empty frames in M1; later milestones fill them.
 export function Hud() {
   const hud = useHud();
-  useDeckFit();
+  useDeckFit(!!hud.replay);
   // The strip flashes red once when a danger alert appears that was not there before.
   const seenThreats = useRef(new Set<string>());
   const flash = useRef(0);
@@ -53,12 +54,18 @@ export function Hud() {
         <AlertLog />
       </Panel>
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
-      {hud.outcome && <ResultBanner outcome={hud.outcome} />}
+      {hud.outcome && !hud.replay && <ResultBanner outcome={hud.outcome} />}
       {hud.settingsOpen && <SettingsScreen inFight onClose={() => hudActions.closeSettings()} />}
-      {/* The bottom deck: weapons, time, helm. */}
-      <WeaponsDeck />
-      <TimeDeck />
-      <HelmDeck />
+      {/* The bottom deck: weapons, time, helm; during a replay, the replay controls. */}
+      {hud.replay ? (
+        <ReplayDeck />
+      ) : (
+        <>
+          <WeaponsDeck />
+          <TimeDeck />
+          <HelmDeck />
+        </>
+      )}
     </div>
   );
 }

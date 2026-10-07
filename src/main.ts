@@ -138,6 +138,10 @@ hudActions.toggleMute = () => {
 };
 hudActions.setCompression = (i) => game.setCompression(i);
 hudActions.restart = () => game.restart();
+hudActions.startReplay = () => game.startReplay();
+hudActions.exitReplay = () => game.exitReplay();
+hudActions.replaySeek = (s) => game.replaySeek(s);
+hudActions.replaySetView = (v) => game.replaySetView(v);
 hudActions.backToSetup = () => {
   location.href = location.pathname;
 };
@@ -217,12 +221,15 @@ window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
   if (settingsOpen) return; // the Settings screen handles its own keys (Esc closes it)
   if (e.key === "Escape") {
-    if (orders.mode) orders.cancel();
+    if (game.replay) game.exitReplay();
+    else if (orders.mode) orders.cancel();
     else game.selectedId = null;
     return;
   }
   const action = actionFor(settings.keys, e);
   if (!action) return;
+  // A replay takes no orders: only time, view and sound keys work.
+  if (game.replay && !["pause", "slower", "faster", "mute", "focus", "topDown", "rangeRings"].includes(action)) return;
   e.preventDefault(); // Space would scroll, arrows would move the page
   runAction(action);
 });
@@ -250,6 +257,7 @@ let firstFrame = true;
 let hudTimer = 0;
 /** Hit flicker level, 0..1, fading after each hit on our side. */
 let hitFlicker = 0;
+let lastReplayEpoch = -1;
 function frame(now: number) {
   applyLabelStyle();
   const dt = Math.min(0.1, (now - last) / 1000);
@@ -317,6 +325,7 @@ function frame(now: number) {
       muted: audioTuning.muted,
       settingsOpen,
       keysVersion,
+      replay: game.replay ? { view: game.replay.view, t: game.simTime, endS: game.replay.endS, marks: game.replay.marks } : null,
       outcome: game.outcome ? { result: game.outcome.result, title: game.outcome.title, detail: game.outcome.detail, timeS: game.outcome.tick * DT } : null,
     });
   }
@@ -408,6 +417,13 @@ function frame(now: number) {
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);
+  // A replay jump: effects from where the picture was are gone.
+  const epoch = game.replay?.epoch ?? -1;
+  if (epoch !== lastReplayEpoch) {
+    lastReplayEpoch = epoch;
+    impacts.clear();
+    hitFlicker = 0;
+  }
   // Explosions, sparks and hit text for what was hit since the last frame, and its sounds.
   const events = game.takeEvents();
   const eventCtx = {
@@ -433,7 +449,7 @@ function frame(now: number) {
         railgunCharging:
           (orders.mode === "railgun" && !!own?.railgun && own.railgun.rechargeS <= 0 && own.railgun.slugs > 0 && own.railgun.health > 0) ||
           game.world.pending.some((q) => q.command.type === "fireRailgun" && q.command.ship === game.activeShipId),
-        quiet: game.paused || !!game.outcome,
+        quiet: game.paused || (!!game.outcome && !game.replay),
       },
       dt,
     );

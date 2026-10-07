@@ -264,3 +264,27 @@
 .sk:disabled { opacity: 0.35; cursor: default; }
 .sk .key { font-family: "Share Tech Mono", monospace; font-weight: 400; color: var(--friendly); font-size: 10px; }
 .sk .chevs { font-family: "Share Tech Mono", monospace; font-size: 15px; color: var(--friendly); letter-spacing: -0.2em; }
+
+/* --- After-action replay (in place of the deck) --- */
+.dk.mid.replay-deck { width: min(820px, calc(100vw - 32px)); transform: translateX(-50%); bottom: var(--deck-bottom); }
+.replay-deck .rp-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 14px 4px; }
+.replay-deck .rp-controls { display: flex; align-items: center; gap: 3px; }
+.replay-deck .rp-speed { width: 44px; text-align: center; font-size: 13px; color: #fff; }
+.replay-deck .rp-clock { font-size: 15px; white-space: nowrap; }
+.replay-deck .rp-now { color: #fff; }
+.replay-deck .rp-clock .dim { color: var(--textDim); }
+.replay-deck .rp-views { flex-direction: row; }
+.replay-deck .rp-views .tab { width: auto; padding: 0 14px 0 16px; white-space: nowrap; }
+.rp-track { position: relative; height: 34px; margin: 6px 22px 12px; cursor: pointer; touch-action: none; }
+.rp-ticks {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 12px;
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--chrome) 70%, transparent) 0 1px, transparent 1px 10%) bottom / 100% 12px no-repeat,
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--chrome) 40%, transparent) 0 1px, transparent 1px 2%) bottom / 100% 5px no-repeat;
+}
+.rp-fill { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--friendly); }
+.rp-mark { position: absolute; bottom: 14px; width: 3px; height: 14px; transform: translateX(-50%); }
+.rp-mark.threat { background: var(--threat); }
+.rp-mark.good { background: var(--fireFriendly); }
+.rp-mark.warn { background: var(--uncertain); }
+.rp-head { position: absolute; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: #fff; box-shadow: 0 0 6px var(--friendly); pointer-events: none; }

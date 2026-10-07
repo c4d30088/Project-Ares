@@ -74,6 +74,13 @@ export interface RailgunInfo {
   spinal: boolean;
 }
 
+export interface ReplayInfo {
+  view: "ours" | "theirs" | "all";
+  t: number;
+  endS: number;
+  marks: { t: number; tone: "threat" | "warn" | "good" | "info"; text: string }[];
+}
+
 /** How the fight ended, for the result banner. */
 export interface OutcomeInfo {
   result: "win" | "loss" | "draw";
@@ -111,6 +118,8 @@ export interface HudState {
   settingsOpen: boolean;
   /** Changes when the player rebinds a key, so key letters on buttons redraw. */
   keysVersion: number;
+  /** The after-action replay, or null while playing. t and endS in sim seconds. */
+  replay: ReplayInfo | null;
   /** Set when the fight is over (win, loss or draw). */
   outcome: OutcomeInfo | null;
 }
@@ -137,6 +146,7 @@ let state: HudState = {
   muted: false,
   settingsOpen: false,
   keysVersion: 0,
+  replay: null,
   outcome: null,
 };
 const listeners = new Set<() => void>();
@@ -175,6 +185,11 @@ export interface HudActions {
   closeSettings(): void;
   /** The key map changed (Settings, Controls). */
   keysChanged(): void;
+  /** After-action replay. */
+  startReplay(): void;
+  exitReplay(): void;
+  replaySeek(seconds: number): void;
+  replaySetView(view: "ours" | "theirs" | "all"): void;
   setCompression(index: number): void;
   startOrder(kind: string): void;
   setG(g: "cruise" | "combat" | "max"): void;
@@ -198,6 +213,10 @@ export const hudActions: HudActions = {
   openSettings() {},
   closeSettings() {},
   keysChanged() {},
+  startReplay() {},
+  exitReplay() {},
+  replaySeek() {},
+  replaySetView() {},
   setCompression() {},
   startOrder() {},
   setG() {},
