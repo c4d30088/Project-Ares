@@ -18,7 +18,7 @@ Next session: (the one thing to fix or try first)
 ---
 
 ## 2026-10-07, milestone M6: built, ready for the checkpoint
-Next session: the owner connects Cloudflare Pages (docs/DEPLOY.md), plays the branch preview link, then runs the checkpoint: give the link to 3 to 5 people who have not seen the game and watch them play without explaining. Claude Code writes the M6 entry from the owner's notes, then fixes what the testers stumbled on first. Still unplayed by the owner: the M4 (Sensors Lite) and M5 (AI captain, 10 skirmishes) checkpoints; the testers' games will cover some of that ground.
+Next session: the owner plays https://test.project-ares.net/ (live, built from main), then runs the checkpoint: give that link to 3 to 5 people who have not seen the game and watch them play without explaining. Claude Code writes the M6 entry from the owner's notes, then fixes what the testers stumbled on first. Still unplayed by the owner: the M4 (Sensors Lite) and M5 (AI captain, 10 skirmishes) checkpoints; the testers' games will cover some of that ground.
 
 How to play
 - The link, https://test.project-ares.net/ (live since 2026-10-07, serving main), opens the skirmish setup screen; locally `npm run dev`, http://localhost:5173. The setup screen shows the build bottom right (BUILD commit · date): note it with the playtest notes.
@@ -26,7 +26,7 @@ How to play
 - SET in the Time panel opens Settings: colors (Standard, Red-green safe, Blue-yellow safe), Reduce effects, volume, UI scale, and Controls (rebind any key). Cmd/Ctrl + and − change the UI scale anywhere.
 - After a fight: Replay on the result banner. Timeline (click or drag), Our view / Their view / All. Esc leaves the replay.
 
-What M6 built (branch claude/m6-feel-polish, PR c4d30088/Project-Ares#7; 364 tests)
+What M6 built (merged to main; 364 tests)
 - Sound, synthesized live: drive rumble with flame flicker, PDC fire from single rounds, railgun transformer charge (from G, also while paused) and zip release, hits, kills, alarms through a ship-speaker filter, impact countdown beeps. You hear your own ship and what your side has detected. `N` mutes; the debug panel's Sound folder plays any sound on demand.
 - Bottom deck (owner's pick D of four mockups in `mockups/hud-clusters.html`), centered as a group; it scales on narrower windows and lifts the Time panel above the row when it does not fit.
 - Hit flicker on the table and alert strip animations, each with a slider; both off with Reduce effects.
@@ -38,7 +38,7 @@ Owner decisions this milestone
 - Sound: realistic and serious, not playful (three rounds: hull echo, horn klaxon, single-round PDC, no bell tones; a rumblier, flickering drive; the railgun as a transformer charge and a zip release). Voice recordings are not usable (Claude Code cannot hear audio); descriptions and sound words work.
 - Bottom HUD: option D, the console deck after the UX references, not hexes; weapons and helm the same height; bigger click targets for the time speeds.
 - Large screens: UI scale on Cmd/Ctrl + and −; the deck centered next to the Time panel.
-- Hosting: Cloudflare Pages.
+- Hosting: Cloudflare Pages, at https://test.project-ares.net/.
 - Jamming static left out: jamming itself is parked.
 
 What Claude Code saw (not a real playtest)

@@ -207,7 +207,7 @@ Build order (one commit per step):
 7. Shareable playtest link (hosting decided when we get here). Owner chose **Cloudflare Pages** (free, works with the private repository). Repository ready: `.node-version` (24), `npm run preview` to check the production build locally, and a build stamp on the setup screen (commit, branch, date) so playtest notes can name the build. Setup steps for the owner in `docs/DEPLOY.md`; every merge to main redeploys, every pushed branch gets a preview address.
 8. Docs and playtest log. **Done.**
 
-Status (2026-10-07): all eight steps are built (PR c4d30088/Project-Ares#7). Next: the owner connects Cloudflare Pages (docs/DEPLOY.md), plays the preview link, then runs the checkpoint below with 3 to 5 new players.
+Status (2026-10-07): all eight steps are built and merged; the playtest build is live at https://test.project-ares.net/. Next: the owner plays it, then runs the checkpoint below with 3 to 5 new players.
 
 **Checkpoint:** Give the link to 3 to 5 people who have not seen the game. Watch them play without explaining anything. Write down where they hesitate, what they never use, and when they lean in. Those notes decide what Phase 2 fixes first.
 
