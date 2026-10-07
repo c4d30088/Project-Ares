@@ -20,12 +20,17 @@ export interface PlayerSettings {
   muted: boolean;
   /** The player's key for every rebindable action (see keymap.ts). */
   keys: KeyMap;
+  /** Size of the HUD panels (not the table), 1 = normal. Cmd/Ctrl + and −. */
+  uiScale: number;
 }
+
+export const UI_SCALE_MIN = 0.6;
+export const UI_SCALE_MAX = 2;
 
 const KEY = "ares.settings";
 const PALETTES: PaletteName[] = ["standard", "redGreen", "blueYellow"];
 
-export const defaultSettings: PlayerSettings = { palette: "standard", reduceEffects: false, volume: 1, muted: false, keys: { ...defaultKeys } };
+export const defaultSettings: PlayerSettings = { palette: "standard", reduceEffects: false, volume: 1, muted: false, keys: { ...defaultKeys }, uiScale: 1 };
 
 /** Reads saved settings, keeping only values that make sense. */
 export function parseSettings(raw: string | null): PlayerSettings {
@@ -38,6 +43,7 @@ export function parseSettings(raw: string | null): PlayerSettings {
     if (typeof o.volume === "number" && o.volume >= 0 && o.volume <= 1) s.volume = o.volume;
     if (typeof o.muted === "boolean") s.muted = o.muted;
     s.keys = parseKeyMap(o.keys);
+    if (typeof o.uiScale === "number" && o.uiScale >= UI_SCALE_MIN && o.uiScale <= UI_SCALE_MAX) s.uiScale = o.uiScale;
   } catch {
     // Unreadable: defaults.
   }

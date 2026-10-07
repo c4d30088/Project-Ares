@@ -37,6 +37,7 @@ import { loadouts } from "./data/combat";
 import { audioTuning } from "./data/audio";
 import { saveSettings, settings } from "./game/settings";
 import { actionFor, type ActionId } from "./game/keymap";
+import { applyUiScale, uiScaleKey } from "./ui/uiScale";
 import { createSoundSystem } from "./audio/synth";
 import { cuesFromEvents, cuesFromSignals, driveLevel } from "./game/soundCues";
 
@@ -66,6 +67,7 @@ createDebugPanel(
   sound,
 );
 createRoot(document.getElementById("hud")!).render(createElement(showSetup ? SetupScreen : Hud));
+applyUiScale();
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.
 for (const [k, v] of Object.entries(palette)) document.documentElement.style.setProperty(`--${k}`, v);
@@ -218,6 +220,7 @@ function runAction(action: ActionId) {
 }
 
 window.addEventListener("keydown", (e) => {
+  if (uiScaleKey(e)) return; // Cmd/Ctrl + − 0: the HUD's size (works everywhere, Settings too)
   if (e.target instanceof HTMLInputElement) return;
   if (settingsOpen) return; // the Settings screen handles its own keys (Esc closes it)
   if (e.key === "Escape") {

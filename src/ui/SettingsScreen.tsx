@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { saveSettings, settings, type PaletteName } from "../game/settings";
+import { saveSettings, settings, UI_SCALE_MAX, UI_SCALE_MIN, type PaletteName } from "../game/settings";
+import { setUiScale, UI_SCALE_STEP } from "./uiScale";
 import { ACTIONS, bindable, defaultKeys, keyLabel, rebind, type ActionId, type KeyMap } from "../game/keymap";
 import { paletteNames, palettes, type PaletteToken } from "../render/palette";
 import { Panel } from "./Panel";
@@ -28,6 +29,13 @@ export function SettingsScreen(props: { onClose(): void; inFight: boolean }) {
   const [reduce, setReduce] = useState(settings.reduceEffects);
   const [volume, setVolume] = useState(settings.volume);
   const [muted, setMuted] = useState(settings.muted);
+  const [uiScale, setUiScaleState] = useState(settings.uiScale);
+  // Cmd/Ctrl + and − also work while Settings is open; keep the slider in step.
+  useEffect(() => {
+    const sync = () => setUiScaleState(settings.uiScale);
+    window.addEventListener("resize", sync);
+    return () => window.removeEventListener("resize", sync);
+  }, []);
   const paletteChanged = pick !== settings.palette;
 
   useEffect(() => {
@@ -80,6 +88,37 @@ export function SettingsScreen(props: { onClose(): void; inFight: boolean }) {
                 </button>
               </div>
             )}
+          </section>
+
+          <section>
+            <div className="settings-head">Display</div>
+            <div className="settings-row">
+              <span className="settings-note">UI scale</span>
+              <input
+                type="range"
+                aria-label="UI scale"
+                min={UI_SCALE_MIN}
+                max={UI_SCALE_MAX}
+                step={UI_SCALE_STEP}
+                value={uiScale}
+                onChange={(e) => {
+                  setUiScale(Number(e.target.value));
+                  setUiScaleState(settings.uiScale);
+                }}
+              />
+              <span className="mono settings-value">{Math.round(uiScale * 100)}%</span>
+              <button
+                className="hud-btn"
+                disabled={uiScale === 1}
+                onClick={() => {
+                  setUiScale(1);
+                  setUiScaleState(1);
+                }}
+              >
+                100%
+              </button>
+            </div>
+            <div className="settings-note">The size of the panels, not the table. Cmd + and Cmd − (Ctrl on Windows) change it anywhere; Cmd 0 puts it back.</div>
           </section>
 
           <section>

@@ -12,8 +12,13 @@ describe("player settings", () => {
 
   it("reads back what was saved", () => {
     expect(parseSettings(JSON.stringify({ palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true }))).toEqual({
-      palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true, keys: defaultKeys,
+      palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true, keys: defaultKeys, uiScale: 1,
     });
+  });
+
+  it("keeps a sensible UI scale, ignores a silly one", () => {
+    expect(parseSettings(JSON.stringify({ uiScale: 1.4 })).uiScale).toBe(1.4);
+    expect(parseSettings(JSON.stringify({ uiScale: 9 })).uiScale).toBe(1);
   });
 
   it("keeps the player's rebound keys", () => {

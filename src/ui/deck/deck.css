@@ -17,9 +17,11 @@
      sits outside .hud) keys off this. */
   --deck-top: calc(var(--deck-h) * var(--deck-scale) + var(--deck-bottom));
 }
-.rail-left, .rail-right { bottom: calc(var(--deck-top) + 14px); }
+/* The rails clear the deck, or run to the bottom when the deck sits between them (fit.ts). */
+.rail-left, .rail-right { bottom: var(--rail-bottom, calc(var(--deck-top) + 14px)); }
 .order-hint { bottom: calc(var(--deck-center-h) + var(--deck-bottom) + 20px); }
-.scale-readout { bottom: calc(var(--deck-center-h) + var(--deck-bottom) + 6px); }
+/* The scale readout is on the table, outside the HUD, so it is not zoomed with the UI scale. */
+.scale-readout { bottom: calc((var(--deck-center-h) + var(--deck-bottom) + 6px) * var(--ui-scale, 1)); }
 
 .dk {
   position: absolute;
@@ -31,9 +33,9 @@
   background: color-mix(in srgb, var(--panelBg) 82%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chrome) 45%, transparent);
 }
-.dk.left { left: 16px; min-height: var(--deck-h); transform: scale(var(--deck-scale)); transform-origin: bottom left; }
-.dk.right { right: 16px; min-height: var(--deck-h); transform: scale(var(--deck-scale)); transform-origin: bottom right; }
-.dk.mid { left: 50%; bottom: calc(var(--deck-bottom) + var(--deck-mid-lift)); width: 250px; transform: translateX(-50%) scale(var(--deck-scale)); transform-origin: bottom center; }
+.dk.left { left: var(--deck-left-x, 16px); min-height: var(--deck-h); transform: scale(var(--deck-scale)); transform-origin: bottom left; }
+.dk.right { left: var(--deck-right-x, auto); min-height: var(--deck-h); transform: scale(var(--deck-scale)); transform-origin: bottom left; }
+.dk.mid { left: var(--deck-mid-cx, 50%); bottom: calc(var(--deck-bottom) + var(--deck-mid-lift)); width: 250px; transform: translateX(-50%) scale(var(--deck-scale)); transform-origin: bottom center; }
 
 /* Title band across the top, and a tick ruler under it. */
 .dk-band {
@@ -266,7 +268,7 @@
 .sk .chevs { font-family: "Share Tech Mono", monospace; font-size: 15px; color: var(--friendly); letter-spacing: -0.2em; }
 
 /* --- After-action replay (in place of the deck) --- */
-.dk.mid.replay-deck { width: min(820px, calc(100vw - 32px)); transform: translateX(-50%); bottom: var(--deck-bottom); }
+.dk.mid.replay-deck { left: 50%; width: min(820px, calc(100vw - 32px)); transform: translateX(-50%); bottom: var(--deck-bottom); }
 .replay-deck .rp-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 14px 4px; }
 .replay-deck .rp-controls { display: flex; align-items: center; gap: 3px; }
 .replay-deck .rp-speed { width: 44px; text-align: center; font-size: 13px; color: #fff; }
