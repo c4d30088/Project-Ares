@@ -311,11 +311,29 @@ export function createSoundSystem(): SoundSystem {
     const c = ctx!;
     driveGain = c.createGain();
     driveGain.gain.value = 0;
-    driveGain.connect(groups.drive);
+    // The weight under it all: the lows lifted.
+    const lows = c.createBiquadFilter();
+    lows.type = "lowshelf";
+    lows.frequency.value = 90;
+    lows.gain.value = 7;
+    driveGain.connect(lows).connect(groups.drive);
+    // Rumble: the drive shakes the frame unevenly, a dozen times a second.
+    const shake = c.createGain();
+    shake.gain.value = 1;
+    shake.connect(driveGain);
+    const shakeNoise = noiseSource(true);
+    shakeNoise.playbackRate.value = 0.03;
+    const shakeLp = c.createBiquadFilter();
+    shakeLp.type = "lowpass";
+    shakeLp.frequency.value = 14;
+    const shakeDepth = c.createGain();
+    shakeDepth.gain.value = 0.5;
+    shakeNoise.connect(shakeLp).connect(shakeDepth).connect(shake.gain);
+    shakeNoise.start(0, 0.3);
     // Turbulence: the roar's strength wanders a little, never quite repeating.
     const wobble = c.createGain();
     wobble.gain.value = 1;
-    wobble.connect(driveGain);
+    wobble.connect(shake);
     const slowNoise = noiseSource(true);
     slowNoise.playbackRate.value = 0.004; // white noise slowed to a random drift
     const slowLp = c.createBiquadFilter();
@@ -329,9 +347,9 @@ export function createSoundSystem(): SoundSystem {
     // The roar: low-passed noise whose filter breathes on two slow, unrelated cycles.
     driveFilter = c.createBiquadFilter();
     driveFilter.type = "lowpass";
-    driveFilter.frequency.value = 90;
-    driveFilter.Q.value = 1.1;
-    for (const [rate, amount] of [[0.13, 18], [0.71, 9]] as const) {
+    driveFilter.frequency.value = 60;
+    driveFilter.Q.value = 1.3;
+    for (const [rate, amount] of [[0.13, 12], [0.71, 6]] as const) {
       const lfo = c.createOscillator();
       lfo.frequency.value = rate;
       const amt = c.createGain();
@@ -340,14 +358,15 @@ export function createSoundSystem(): SoundSystem {
       lfo.start();
     }
     const roar = noiseSource(true);
-    roar.connect(driveFilter).connect(saturator(wobble, 1.5));
+    roar.connect(driveFilter).connect(saturator(wobble, 2.2));
     roar.start();
 
-    // Structure-borne hum: low tones out of tune with each other, beating slowly.
+    // Structure-borne hum: deep tones out of tune with each other, beating slowly. Pushed into
+    // saturation so their overtones carry the rumble on small speakers too.
     const hum = c.createGain();
-    hum.gain.value = 0.5;
-    hum.connect(saturator(wobble, 2));
-    for (const [f, v] of [[31, 0.4], [41, 0.35], [43.3, 0.25], [62.5, 0.08]] as const) {
+    hum.gain.value = 0.7;
+    hum.connect(saturator(wobble, 3));
+    for (const [f, v] of [[24, 0.45], [31, 0.4], [33.1, 0.3], [48, 0.12]] as const) {
       const o = c.createOscillator();
       o.frequency.value = f;
       const g = c.createGain();
@@ -442,11 +461,13 @@ export function createSoundSystem(): SoundSystem {
         break;
       }
       case "railgunOwn":
-        // The capacitors dump: a hard electric snap, the slug's crack, a deep recoil through the frame.
-        hiss(out, t, "highpass", 2500, 0.6, 0.7, 0.0008, 0.07);
-        tone(saturator(out, 4), t, "sawtooth", 900, 60, 0.35, 0.001, 0.16);
-        thud(out, t + 0.01, 65, 26, 1, 0.65);
-        crackle(out, t + 0.05, 0.4, 5, 800, 2600, 0.12);
+        // The capacitors dump: a heavy electric snap, the slug's crack, a deep recoil through the frame.
+        hiss(out, t, "bandpass", 1100, 0.8, 0.6, 0.0008, 0.08);
+        tone(saturator(out, 4), t, "sawtooth", 420, 28, 0.4, 0.001, 0.3);
+        thud(out, t + 0.01, 50, 17, 1, 1.1);
+        thud(out, t + 0.03, 34, 20, 0.6, 0.9);
+        hiss(out, t + 0.01, "lowpass", 600, 0.7, 0.5, 0.005, 0.9, 60);
+        crackle(out, t + 0.06, 0.6, 6, 300, 1200, 0.14);
         break;
       case "pdcKillOwn":
         // Something shot down out there: a muffled, distant detonation.
@@ -606,7 +627,7 @@ export function createSoundSystem(): SoundSystem {
       }
       lastDrive = drive;
       driveGain.gain.setTargetAtTime(drive * 0.9, t, 0.3);
-      driveFilter.frequency.setTargetAtTime(70 + drive * 200, t, 0.3);
+      driveFilter.frequency.setTargetAtTime(50 + drive * 120, t, 0.3);
       driveHiss.gain.setTargetAtTime(drive * drive * 0.12, t, 0.3);
       const firing = state.quiet ? 0 : state.pdcsFiring;
       pdcLayers[0].gain.setTargetAtTime(firing >= 1 ? 0.55 : 0, t, firing >= 1 ? 0.01 : 0.05);
