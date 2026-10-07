@@ -35,6 +35,7 @@ import { effectsTuning } from "./data/effects";
 import { tuningRoots } from "./data/tuningRoots";
 import { loadouts } from "./data/combat";
 import { audioTuning } from "./data/audio";
+import { saveSettings, settings } from "./game/settings";
 import { createSoundSystem } from "./audio/synth";
 import { cuesFromEvents, cuesFromSignals, driveLevel } from "./game/soundCues";
 
@@ -106,8 +107,29 @@ focusSelected(false);
 const orders = createOrderInput(game, view, (x, y) => icons.pick(x, y));
 
 hudActions.togglePause = () => game.togglePause();
+hudActions.applyVolume = () => sound.applyVolumes();
+// The Settings screen pauses the game while it is open, and puts it back as it was.
+let settingsOpen = false;
+let pausedBeforeSettings = false;
+hudActions.openSettings = () => {
+  if (settingsOpen) return;
+  settingsOpen = true;
+  pausedBeforeSettings = game.paused;
+  game.paused = true;
+  orders.cancel();
+  hudStore.set({ settingsOpen: true, paused: true });
+};
+hudActions.closeSettings = () => {
+  if (!settingsOpen) return;
+  settingsOpen = false;
+  if (!game.outcome) game.paused = pausedBeforeSettings;
+  hudStore.set({ settingsOpen: false });
+};
+// Sound on or off is the player's choice, remembered between visits.
+audioTuning.muted = settings.muted;
 hudActions.toggleMute = () => {
   audioTuning.muted = !audioTuning.muted;
+  saveSettings({ muted: audioTuning.muted });
   sound.applyVolumes();
 };
 hudActions.setCompression = (i) => game.setCompression(i);
@@ -167,6 +189,7 @@ const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p:
 
 window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
+  if (settingsOpen) return; // the Settings screen handles its own keys (Esc closes it)
   if (e.key === "f" || e.key === "F") focusSelected();
   if (e.key === "t" || e.key === "T") view.cam.toggleTopDown();
   if ((e.key === "w" || e.key === "W") && !e.metaKey && !e.ctrlKey) pathTuning.showOwnRings = !pathTuning.showOwnRings;
@@ -225,7 +248,8 @@ function frame(now: number) {
   hudTimer -= dt;
   if (hudTimer <= 0) {
     hudTimer = 0.1;
-    document.documentElement.style.setProperty("--alert-anim", String(effectsTuning.alertAnim));
+    document.documentElement.style.setProperty("--alert-anim", String(settings.reduceEffects ? 0 : effectsTuning.alertAnim));
+    document.documentElement.classList.toggle("reduce-effects", settings.reduceEffects);
     const own = game.picture.ownShips.find((s) => s.id === game.activeShipId);
     const pred = own ? game.predictions.get(own.id) : undefined;
     const elapsed = pred ? (game.world.tick - pred.startTick) * DT : 0;
@@ -276,6 +300,7 @@ function frame(now: number) {
       compressionSteps: timeTuning.compressionSteps,
       notice: game.notice,
       muted: audioTuning.muted,
+      settingsOpen,
       outcome: game.outcome ? { result: game.outcome.result, title: game.outcome.title, detail: game.outcome.detail, timeS: game.outcome.tick * DT } : null,
     });
   }

@@ -10,9 +10,15 @@ export function TimeDeck() {
   const i = hud.compressionIndex;
   const last = steps.length - 1;
   const sound = (
-    <button onClick={() => hudActions.toggleMute()} title="Sound on or off (N)">
-      SND <span className={hud.muted ? "off" : "on"}>{hud.muted ? "OFF" : "ON"}</span> · N
-    </button>
+    <>
+      <button onClick={() => hudActions.toggleMute()} title="Sound on or off (N)">
+        SND <span className={hud.muted ? "off" : "on"}>{hud.muted ? "OFF" : "ON"}</span> · N
+      </button>
+      <span className="dk-sep"> │ </span>
+      <button className="dk-set" onClick={() => hudActions.openSettings()} title="Settings: colors, reduce effects, sound">
+        SET
+      </button>
+    </>
   );
   return (
     <DeckPanel side="mid" title="Time" code={sound}>

@@ -52,6 +52,9 @@
 .dk-code { font-size: 9px; color: var(--textDim); font-weight: 400; letter-spacing: 0.08em; }
 .dk-code button { all: unset; cursor: pointer; }
 .dk-code .on { color: var(--friendly); }
+.dk-code .dk-sep { color: color-mix(in srgb, var(--chrome) 50%, transparent); }
+.dk-code .dk-set { color: var(--text); padding: 0 2px; }
+.dk-code .dk-set:hover, .dk-code button:hover { color: #fff; }
 .dk-code .off { color: var(--uncertain); }
 .dk-ruler {
   height: 6px;

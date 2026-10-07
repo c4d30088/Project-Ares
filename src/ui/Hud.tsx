@@ -14,7 +14,8 @@ import { HelmDeck } from "./deck/HelmDeck";
 import { TimeDeck } from "./deck/TimeDeck";
 import { useDeckFit } from "./deck/fit";
 import { formatCountdown } from "./format";
-import { useHud } from "./store";
+import { hudActions, useHud } from "./store";
+import { SettingsScreen } from "./SettingsScreen";
 import { useRef } from "react";
 
 /** Alerts shown at once in the top strip (most urgent first). */
@@ -53,6 +54,7 @@ export function Hud() {
       </Panel>
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
       {hud.outcome && <ResultBanner outcome={hud.outcome} />}
+      {hud.settingsOpen && <SettingsScreen inFight onClose={() => hudActions.closeSettings()} />}
       {/* The bottom deck: weapons, time, helm. */}
       <WeaponsDeck />
       <TimeDeck />

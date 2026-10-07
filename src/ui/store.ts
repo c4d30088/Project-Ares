@@ -107,6 +107,8 @@ export interface HudState {
   notice: string | null;
   /** All sound off (N). */
   muted: boolean;
+  /** The Settings screen is open (the game is paused meanwhile). */
+  settingsOpen: boolean;
   /** Set when the fight is over (win, loss or draw). */
   outcome: OutcomeInfo | null;
 }
@@ -131,6 +133,7 @@ let state: HudState = {
   compressionSteps: [1],
   notice: null,
   muted: false,
+  settingsOpen: false,
   outcome: null,
 };
 const listeners = new Set<() => void>();
@@ -162,6 +165,11 @@ export interface HudActions {
   togglePause(): void;
   /** Sound on or off (N). */
   toggleMute(): void;
+  /** Applies the player's volume from settings. */
+  applyVolume(): void;
+  /** Opens or closes the Settings screen. */
+  openSettings(): void;
+  closeSettings(): void;
   setCompression(index: number): void;
   startOrder(kind: string): void;
   setG(g: "cruise" | "combat" | "max"): void;
@@ -181,6 +189,9 @@ export interface HudActions {
 export const hudActions: HudActions = {
   togglePause() {},
   toggleMute() {},
+  applyVolume() {},
+  openSettings() {},
+  closeSettings() {},
   setCompression() {},
   startOrder() {},
   setG() {},

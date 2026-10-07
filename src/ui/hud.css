@@ -322,3 +322,36 @@
 .setup-go { padding: 10px 28px; font-size: 13px; }
 .setup-others { display: flex; flex-wrap: wrap; gap: 6px; }
 .setup-other { opacity: 0.85; }
+
+/* Reduce effects (player setting): no flashing log lines or strip flash. Alert pulsing is
+   already stopped through --alert-anim. */
+.reduce-effects .log-row, .reduce-effects .strip-flash { animation: none; }
+
+/* --- Settings screen (M6 accessibility) --- */
+.settings-scrim { position: absolute; inset: 0; pointer-events: auto; z-index: 20; background: color-mix(in srgb, var(--bg) 70%, transparent); font-family: "Oxanium", sans-serif; color: var(--text); text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; }
+.settings-panel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(720px, 94vw); height: min(640px, 92vh); --chamfer: 16px; }
+.settings-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; margin-top: 14px; padding-right: 6px; }
+.settings-head { font-size: 10px; letter-spacing: 0.16em; color: var(--chrome); margin-bottom: 8px; }
+.settings-note { color: var(--textDim); text-transform: none; letter-spacing: 0.02em; font-size: 12px; line-height: 1.4; }
+.palette-cards { display: flex; flex-direction: column; gap: 8px; }
+.palette-card { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 10px 12px; text-align: left; background: transparent; border: 1px solid color-mix(in srgb, var(--chrome) 45%, transparent); color: var(--text); font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+.palette-card:hover { background: color-mix(in srgb, var(--chrome) 16%, transparent); }
+.palette-card.active { border-color: var(--friendly); background: color-mix(in srgb, var(--friendly) 12%, transparent); }
+.palette-name { font-size: 12px; font-weight: 600; }
+.palette-now { color: var(--textDim); font-weight: 400; }
+.swatches { display: flex; flex-wrap: wrap; gap: 14px; }
+.swatch { display: flex; align-items: center; gap: 6px; }
+.swatch .chip { width: 14px; height: 14px; border-radius: 2px; }
+.swatch .chip-label { font-size: 10px; color: var(--text); letter-spacing: 0.08em; }
+.palette-blurb { color: var(--textDim); text-transform: none; letter-spacing: 0.02em; font-size: 12px; }
+.settings-apply { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 8px 10px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--uncertain) 60%, transparent); }
+.settings-apply .settings-note { color: var(--uncertain); }
+.settings-toggle { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.settings-toggle input { margin-top: 2px; accent-color: var(--friendly); width: 16px; height: 16px; }
+.settings-toggle > span { display: flex; flex-direction: column; gap: 4px; }
+.toggle-name { font-size: 12px; font-weight: 600; }
+.settings-row { display: flex; align-items: center; gap: 12px; }
+.settings-row input[type="range"] { flex: 1; max-width: 260px; accent-color: var(--friendly); }
+.settings-value { width: 40px; }
+.settings-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.setup-start { gap: 10px; align-items: center; }

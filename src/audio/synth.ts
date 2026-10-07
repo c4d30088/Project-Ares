@@ -11,6 +11,7 @@
 // context starts on the first click or key press; cues before that are dropped.
 
 import { audioTuning as A } from "../data/audio";
+import { settings } from "../game/settings";
 import { beepInterval, createThrottle, type Cue, type CueName, type SoundState } from "../game/soundCues";
 
 type Group = "alarms" | "weapons" | "impacts" | "drive";
@@ -191,7 +192,7 @@ export function createSoundSystem(): SoundSystem {
   function applyVolumes() {
     if (!ctx) return;
     const t = ctx.currentTime;
-    master.gain.setTargetAtTime(A.muted ? 0 : A.master, t, 0.03);
+    master.gain.setTargetAtTime(A.muted ? 0 : A.master * settings.volume, t, 0.03);
     reverbOut.gain.setTargetAtTime(A.reverb, t, 0.03);
     for (const g of Object.keys(groups) as Group[]) groups[g].gain.setTargetAtTime(A[g], t, 0.03);
   }

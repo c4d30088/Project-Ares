@@ -3,6 +3,7 @@ import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { palette } from "./palette";
 import { createTableCamera, type TableCamera } from "./camera";
 import { createDust, createEffects, type Effects } from "./effects";
+import { settings } from "../game/settings";
 
 export interface TableView {
   renderer: THREE.WebGLRenderer;
@@ -81,7 +82,7 @@ export function createTableView(container: HTMLElement): TableView {
         glitchStutter = 0.35 + 0.65 * Math.random();
         glitchNext = now + 30 + Math.random() * 45;
       }
-      const g = amount > 0.001 ? amount * glitchStutter : 0;
+      const g = amount > 0.001 && !settings.reduceEffects ? amount * glitchStutter : 0;
       effects?.setGlitch(g, glitchSeed);
       // The DOM labels on the table flicker and jitter with the picture (hud.css).
       container.style.setProperty("--glitch", g.toFixed(3));

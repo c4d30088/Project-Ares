@@ -10,6 +10,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { effectsTuning as T } from "../data/effects";
 import { Rng } from "../sim/rng";
 import { palette } from "./palette";
+import { settings } from "../game/settings";
 
 const ChromaticSplitShader = {
   uniforms: {
@@ -83,17 +84,19 @@ export function createEffects(
 
   return {
     setGlitch(amount, seed) {
-      split.uniforms.uGlitch.value = amount;
+      split.uniforms.uGlitch.value = settings.reduceEffects ? 0 : amount;
       split.uniforms.uSeed.value = seed;
     },
     render() {
+      // Reduce effects (player setting): half the glow, no color split, no hit flicker.
+      const reduce = settings.reduceEffects;
       bloom.enabled = T.enabled && T.bloomStrength > 0;
-      bloom.strength = T.bloomStrength;
+      bloom.strength = T.bloomStrength * (reduce ? 0.5 : 1);
       bloom.radius = T.bloomRadius;
       bloom.threshold = T.bloomThreshold;
-      split.enabled = T.enabled && (T.chromaticPx > 0 || T.chromaticRadialPx > 0 || split.uniforms.uGlitch.value > 0);
-      split.uniforms.uConstPx.value = T.chromaticPx * renderer.getPixelRatio();
-      split.uniforms.uRadialPx.value = T.chromaticRadialPx * renderer.getPixelRatio();
+      split.enabled = T.enabled && (reduce ? split.uniforms.uGlitch.value > 0 : T.chromaticPx > 0 || T.chromaticRadialPx > 0 || split.uniforms.uGlitch.value > 0);
+      split.uniforms.uConstPx.value = reduce ? 0 : T.chromaticPx * renderer.getPixelRatio();
+      split.uniforms.uRadialPx.value = reduce ? 0 : T.chromaticRadialPx * renderer.getPixelRatio();
       composer.render();
     },
     resize(w, h) {
@@ -134,7 +137,7 @@ export function createDust(scene: THREE.Scene, count = 700) {
     update(cameraDistance: number) {
       points.scale.setScalar(cameraDistance);
       mat.opacity = T.dustOpacity;
-      points.visible = T.dustOpacity > 0;
+      points.visible = T.dustOpacity > 0 && !settings.reduceEffects;
     },
   };
 }
