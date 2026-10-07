@@ -345,9 +345,9 @@ Readability comes first. Every effect has an intensity slider in the debug panel
 ### HUD layout
 
 - **Center:** the holotable
-- **Left rail:** own ship status: subsystems, ammunition, heat, G-strain, emissions state
+- **Left rail:** own ship status: nav state, subsystems, heat, G-strain, emissions state
 - **Right rail:** the alert log (owner, 2026-10-04): every launch, hit, kill, loss and system failure with the time it happened, newest first; similar lines in quick succession merge ("8 torpedoes destroyed"). A contact list was dropped with Sensors Lite (2026-10-05); contacts gained and lost go in the alert log.
-- **Bottom bar:** order buttons, G setting, time compression controls
+- **Bottom deck** (owner, M6): three panels after the UX references. **Weapons control** (left): a bracketed station per weapon (torpedoes, railgun, point defense), each a big square action tile beside a small key grid for its settings, with a gauge (tick ruler over a filled bar: magazine, railgun charge, PDC rounds). **Time** (middle): a tick ruler with a pointer at the compression, the clock, slower / pause / faster. **Helm** (right): order tiles whose status line lights while the order runs, thrust as slanted tabs, a Sensors tile that says what gives you away. Weapons and helm are the same height. Every panel has a title band and tick ruler.
 - **Top strip:** alerts such as `LAUNCH DETECTED`, `ENEMY SENSORS ACTIVE`, `IMPACT T-00:42`
 
 Panels have chamfered corners, thin borders, condensed uppercase labels, and dense data rows (`DRIVE OK`, `PDC 3 AMMO 62%`), following the system control and airlock panel references.

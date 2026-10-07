@@ -2,19 +2,17 @@ import "@fontsource/oxanium/400.css";
 import "@fontsource/oxanium/600.css";
 import "@fontsource/share-tech-mono/400.css";
 import "./hud.css";
+import "./deck/deck.css";
 import { palette } from "../render/palette";
 import { Panel } from "./Panel";
-import { TimeControls } from "./TimeControls";
-import { OrderBar } from "./OrderBar";
 import { NavStatus } from "./NavStatus";
-import { WeaponsBar } from "./WeaponsBar";
-import { PdcBar } from "./PdcBar";
-import { PdcStatus } from "./PdcStatus";
-import { RailgunBar } from "./RailgunBar";
-import { SensorBar } from "./SensorBar";
 import { ShipStatus } from "./ShipStatus";
 import { AlertLog } from "./AlertLog";
 import { ResultBanner } from "./ResultBanner";
+import { WeaponsDeck } from "./deck/WeaponsDeck";
+import { HelmDeck } from "./deck/HelmDeck";
+import { TimeDeck } from "./deck/TimeDeck";
+import { useDeckFit } from "./deck/fit";
 import { formatCountdown } from "./format";
 import { useHud } from "./store";
 
@@ -24,6 +22,7 @@ const MAX_ALERTS = 3;
 // HUD shell. Panels are empty frames in M1; later milestones fill them.
 export function Hud() {
   const hud = useHud();
+  useDeckFit();
   return (
     <div className="hud">
       <Panel className="alert-strip">
@@ -40,25 +39,16 @@ export function Hud() {
       <Panel className="rail-left" title="Own ship">
         <NavStatus />
         <ShipStatus />
-        <PdcStatus />
       </Panel>
       <Panel className="rail-right" title="Alert log">
         <AlertLog />
       </Panel>
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
       {hud.outcome && <ResultBanner outcome={hud.outcome} />}
-      <Panel className="bottom-bar">
-        <OrderBar />
-        <div className="bottom-row">
-          <TimeControls />
-          <RailgunBar />
-          <SensorBar />
-        </div>
-        <div className="bottom-row">
-          <WeaponsBar />
-          <PdcBar />
-        </div>
-      </Panel>
+      {/* The bottom deck: weapons, time, helm. */}
+      <WeaponsDeck />
+      <TimeDeck />
+      <HelmDeck />
     </div>
   );
 }

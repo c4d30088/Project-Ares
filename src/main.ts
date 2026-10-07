@@ -33,6 +33,7 @@ import { defaultScenario, scenarios } from "./data/scenarios";
 import { buildSkirmish, parseSkirmish, skirmishMaps } from "./data/skirmish";
 import { effectsTuning } from "./data/effects";
 import { tuningRoots } from "./data/tuningRoots";
+import { loadouts } from "./data/combat";
 import { audioTuning } from "./data/audio";
 import { createSoundSystem } from "./audio/synth";
 import { cuesFromEvents, cuesFromSignals, driveLevel } from "./game/soundCues";
@@ -246,10 +247,14 @@ function frame(now: number) {
             emissions: own.sensorsOn ? "SENSORS" : own.thrust > 0 ? "DRIVE" : own.loud ? "VISIBLE" : "DARK",
             heat: own.heat,
             evading: own.evading,
+            interceptMode: (() => {
+              const o = game.world.ships.find((x) => x.id === own.id)?.order; // our own ship: ours to know
+              return o?.type === "intercept" ? o.mode : null;
+            })(),
           }
         : null,
       weapons: own
-        ? { ...own.torpedoes, salvo: orders.salvo, mode: orders.launchMode }
+        ? { ...own.torpedoes, magazineMax: loadouts[own.shipClass].magazine, salvo: orders.salvo, mode: orders.launchMode }
         : null,
       pdcs: own ? own.pdcs.map((m) => ({ mode: m.mode, firing: m.firing, rounds: m.rounds, roundsMax: m.roundsMax, health: m.health })) : null,
       pdcBurst: own ? own.pdcBurst : null,

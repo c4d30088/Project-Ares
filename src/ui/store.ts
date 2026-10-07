@@ -28,6 +28,8 @@ export interface ActiveShipInfo {
   heat: number;
   /** An Evade bend is in progress. */
   evading: boolean;
+  /** Which kind of intercept is running (the helm lights Intercept or Fast pass), or null. */
+  interceptMode: "rendezvous" | "fastPass" | null;
 }
 
 export interface AlertInfo {
@@ -40,6 +42,8 @@ export interface AlertInfo {
 export interface WeaponsInfo {
   /** Torpedoes left, and ordered but not yet out of a tube. */
   magazine: number;
+  /** A full magazine for the ship's class. */
+  magazineMax: number;
   queued: number;
   tubes: number;
   tubesReady: number;

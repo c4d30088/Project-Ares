@@ -64,10 +64,8 @@
 
 .rail-left   { left: 16px;  top: 60px; bottom: 84px; width: 260px; }
 .rail-right  { right: 16px; top: 60px; bottom: 84px; width: 300px; }
-.bottom-bar  { left: 292px; right: 332px; bottom: 16px; height: 56px; }
 .alert-strip { left: 50%; transform: translateX(-50%); top: 12px; width: min(560px, 50vw); height: 36px; --chamfer: 10px; }
 .alert-strip .panel-inner { flex-direction: row; align-items: center; justify-content: center; padding: 0 16px; }
-.bottom-bar .panel-inner { flex-direction: row; align-items: center; gap: 16px; }
 
 /* --- Table overlays (outside .hud) --- */
 .table-labels { position: absolute; inset: 0; pointer-events: none; }
@@ -135,27 +133,19 @@
 .hud-btn:disabled { opacity: 0.35; cursor: default; }
 .btn-group { display: flex; gap: 2px; }
 
-.time-controls { display: flex; align-items: center; gap: 10px; }
-.clock { color: var(--text); font-size: 13px; margin-left: 4px; }
 .hud-btn.mono { text-transform: none; }
 
-/* --- Bottom bar: orders row above time row --- */
-.bottom-bar { height: 92px; }
-.rail-left, .rail-right { bottom: 120px; }
-.bottom-bar .panel-inner { flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; }
-.order-bar { display: flex; gap: 14px; flex-wrap: wrap; }
+/* --- Key hints on buttons, and the hint shown while placing an order (above the deck) --- */
 .hud-btn .key { color: var(--textDim); margin-left: 4px; font-family: "Share Tech Mono", monospace; }
 .order-hint {
   position: absolute;
   left: 50%;
-  bottom: 118px;
   transform: translateX(-50%);
   color: var(--friendly);
   font-size: 11px;
   white-space: nowrap;
   pointer-events: none;
 }
-.scale-readout { bottom: 140px; }
 
 /* --- Left rail data rows --- */
 .nav-status { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
@@ -167,39 +157,17 @@
 .data-row.warn .data-value { color: var(--uncertain); }
 .data-row.dim .data-value { color: var(--textDim); }
 
-/* --- Weapons row (right of the time controls) and alerts --- */
-.bottom-row { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
-.weapons-bar { display: flex; align-items: center; gap: 10px; }
-.weapons-label { color: var(--text); font-size: 11px; letter-spacing: 0.04em; }
+/* --- Alerts --- */
 .alert-strip .panel-inner { gap: 18px; }
 .alert { font-size: 12px; letter-spacing: 0.08em; }
 .alert.threat { color: var(--threat); }
 .alert.blink { animation: alert-blink 0.8s steps(2, start) infinite; }
 @keyframes alert-blink { to { visibility: hidden; } }
 
-/* --- Three-row bottom bar: orders, time, weapons --- */
-.bottom-bar { height: 124px; }
-.rail-left, .rail-right { bottom: 152px; }
-.order-hint { bottom: 172px; }
-.pdc-bar { display: flex; align-items: center; gap: 10px; }
-.pdc-chip { min-width: 30px; }
-.pdc-chip.firing { color: #fff; background: color-mix(in srgb, var(--friendly) 40%, transparent); }
-.pdc-chip.low { color: var(--uncertain); }
-.pdc-chip.dead { color: var(--threat); opacity: 0.6; }
-
-/* --- Left rail: PDC rounds and burst fire --- */
-.pdc-status { margin-top: 14px; }
+/* --- Left rail section titles and row tones --- */
 .section-title { font-size: 10px; letter-spacing: 0.14em; color: var(--chrome); margin-bottom: 4px; }
 .data-row.live .data-value { color: var(--friendly); }
 .data-row.bad .data-value { color: var(--threat); }
-.burst-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.burst-field { display: flex; align-items: center; gap: 4px; color: var(--text); font-size: 11px; }
-.hud-btn.tiny { padding: 1px 6px; min-width: 0; }
-
-/* --- Railgun --- */
-.railgun-bar { display: flex; align-items: center; gap: 10px; }
-.sensor-bar { display: flex; align-items: center; gap: 10px; }
-.weapons-label.dim { color: var(--textDim); }
 
 /* --- Ship status: G-strain and subsystems; the left rail scrolls if it must --- */
 .rail-left .panel-inner { overflow-y: auto; }
