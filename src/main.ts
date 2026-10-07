@@ -377,7 +377,10 @@ function frame(now: number) {
         drive: own ? driveLevel(own.thrust / G0) : 0,
         pdcsFiring: own ? own.pdcs.filter((m) => m.firing).length : 0,
         impactIn: soonest,
-        railgunCharging: orders.mode === "railgun" && !!own?.railgun && own.railgun.rechargeS <= 0 && own.railgun.slugs > 0 && own.railgun.health > 0,
+        // Charging while aiming a ready gun, and holding while a shot waits for the sim (paused).
+        railgunCharging:
+          (orders.mode === "railgun" && !!own?.railgun && own.railgun.rechargeS <= 0 && own.railgun.slugs > 0 && own.railgun.health > 0) ||
+          game.world.pending.some((q) => q.command.type === "fireRailgun" && q.command.ship === game.activeShipId),
         quiet: game.paused || !!game.outcome,
       },
       dt,

@@ -311,6 +311,28 @@ export function createSoundSystem(): SoundSystem {
     o.stop(at + length + 0.05);
   }
 
+  /** The railgun round leaving: a resonant whoosh and a zap falling fast from high to low,
+   *  panning across and fading as it goes. */
+  function zip(out: AudioNode, at: number) {
+    const c = ctx!;
+    const pan = c.createStereoPanner();
+    const side = Math.random() < 0.5 ? -1 : 1;
+    pan.pan.setValueAtTime(0, at);
+    pan.pan.linearRampToValueAtTime(0.85 * side, at + 0.45);
+    pan.connect(out);
+    const src = noiseSource();
+    const band = c.createBiquadFilter();
+    band.type = "bandpass";
+    band.Q.value = 5;
+    band.frequency.setValueAtTime(7000, at);
+    band.frequency.exponentialRampToValueAtTime(180, at + 0.4);
+    src.connect(band).connect(saturator(envelope(pan, at, 0.9, 0.004, 0.45), 2));
+    src.start(at, Math.random() * 1.5);
+    src.stop(at + 0.5);
+    tone(pan, at, "sawtooth", 3200, 70, 0.3, 0.002, 0.35);
+    tone(pan, at, "sine", 1600, 45, 0.35, 0.002, 0.4);
+  }
+
   // --- Continuous sounds ---
 
   function buildDrive() {
@@ -521,43 +543,69 @@ export function createSoundSystem(): SoundSystem {
 
   // --- The railgun's charge ---
 
-  /** The capacitors charging: a whine climbing to a scream, a buzz underneath, sparks near the
-   *  top. Once charged it settles to a tense, quieter whine until the shot or a cancel. */
+  /** The railgun charging like a transformer: a buzzing hum that rises and brightens, a pure
+   *  capacitor whine climbing over it to a high pitch, and arcing that crackles faster as the
+   *  charge nears full. Once charged, the high whine holds, wavering, over a quieter hum. */
   function chargeStart() {
     const c = ctx!;
     const t = c.currentTime + 0.01;
     const T = Math.max(0.1, A.railgunChargeS);
-    const gain = c.createGain();
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.45, t + T);
-    gain.gain.setTargetAtTime(0.45 * Math.max(0.0001, A.railgunHold), t + T + 0.05, 0.4);
-    const lp = c.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 3500;
-    gain.connect(lp).connect(groups.weapons);
+    const hold = Math.max(0.0001, A.railgunHold);
+    const out = c.createGain();
+    out.gain.value = 1;
+    out.connect(groups.weapons);
     const voices: OscillatorNode[] = [];
-    for (const [type, f0, f1, v] of [["sawtooth", 90, 1900, 0.35], ["sine", 180, 3800, 0.25], ["square", 50, 110, 0.18]] as const) {
+
+    // The transformer: a mains-like buzz, rising in pitch, its harmonics opening up.
+    const buzzGain = c.createGain();
+    buzzGain.gain.setValueAtTime(0.0001, t);
+    buzzGain.gain.exponentialRampToValueAtTime(0.3, t + T * 0.8);
+    buzzGain.gain.setTargetAtTime(0.3 * hold, t + T + 0.05, 0.4);
+    const buzzBand = c.createBiquadFilter();
+    buzzBand.type = "bandpass";
+    buzzBand.Q.value = 2.5;
+    buzzBand.frequency.setValueAtTime(220, t);
+    buzzBand.frequency.exponentialRampToValueAtTime(2600, t + T);
+    buzzBand.connect(saturator(buzzGain, 2.5));
+    buzzGain.connect(out);
+    for (const detune of [1, 1.006]) {
       const o = c.createOscillator();
-      o.type = type;
-      o.frequency.setValueAtTime(f0, t);
-      o.frequency.exponentialRampToValueAtTime(f1, t + T);
-      const g = c.createGain();
-      g.gain.value = v;
-      o.connect(g).connect(gain);
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(55 * detune, t);
+      o.frequency.exponentialRampToValueAtTime(130 * detune, t + T);
+      o.connect(buzzBand);
       o.start(t);
       voices.push(o);
     }
+
+    // The capacitor whine: quiet at first, climbing to a high, thin pitch.
+    const whineGain = c.createGain();
+    whineGain.gain.setValueAtTime(0.0001, t);
+    whineGain.gain.exponentialRampToValueAtTime(0.22, t + T);
+    whineGain.gain.setTargetAtTime(0.22 * Math.max(0.4, hold), t + T + 0.05, 0.6);
+    whineGain.connect(out);
+    const whine = c.createOscillator();
+    whine.type = "sine";
+    whine.frequency.setValueAtTime(300, t);
+    whine.frequency.exponentialRampToValueAtTime(4800, t + T);
+    whine.connect(whineGain);
+    whine.start(t);
+    voices.push(whine);
     // Once charged, the whine wavers slightly.
     const lfo = c.createOscillator();
-    lfo.frequency.value = 6;
+    lfo.frequency.value = 7;
     const depth = c.createGain();
     depth.gain.setValueAtTime(0, t);
-    depth.gain.linearRampToValueAtTime(14, t + T + 0.2);
-    lfo.connect(depth).connect(voices[0].frequency);
+    depth.gain.linearRampToValueAtTime(40, t + T + 0.3);
+    lfo.connect(depth).connect(whine.frequency);
     lfo.start(t);
     voices.push(lfo);
-    crackle(groups.weapons, t + T * 0.55, T * 0.45, 7, 2200, 5000, 0.07);
-    charge = { voices, gain };
+
+    // Arcing: sparse at first, faster toward full charge.
+    for (const [from, to, n] of [[0.25, 0.6, 3], [0.6, 0.85, 5], [0.85, 1.05, 8]] as const) {
+      crackle(out, t + T * from, T * (to - from), n, 1800, 6000, 0.06 + from * 0.06);
+    }
+    charge = { voices, gain: out };
     chargeEndAt = null;
   }
 
@@ -600,13 +648,16 @@ export function createSoundSystem(): SoundSystem {
       }
       case "railgunOwn":
         chargeEnd(true);
-        // The capacitors dump: a heavy electric snap, the slug's crack, a deep recoil through the frame.
-        hiss(out, t, "bandpass", 1100, 0.8, 0.6, 0.0008, 0.08);
-        tone(saturator(out, 4), t, "sawtooth", 420, 28, 0.4, 0.001, 0.3);
-        thud(out, t + 0.01, 50, 17, 1, 1.1);
+        // The capacitors dump: a hard electrical crack...
+        hiss(saturator(out, 3), t, "highpass", 1500, 0.7, 0.9, 0.0006, 0.035);
+        tone(saturator(out, 4), t, "square", 2400, 300, 0.3, 0.001, 0.05);
+        // ...the round zips off: a falling zip that sweeps across and away...
+        zip(out, t + 0.005);
+        // ...with the force of it: a heavy push through the frame, a rush of air, a low boom.
+        thud(out, t + 0.01, 55, 17, 1, 1.1);
         thud(out, t + 0.03, 34, 20, 0.6, 0.9);
-        hiss(out, t + 0.01, "lowpass", 600, 0.7, 0.5, 0.005, 0.9, 60);
-        crackle(out, t + 0.06, 0.6, 6, 300, 1200, 0.14);
+        hiss(out, t + 0.01, "lowpass", 900, 0.8, 0.6, 0.03, 0.8, 70);
+        crackle(out, t + 0.05, 0.4, 5, 400, 1600, 0.1);
         break;
       case "pdcKillOwn":
         // Something shot down out there: a muffled, distant detonation.
@@ -768,7 +819,7 @@ export function createSoundSystem(): SoundSystem {
       }
       // The railgun charges while the player aims it. Aiming ends at the click, a moment
       // before the shot comes back from the sim, so a cancel winds down only if no shot follows.
-      if (state.railgunCharging && !state.quiet && !A.muted) {
+      if (state.railgunCharging && !A.muted) {
         if (!charge) chargeStart();
         chargeEndAt = null;
       } else if (charge) {
