@@ -18,9 +18,10 @@ export function TimeDeck() {
     <DeckPanel side="mid" title="Time" code={sound}>
       <div className="t-wrap">
         <div className="t-ruler" title="Time compression ([ and ]). Click a mark to jump to it.">
-          <div className="marks">
+          {/* Each speed's click zone is the whole slot around its tick, not just the number. */}
+          <div className="marks" style={{ left: `${-50 / Math.max(1, last)}%`, right: `${-50 / Math.max(1, last)}%` }}>
             {steps.map((c, k) => (
-              <button key={c} className={`mark ${k === i ? "on" : ""}`} onClick={() => hudActions.setCompression(k)}>
+              <button key={c} className={`mark ${k === i ? "on" : ""}`} onClick={() => hudActions.setCompression(k)} title={`${c}× time`}>
                 {c}
               </button>
             ))}

@@ -216,16 +216,19 @@
 
 .dk.mid .dk-body { display: block; padding: 0; }
 /* Time: a tick ruler with a pointer at the speed, the clock, slower / pause / faster. */
-.t-ruler { position: relative; height: 26px; margin: 4px 16px 0; }
+.t-ruler { position: relative; height: 30px; margin: 4px 22px 0; }
 .t-ruler .ticks {
   position: absolute; left: 0; right: 0; bottom: 0; height: 9px;
   background:
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--chrome) 75%, transparent) 0 1px, transparent 1px 20%) bottom / 100% 9px no-repeat,
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--chrome) 45%, transparent) 0 1px, transparent 1px 4%) bottom / 100% 4px no-repeat;
 }
-.t-ruler .marks { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; }
-.t-ruler .mark { all: unset; width: 0; display: flex; justify-content: center; cursor: pointer; font-family: "Share Tech Mono", monospace; font-size: 9px; color: var(--textDim); }
-.t-ruler .mark:hover { color: var(--text); }
+.t-ruler .marks { position: absolute; top: 0; bottom: 0; display: flex; z-index: 1; }
+.t-ruler .mark {
+  all: unset; flex: 1; display: flex; justify-content: center; align-items: flex-start; padding-top: 1px; cursor: pointer;
+  font-family: "Share Tech Mono", monospace; font-size: 10px; color: var(--textDim);
+}
+.t-ruler .mark:hover { color: #fff; background: color-mix(in srgb, var(--chrome) 18%, transparent); }
 .t-ruler .mark.on { color: #fff; }
 .t-ruler .ptr {
   position: absolute; bottom: 8px; width: 0; height: 0; transform: translateX(-50%); transition: left 0.15s;
