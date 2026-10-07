@@ -19,7 +19,7 @@ import { G0 } from "./data/ships";
 import { createOrderInput, type OrderKind, type SalvoSize } from "./game/input";
 import { createIconLayer } from "./render/icons";
 import { createImpactLayer } from "./render/impacts";
-import { impactsFromEvents } from "./render/impactModel";
+import { hitFlickerFromEvents, impactsFromEvents } from "./render/impactModel";
 import { areHostile } from "./sim/world";
 import { createBodyLayer } from "./render/bodies";
 import { createDropLines } from "./render/dropLines";
@@ -33,6 +33,13 @@ import { defaultScenario, scenarios } from "./data/scenarios";
 import { buildSkirmish, parseSkirmish, skirmishMaps } from "./data/skirmish";
 import { effectsTuning } from "./data/effects";
 import { tuningRoots } from "./data/tuningRoots";
+import { loadouts } from "./data/combat";
+import { audioTuning } from "./data/audio";
+import { saveSettings, settings } from "./game/settings";
+import { actionFor, type ActionId } from "./game/keymap";
+import { applyUiScale, uiScaleKey } from "./ui/uiScale";
+import { createSoundSystem } from "./audio/synth";
+import { cuesFromEvents, cuesFromSignals, driveLevel } from "./game/soundCues";
 
 // What to play, from the page address: ?skirmish=open-duel&enemies=2&ai=hunter (the setup
 // screen's choice), or ?scenario=holotable-test. Neither: the skirmish setup screen, with a
@@ -50,11 +57,17 @@ const game = createGame(
 );
 if (showSetup) game.paused = true;
 const view = createTableView(document.getElementById("table")!);
-createDebugPanel(scenarioName, () => {
-  game.restart();
-  impacts.clear();
-});
+const sound = createSoundSystem();
+createDebugPanel(
+  scenarioName,
+  () => {
+    game.restart();
+    impacts.clear();
+  },
+  sound,
+);
 createRoot(document.getElementById("hud")!).render(createElement(showSetup ? SetupScreen : Hud));
+applyUiScale();
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.
 for (const [k, v] of Object.entries(palette)) document.documentElement.style.setProperty(`--${k}`, v);
@@ -97,8 +110,40 @@ focusSelected(false);
 const orders = createOrderInput(game, view, (x, y) => icons.pick(x, y));
 
 hudActions.togglePause = () => game.togglePause();
+hudActions.applyVolume = () => sound.applyVolumes();
+// A rebind in Settings: the HUD redraws its key letters.
+let keysVersion = 0;
+hudActions.keysChanged = () => hudStore.set({ keysVersion: ++keysVersion });
+// The Settings screen pauses the game while it is open, and puts it back as it was.
+let settingsOpen = false;
+let pausedBeforeSettings = false;
+hudActions.openSettings = () => {
+  if (settingsOpen) return;
+  settingsOpen = true;
+  pausedBeforeSettings = game.paused;
+  game.paused = true;
+  orders.cancel();
+  hudStore.set({ settingsOpen: true, paused: true });
+};
+hudActions.closeSettings = () => {
+  if (!settingsOpen) return;
+  settingsOpen = false;
+  if (!game.outcome) game.paused = pausedBeforeSettings;
+  hudStore.set({ settingsOpen: false });
+};
+// Sound on or off is the player's choice, remembered between visits.
+audioTuning.muted = settings.muted;
+hudActions.toggleMute = () => {
+  audioTuning.muted = !audioTuning.muted;
+  saveSettings({ muted: audioTuning.muted });
+  sound.applyVolumes();
+};
 hudActions.setCompression = (i) => game.setCompression(i);
 hudActions.restart = () => game.restart();
+hudActions.startReplay = () => game.startReplay();
+hudActions.exitReplay = () => game.exitReplay();
+hudActions.replaySeek = (s) => game.replaySeek(s);
+hudActions.replaySetView = (v) => game.replaySetView(v);
 hudActions.backToSetup = () => {
   location.href = location.pathname;
 };
@@ -150,29 +195,46 @@ view.dom.addEventListener("dblclick", (e) => {
   }
 });
 
-const ORDER_KEYS: Record<string, OrderKind> = { b: "burnTo", i: "rendezvous", p: "fastPass", m: "match", k: "stationKeep", o: "orient", r: "orbit", c: "coast", e: "evade", v: "evasive", l: "launch", d: "pdcTarget", g: "railgun" };
+// Keys come from the player's key map (src/game/keymap.ts, rebound in Settings). Esc is fixed:
+// it cancels the order being placed, or clears the selection.
+const ORDER_ACTIONS: Partial<Record<ActionId, OrderKind>> = {
+  burnTo: "burnTo", rendezvous: "rendezvous", fastPass: "fastPass", match: "match", stationKeep: "stationKeep", orient: "orient",
+  orbit: "orbit", coast: "coast", evade: "evade", evasive: "evasive", launch: "launch", railgun: "railgun", pdcTarget: "pdcTarget",
+};
+function runAction(action: ActionId) {
+  const order = ORDER_ACTIONS[action];
+  if (order) return orders.start(order);
+  switch (action) {
+    case "gCruise": return orders.setG("cruise");
+    case "gCombat": return orders.setG("combat");
+    case "gMax": return orders.setG("max");
+    case "sensors": return hudActions.toggleSensors();
+    case "focus": return focusSelected();
+    case "topDown": return view.cam.toggleTopDown();
+    case "rangeRings": pathTuning.showOwnRings = !pathTuning.showOwnRings; return;
+    case "pause": return game.togglePause();
+    case "slower": return game.setCompression(game.compressionIndex - 1);
+    case "faster": return game.setCompression(game.compressionIndex + 1);
+    case "mute": return hudActions.toggleMute();
+  }
+}
 
 window.addEventListener("keydown", (e) => {
+  if (uiScaleKey(e)) return; // Cmd/Ctrl + − 0: the HUD's size (works everywhere, Settings too)
   if (e.target instanceof HTMLInputElement) return;
-  if (e.key === "f" || e.key === "F") focusSelected();
-  if (e.key === "t" || e.key === "T") view.cam.toggleTopDown();
-  if ((e.key === "w" || e.key === "W") && !e.metaKey && !e.ctrlKey) pathTuning.showOwnRings = !pathTuning.showOwnRings;
-  if ((e.key === "s" || e.key === "S") && !e.metaKey && !e.ctrlKey) hudActions.toggleSensors();
+  if (settingsOpen) return; // the Settings screen handles its own keys (Esc closes it)
   if (e.key === "Escape") {
-    if (orders.mode) orders.cancel();
+    if (game.replay) game.exitReplay();
+    else if (orders.mode) orders.cancel();
     else game.selectedId = null;
+    return;
   }
-  const order = ORDER_KEYS[e.key.toLowerCase()];
-  if (order && !e.metaKey && !e.ctrlKey) orders.start(order);
-  if (e.key === "1") orders.setG("cruise");
-  if (e.key === "2") orders.setG("combat");
-  if (e.key === "3") orders.setG("max");
-  if (e.key === " ") {
-    e.preventDefault();
-    game.togglePause();
-  }
-  if (e.key === "[") game.setCompression(game.compressionIndex - 1);
-  if (e.key === "]") game.setCompression(game.compressionIndex + 1);
+  const action = actionFor(settings.keys, e);
+  if (!action) return;
+  // A replay takes no orders: only time, view and sound keys work.
+  if (game.replay && !["pause", "slower", "faster", "mute", "focus", "topDown", "rangeRings"].includes(action)) return;
+  e.preventDefault(); // Space would scroll, arrows would move the page
+  runAction(action);
 });
 
 // URL options for screenshots and quick checks: ?yaw=-60&pitch=30&dist=5e6&top=1&focus=<id>
@@ -196,6 +258,9 @@ let last = performance.now();
 let lastRenderTime = game.renderTime;
 let firstFrame = true;
 let hudTimer = 0;
+/** Hit flicker level, 0..1, fading after each hit on our side. */
+let hitFlicker = 0;
+let lastReplayEpoch = -1;
 function frame(now: number) {
   applyLabelStyle();
   const dt = Math.min(0.1, (now - last) / 1000);
@@ -209,6 +274,8 @@ function frame(now: number) {
   hudTimer -= dt;
   if (hudTimer <= 0) {
     hudTimer = 0.1;
+    document.documentElement.style.setProperty("--alert-anim", String(settings.reduceEffects ? 0 : effectsTuning.alertAnim));
+    document.documentElement.classList.toggle("reduce-effects", settings.reduceEffects);
     const own = game.picture.ownShips.find((s) => s.id === game.activeShipId);
     const pred = own ? game.predictions.get(own.id) : undefined;
     const elapsed = pred ? (game.world.tick - pred.startTick) * DT : 0;
@@ -233,10 +300,14 @@ function frame(now: number) {
             emissions: own.sensorsOn ? "SENSORS" : own.thrust > 0 ? "DRIVE" : own.loud ? "VISIBLE" : "DARK",
             heat: own.heat,
             evading: own.evading,
+            interceptMode: (() => {
+              const o = game.world.ships.find((x) => x.id === own.id)?.order; // our own ship: ours to know
+              return o?.type === "intercept" ? o.mode : null;
+            })(),
           }
         : null,
       weapons: own
-        ? { ...own.torpedoes, salvo: orders.salvo, mode: orders.launchMode }
+        ? { ...own.torpedoes, magazineMax: loadouts[own.shipClass].magazine, salvo: orders.salvo, mode: orders.launchMode }
         : null,
       pdcs: own ? own.pdcs.map((m) => ({ mode: m.mode, firing: m.firing, rounds: m.rounds, roundsMax: m.roundsMax, health: m.health })) : null,
       pdcBurst: own ? own.pdcBurst : null,
@@ -254,6 +325,10 @@ function frame(now: number) {
       compressionIndex: game.compressionIndex,
       compressionSteps: timeTuning.compressionSteps,
       notice: game.notice,
+      muted: audioTuning.muted,
+      settingsOpen,
+      keysVersion,
+      replay: game.replay ? { view: game.replay.view, t: game.simTime, endS: game.replay.endS, marks: game.replay.marks } : null,
       outcome: game.outcome ? { result: game.outcome.result, title: game.outcome.title, detail: game.outcome.detail, timeS: game.outcome.tick * DT } : null,
     });
   }
@@ -345,12 +420,43 @@ function frame(now: number) {
   bodies.update(list.bodies, view.cam.focus);
   dropLines.update(list, view.cam.focus, view.cam.camera, view.dom.clientHeight);
   icons.update(list, view.cam.focus, view.cam.camera, game.selectedId, now / 1000);
-  // Explosions, sparks and hit text for what was hit since the last frame.
-  const fx = impactsFromEvents(game.takeEvents(), {
+  // A replay jump: effects from where the picture was are gone.
+  const epoch = game.replay?.epoch ?? -1;
+  if (epoch !== lastReplayEpoch) {
+    lastReplayEpoch = epoch;
+    impacts.clear();
+    hitFlicker = 0;
+  }
+  // Explosions, sparks and hit text for what was hit since the last frame, and its sounds.
+  const events = game.takeEvents();
+  const eventCtx = {
     playerFaction: game.playerFaction,
-    hostile: (a, b) => areHostile(game.world, a, b),
-    factionOf: (id) => game.factionOf(id),
-  });
+    hostile: (a: string, b: string) => areHostile(game.world, a, b),
+    factionOf: (id: string) => game.factionOf(id),
+  };
+  const fx = impactsFromEvents(events, eventCtx);
+  // Hit flicker: jumps on a hit on our side, then fades over hitFlickerS.
+  hitFlicker = Math.max(hitFlicker - dt / Math.max(0.05, effectsTuning.hitFlickerS), hitFlickerFromEvents(events, eventCtx));
+  view.setGlitch(effectsTuning.enabled ? Math.max(0, hitFlicker) * effectsTuning.hitFlicker : 0);
+  sound.play([...cuesFromEvents(events, eventCtx), ...cuesFromSignals(game.takeSignals())]);
+  {
+    const own = game.picture.ownShips.find((s) => s.id === game.activeShipId);
+    const { impactIn, slugImpactIn } = game.alerts;
+    const soonest = impactIn === null ? slugImpactIn : slugImpactIn === null ? impactIn : Math.min(impactIn, slugImpactIn);
+    sound.update(
+      {
+        drive: own ? driveLevel(own.thrust / G0) : 0,
+        pdcsFiring: own ? own.pdcs.filter((m) => m.firing).length : 0,
+        impactIn: soonest,
+        // Charging while aiming a ready gun, and holding while a shot waits for the sim (paused).
+        railgunCharging:
+          (orders.mode === "railgun" && !!own?.railgun && own.railgun.rechargeS <= 0 && own.railgun.slugs > 0 && own.railgun.health > 0) ||
+          game.world.pending.some((q) => q.command.type === "fireRailgun" && q.command.ship === game.activeShipId),
+        quiet: game.paused || (!!game.outcome && !game.replay),
+      },
+      dt,
+    );
+  }
   impacts.spawn(fx.effects, fx.texts);
   impacts.update(dt, view.cam.focus, view.cam.camera, (id) => game.positionOf(id));
   view.render([[icons.scene, icons.camera], [impacts.scene, impacts.camera]]);
@@ -364,4 +470,4 @@ function frame(now: number) {
 requestAnimationFrame(frame);
 
 // Debug handle for the browser console and inspection scripts (dev builds only).
-if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view, impacts, tuning: tuningRoots };
+if (import.meta.env.DEV) (window as unknown as { __ares: unknown }).__ares = { game, view, impacts, sound, tuning: tuningRoots };

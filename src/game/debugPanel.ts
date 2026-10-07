@@ -14,6 +14,8 @@ import { crewTuning } from "../data/crew";
 import { pathTuning } from "../data/paths";
 import { impactTuning } from "../data/impacts";
 import { labelTuning } from "../data/labels";
+import { audioTuning } from "../data/audio";
+import { PREVIEW_NAMES, type PreviewName } from "../audio/synth";
 import { scenarios } from "../data/scenarios";
 import { tuningRoots } from "../data/tuningRoots";
 import { decoratePanel } from "./panelSearch";
@@ -21,7 +23,14 @@ import { applyPanelStyle, loadPanelStyle, panelFonts, panelStyle, resetPanelStyl
 
 // Debug panel. Toggle with the backquote key (`).
 // Controls edit the tunable objects in src/data directly; code reads them every frame.
-export function createDebugPanel(currentScenario: string, restart: () => void): GUI {
+/** What the panel's Sound folder needs from the sound system. */
+export interface PanelSound {
+  applyVolumes(): void;
+  preview(name: PreviewName): void;
+}
+
+export function createDebugPanel(currentScenario: string, restart: () => void, sound: PanelSound = { applyVolumes() {}, preview() {} }): GUI {
+  const applyVolumes = () => sound.applyVolumes();
   loadPanelStyle();
   const gui = new GUI({ title: "Debug  [ ` ]", width: panelStyle.widthPx });
   gui.hide();
@@ -60,6 +69,30 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
     "resetLook",
   ).name("reset panel text");
   look.close();
+
+  // Sound (M6): volumes per group, and the rules that keep busy moments listenable.
+  const snd = gui.addFolder("Sound");
+  snd.add(audioTuning, "muted").name("mute (N)").onChange(applyVolumes).listen();
+  const audition = { sound: "launchWarning" as PreviewName };
+  snd.add(audition, "sound", [...PREVIEW_NAMES]).name("sound to play");
+  snd.add({ playSound: () => sound.preview(audition.sound) }, "playSound").name("play it");
+  snd.add(audioTuning, "master", 0, 1, 0.05).name("master volume").onChange(applyVolumes);
+  snd.add(audioTuning, "alarms", 0, 1, 0.05).name("alarms and warnings").onChange(applyVolumes);
+  snd.add(audioTuning, "weapons", 0, 1, 0.05).name("our weapons").onChange(applyVolumes);
+  snd.add(audioTuning, "impacts", 0, 1, 0.05).name("hits and kills").onChange(applyVolumes);
+  snd.add(audioTuning, "drive", 0, 1, 0.05).name("drive rumble").onChange(applyVolumes);
+  snd.add(audioTuning, "reverb", 0, 1, 0.05).name("hull echo").onChange(applyVolumes);
+  snd.add(audioTuning, "driveFlame", 0, 1, 0.05).name("drive flame flicker");
+  snd.add(audioTuning, "railgunChargeS", 0.2, 4, 0.1).name("railgun charge-up (s)");
+  snd.add(audioTuning, "railgunHold", 0, 1, 0.05).name("railgun charged whine");
+  snd.add(audioTuning, "driveFullG", 1, 12, 0.5).name("drive full at (g)");
+  snd.add(audioTuning, "impactBeepS", 0, 120, 1).name("impact beeps from (s)");
+  snd.add(audioTuning, "beepSlowS", 0.2, 3, 0.05).name("beep gap at start (s)");
+  snd.add(audioTuning, "beepFastS", 0.05, 1, 0.01).name("beep gap at the end (s)");
+  snd.add(audioTuning, "pdcKillGapS", 0, 0.5, 0.01).name("PDC kill sound gap (s)");
+  snd.add(audioTuning, "hitGapS", 0, 1, 0.01).name("hit sound gap (s)");
+  snd.add(audioTuning, "warningGapS", 0, 10, 0.5).name("warning repeat gap (s)");
+  snd.close();
 
   const time = gui.addFolder("Time");
   time.add(timeTuning, "slowOnFlip").name("slow to 1x on flip");
@@ -162,6 +195,12 @@ export function createDebugPanel(currentScenario: string, restart: () => void): 
   fx.add(effectsTuning, "chromaticPx", 0, 5, 0.05);
   fx.add(effectsTuning, "chromaticRadialPx", 0, 8, 0.05);
   fx.add(effectsTuning, "dustOpacity", 0, 1, 0.01);
+  fx.add(effectsTuning, "hitFlicker", 0, 1, 0.05).name("hit flicker");
+  fx.add(effectsTuning, "hitFlickerS", 0.1, 3, 0.05).name("hit flicker lasts (s)");
+  fx.add(effectsTuning, "hitFlickerPdc", 0, 1, 0.05).name("flicker: PDC hits");
+  fx.add(effectsTuning, "hitFlickerMin", 0, 1, 0.05).name("flicker: heavy hit at least");
+  fx.add(effectsTuning, "hitFlickerPerHull", 0, 10, 0.1).name("flicker: per hull lost");
+  fx.add(effectsTuning, "alertAnim", 0, 1, 0.05).name("alert animations");
   fx.close();
 
   const torp = gui.addFolder("Torpedoes");

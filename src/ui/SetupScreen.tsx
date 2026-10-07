@@ -7,6 +7,7 @@ import { personalityLabels, personalityPresets, type PersonalityName } from "../
 import { rangePhaseLabels, skirmishMaps, skirmishQuery } from "../data/skirmish";
 import { scenarios } from "../data/scenarios";
 import { Panel } from "./Panel";
+import { SettingsScreen } from "./SettingsScreen";
 
 const PERSONALITIES = Object.keys(personalityPresets) as PersonalityName[];
 
@@ -28,13 +29,14 @@ export function SetupScreen() {
   const [mapId, setMapId] = useState(skirmishMaps[0].id);
   const [enemies, setEnemies] = useState<1 | 2>(1);
   const [personality, setPersonality] = useState<PersonalityName>("duelist");
+  const [showSettings, setShowSettings] = useState(false);
   const map = skirmishMaps.find((m) => m.id === mapId)!;
   const start = () => {
     location.search = skirmishQuery({ map: mapId, enemies, personality });
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter") start();
+      if (e.key === "Enter" && !showSettings) start();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -94,6 +96,9 @@ export function SetupScreen() {
             <button className="hud-btn active setup-go" onClick={start}>
               START <span className="key">ENTER</span>
             </button>
+            <button className="hud-btn setup-settings" onClick={() => setShowSettings(true)}>
+              Settings
+            </button>
           </div>
 
           <section className="setup-other">
@@ -108,6 +113,10 @@ export function SetupScreen() {
           </section>
         </div>
       </Panel>
+      <div className="build-stamp mono" title="Which build this is: name it in a playtest report">
+        BUILD {__BUILD__}
+      </div>
+      {showSettings && <SettingsScreen inFight={false} onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

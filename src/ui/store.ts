@@ -28,6 +28,8 @@ export interface ActiveShipInfo {
   heat: number;
   /** An Evade bend is in progress. */
   evading: boolean;
+  /** Which kind of intercept is running (the helm lights Intercept or Fast pass), or null. */
+  interceptMode: "rendezvous" | "fastPass" | null;
 }
 
 export interface AlertInfo {
@@ -40,6 +42,8 @@ export interface AlertInfo {
 export interface WeaponsInfo {
   /** Torpedoes left, and ordered but not yet out of a tube. */
   magazine: number;
+  /** A full magazine for the ship's class. */
+  magazineMax: number;
   queued: number;
   tubes: number;
   tubesReady: number;
@@ -68,6 +72,13 @@ export interface RailgunInfo {
   slugsMax: number;
   health: number;
   spinal: boolean;
+}
+
+export interface ReplayInfo {
+  view: "ours" | "theirs" | "all";
+  t: number;
+  endS: number;
+  marks: { t: number; tone: "threat" | "warn" | "good" | "info"; text: string }[];
 }
 
 /** How the fight ended, for the result banner. */
@@ -101,6 +112,14 @@ export interface HudState {
   compressionIndex: number;
   compressionSteps: number[];
   notice: string | null;
+  /** All sound off (N). */
+  muted: boolean;
+  /** The Settings screen is open (the game is paused meanwhile). */
+  settingsOpen: boolean;
+  /** Changes when the player rebinds a key, so key letters on buttons redraw. */
+  keysVersion: number;
+  /** The after-action replay, or null while playing. t and endS in sim seconds. */
+  replay: ReplayInfo | null;
   /** Set when the fight is over (win, loss or draw). */
   outcome: OutcomeInfo | null;
 }
@@ -124,6 +143,10 @@ let state: HudState = {
   compressionIndex: 0,
   compressionSteps: [1],
   notice: null,
+  muted: false,
+  settingsOpen: false,
+  keysVersion: 0,
+  replay: null,
   outcome: null,
 };
 const listeners = new Set<() => void>();
@@ -153,6 +176,20 @@ export function useHud(): HudState {
 
 export interface HudActions {
   togglePause(): void;
+  /** Sound on or off (N). */
+  toggleMute(): void;
+  /** Applies the player's volume from settings. */
+  applyVolume(): void;
+  /** Opens or closes the Settings screen. */
+  openSettings(): void;
+  closeSettings(): void;
+  /** The key map changed (Settings, Controls). */
+  keysChanged(): void;
+  /** After-action replay. */
+  startReplay(): void;
+  exitReplay(): void;
+  replaySeek(seconds: number): void;
+  replaySetView(view: "ours" | "theirs" | "all"): void;
   setCompression(index: number): void;
   startOrder(kind: string): void;
   setG(g: "cruise" | "combat" | "max"): void;
@@ -171,6 +208,15 @@ export interface HudActions {
 
 export const hudActions: HudActions = {
   togglePause() {},
+  toggleMute() {},
+  applyVolume() {},
+  openSettings() {},
+  closeSettings() {},
+  keysChanged() {},
+  startReplay() {},
+  exitReplay() {},
+  replaySeek() {},
+  replaySetView() {},
   setCompression() {},
   startOrder() {},
   setG() {},

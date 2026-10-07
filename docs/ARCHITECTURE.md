@@ -43,6 +43,7 @@ Project Ares/
       lines.ts           trajectories, intercepts, drop lines
       volumes.ts         PDC domes, sensor shadows, uncertainty clouds
       effects.ts         bloom, chromatic split, jamming static
+    audio/               Web Audio synth: every sound made live, no sound files (M6)
     ui/                  React HUD panels
     game/                main loop, input, sim-to-render bridge
     data/                ship classes, weapons, sensors, scenarios (all tunables)
@@ -56,7 +57,7 @@ Project Ares/
 
 `src/sim` is a pure, headless module. It takes commands and advances time. It knows nothing about the screen. This gives us:
 - Unit tests without a browser
-- After-action replays (store the starting state and the command list, re-run)
+- After-action replays (M6, `src/game/replay.ts`, `game.ts`): a copy of the world every 30 sim seconds plus the player's command list; the replay re-runs from the nearest copy (AI commands come from the sim itself) and re-syncs at each copy, so it never drifts
 - AI that runs on the same rules as the player
 - A future multiplayer server that runs the same sim code in Node
 

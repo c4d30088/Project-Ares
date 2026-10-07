@@ -64,10 +64,8 @@
 
 .rail-left   { left: 16px;  top: 60px; bottom: 84px; width: 260px; }
 .rail-right  { right: 16px; top: 60px; bottom: 84px; width: 300px; }
-.bottom-bar  { left: 292px; right: 332px; bottom: 16px; height: 56px; }
 .alert-strip { left: 50%; transform: translateX(-50%); top: 12px; width: min(560px, 50vw); height: 36px; --chamfer: 10px; }
 .alert-strip .panel-inner { flex-direction: row; align-items: center; justify-content: center; padding: 0 16px; }
-.bottom-bar .panel-inner { flex-direction: row; align-items: center; gap: 16px; }
 
 /* --- Table overlays (outside .hud) --- */
 .table-labels { position: absolute; inset: 0; pointer-events: none; }
@@ -135,27 +133,19 @@
 .hud-btn:disabled { opacity: 0.35; cursor: default; }
 .btn-group { display: flex; gap: 2px; }
 
-.time-controls { display: flex; align-items: center; gap: 10px; }
-.clock { color: var(--text); font-size: 13px; margin-left: 4px; }
 .hud-btn.mono { text-transform: none; }
 
-/* --- Bottom bar: orders row above time row --- */
-.bottom-bar { height: 92px; }
-.rail-left, .rail-right { bottom: 120px; }
-.bottom-bar .panel-inner { flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; }
-.order-bar { display: flex; gap: 14px; flex-wrap: wrap; }
+/* --- Key hints on buttons, and the hint shown while placing an order (above the deck) --- */
 .hud-btn .key { color: var(--textDim); margin-left: 4px; font-family: "Share Tech Mono", monospace; }
 .order-hint {
   position: absolute;
   left: 50%;
-  bottom: 118px;
   transform: translateX(-50%);
   color: var(--friendly);
   font-size: 11px;
   white-space: nowrap;
   pointer-events: none;
 }
-.scale-readout { bottom: 140px; }
 
 /* --- Left rail data rows --- */
 .nav-status { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
@@ -167,39 +157,53 @@
 .data-row.warn .data-value { color: var(--uncertain); }
 .data-row.dim .data-value { color: var(--textDim); }
 
-/* --- Weapons row (right of the time controls) and alerts --- */
-.bottom-row { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
-.weapons-bar { display: flex; align-items: center; gap: 10px; }
-.weapons-label { color: var(--text); font-size: 11px; letter-spacing: 0.04em; }
+/* --- Alerts --- */
 .alert-strip .panel-inner { gap: 18px; }
 .alert { font-size: 12px; letter-spacing: 0.08em; }
 .alert.threat { color: var(--threat); }
-.alert.blink { animation: alert-blink 0.8s steps(2, start) infinite; }
-@keyframes alert-blink { to { visibility: hidden; } }
 
-/* --- Three-row bottom bar: orders, time, weapons --- */
-.bottom-bar { height: 124px; }
-.rail-left, .rail-right { bottom: 152px; }
-.order-hint { bottom: 172px; }
-.pdc-bar { display: flex; align-items: center; gap: 10px; }
-.pdc-chip { min-width: 30px; }
-.pdc-chip.firing { color: #fff; background: color-mix(in srgb, var(--friendly) 40%, transparent); }
-.pdc-chip.low { color: var(--uncertain); }
-.pdc-chip.dead { color: var(--threat); opacity: 0.6; }
+/* Alert animations (M6), scaled by --alert-anim (debug panel "alert animations"; 0 is still).
+   New alerts flash in; danger alerts pulse; urgent ones (blink) pulse faster; an impact
+   countdown under 10 s fastest. The strip flashes red once when a new danger alert arrives. */
+:root { --alert-anim: 1; }
+.alert-strip .alert { animation: alert-in 0.55s ease-out; }
+.alert-strip .alert.threat { animation: alert-in 0.55s ease-out, alert-pulse 1.6s ease-in-out 0.55s infinite; }
+.alert-strip .alert.blink { animation: alert-in 0.55s ease-out, alert-pulse 0.7s ease-in-out 0.55s infinite; }
+.alert-strip .alert.urgent { animation: alert-in 0.55s ease-out, alert-pulse 0.4s ease-in-out 0.55s infinite; }
+@keyframes alert-in {
+  from {
+    opacity: calc(1 - var(--alert-anim));
+    letter-spacing: calc(0.08em + 0.3em * var(--alert-anim));
+    text-shadow: 0 0 calc(14px * var(--alert-anim)) currentColor;
+  }
+}
+@keyframes alert-pulse {
+  50% {
+    opacity: calc(1 - 0.45 * var(--alert-anim));
+    text-shadow: 0 0 calc(9px * var(--alert-anim)) currentColor;
+  }
+}
+.strip-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: color-mix(in srgb, var(--threat) 30%, transparent);
+  box-shadow: inset 0 0 0 1px var(--threat);
+  animation: strip-flash 0.9s ease-out;
+}
+@keyframes strip-flash {
+  0%, 30% { opacity: var(--alert-anim); }
+  100% { opacity: 0; }
+}
 
-/* --- Left rail: PDC rounds and burst fire --- */
-.pdc-status { margin-top: 14px; }
+/* Hit flicker on the table's DOM labels (set by render/scene.ts). */
+.table-labels, .table-overlay { opacity: calc(1 - var(--glitch, 0) * 0.55); translate: var(--glitch-x, 0px) 0; }
+
+/* --- Left rail section titles and row tones --- */
 .section-title { font-size: 10px; letter-spacing: 0.14em; color: var(--chrome); margin-bottom: 4px; }
 .data-row.live .data-value { color: var(--friendly); }
 .data-row.bad .data-value { color: var(--threat); }
-.burst-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.burst-field { display: flex; align-items: center; gap: 4px; color: var(--text); font-size: 11px; }
-.hud-btn.tiny { padding: 1px 6px; min-width: 0; }
-
-/* --- Railgun --- */
-.railgun-bar { display: flex; align-items: center; gap: 10px; }
-.sensor-bar { display: flex; align-items: center; gap: 10px; }
-.weapons-label.dim { color: var(--textDim); }
 
 /* --- Ship status: G-strain and subsystems; the left rail scrolls if it must --- */
 .rail-left .panel-inner { overflow-y: auto; }
@@ -318,3 +322,51 @@
 .setup-go { padding: 10px 28px; font-size: 13px; }
 .setup-others { display: flex; flex-wrap: wrap; gap: 6px; }
 .setup-other { opacity: 0.85; }
+
+/* Reduce effects (player setting): no flashing log lines or strip flash. Alert pulsing is
+   already stopped through --alert-anim. */
+.reduce-effects .log-row, .reduce-effects .strip-flash { animation: none; }
+
+/* --- Settings screen (M6 accessibility) --- */
+.settings-scrim { position: absolute; inset: 0; pointer-events: auto; z-index: 20; background: color-mix(in srgb, var(--bg) 70%, transparent); font-family: "Oxanium", sans-serif; color: var(--text); text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; }
+.settings-panel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(720px, 94vw); height: min(640px, 92vh); --chamfer: 16px; }
+.settings-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; margin-top: 14px; padding-right: 6px; }
+.settings-head { font-size: 10px; letter-spacing: 0.16em; color: var(--chrome); margin-bottom: 8px; }
+.settings-note { color: var(--textDim); text-transform: none; letter-spacing: 0.02em; font-size: 12px; line-height: 1.4; }
+.palette-cards { display: flex; flex-direction: column; gap: 8px; }
+.palette-card { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 10px 12px; text-align: left; background: transparent; border: 1px solid color-mix(in srgb, var(--chrome) 45%, transparent); color: var(--text); font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+.palette-card:hover { background: color-mix(in srgb, var(--chrome) 16%, transparent); }
+.palette-card.active { border-color: var(--friendly); background: color-mix(in srgb, var(--friendly) 12%, transparent); }
+.palette-name { font-size: 12px; font-weight: 600; }
+.palette-now { color: var(--textDim); font-weight: 400; }
+.swatches { display: flex; flex-wrap: wrap; gap: 14px; }
+.swatch { display: flex; align-items: center; gap: 6px; }
+.swatch .chip { width: 14px; height: 14px; border-radius: 2px; }
+.swatch .chip-label { font-size: 10px; color: var(--text); letter-spacing: 0.08em; }
+.palette-blurb { color: var(--textDim); text-transform: none; letter-spacing: 0.02em; font-size: 12px; }
+.settings-apply { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 8px 10px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--uncertain) 60%, transparent); }
+.settings-apply .settings-note { color: var(--uncertain); }
+.settings-toggle { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.settings-toggle input { margin-top: 2px; accent-color: var(--friendly); width: 16px; height: 16px; }
+.settings-toggle > span { display: flex; flex-direction: column; gap: 4px; }
+.toggle-name { font-size: 12px; font-weight: 600; }
+.settings-row { display: flex; align-items: center; gap: 12px; }
+.settings-row input[type="range"] { flex: 1; max-width: 260px; accent-color: var(--friendly); }
+.settings-value { width: 40px; }
+.settings-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.setup-start { gap: 10px; align-items: center; }
+
+/* Settings: controls (key rebinding) */
+.controls-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 18px; }
+.controls-group { display: flex; flex-direction: column; gap: 2px; }
+.controls-group-name { font-size: 9px; color: var(--textDim); letter-spacing: 0.16em; margin-bottom: 2px; }
+.control-row { all: unset; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 3px 6px; cursor: pointer; font-size: 10px; letter-spacing: 0.08em; border-bottom: 1px solid color-mix(in srgb, var(--chrome) 15%, transparent); }
+.control-row:hover { background: color-mix(in srgb, var(--chrome) 16%, transparent); }
+.control-key { min-width: 26px; text-align: center; padding: 1px 6px; color: var(--friendly); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chrome) 45%, transparent); }
+.control-row.changed .control-key { color: #fff; box-shadow: inset 0 0 0 1px var(--friendly); }
+.control-row.listening { background: color-mix(in srgb, var(--friendly) 18%, transparent); }
+.control-row.listening .control-key { color: var(--uncertain); box-shadow: inset 0 0 0 1px var(--uncertain); }
+.controls-message { flex: 1; min-height: 1.4em; }
+
+/* Build stamp on the setup screen (which build a playtester played). */
+.build-stamp { position: absolute; right: 16px; bottom: 12px; font-size: 10px; color: var(--textDim); letter-spacing: 0.06em; text-transform: none; }

@@ -10,6 +10,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { effectsTuning as T } from "../data/effects";
 import { Rng } from "../sim/rng";
 import { palette } from "./palette";
+import { settings } from "../game/settings";
 
 const ChromaticSplitShader = {
   uniforms: {
@@ -17,6 +18,9 @@ const ChromaticSplitShader = {
     uResolution: { value: new THREE.Vector2(1, 1) },
     uConstPx: { value: 0 },
     uRadialPx: { value: 0 },
+    /** Hit flicker, 0..1, and a value that changes every flicker step (picks the torn bands). */
+    uGlitch: { value: 0 },
+    uSeed: { value: 0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -28,21 +32,33 @@ const ChromaticSplitShader = {
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
     uniform vec2 uResolution;
-    uniform float uConstPx, uRadialPx;
+    uniform float uConstPx, uRadialPx, uGlitch, uSeed;
     varying vec2 vUv;
+    float hash(float n) { return fract(sin(n) * 43758.5453); }
     void main() {
-      vec2 fromCenter = (vUv - 0.5) * 2.0; // -1..1
-      vec2 offPx = vec2(uConstPx, 0.0) + fromCenter * uRadialPx;
+      vec2 uv = vUv;
+      // Hit flicker: a few horizontal bands tear sideways.
+      float band = floor(vUv.y * 40.0);
+      float n = hash(band * 12.9898 + uSeed * 78.233);
+      if (n > 1.0 - 0.3 * uGlitch) uv.x += (hash(band + uSeed) - 0.5) * 0.06 * uGlitch;
+      vec2 fromCenter = (uv - 0.5) * 2.0; // -1..1
+      vec2 offPx = vec2(uConstPx + uGlitch * 7.0, 0.0) + fromCenter * uRadialPx;
       vec2 off = offPx / uResolution;
-      vec4 base = texture2D(tDiffuse, vUv);
-      float r = texture2D(tDiffuse, vUv + off).r;
-      float b = texture2D(tDiffuse, vUv - off).b;
-      gl_FragColor = vec4(r, base.g, b, base.a);
+      vec4 base = texture2D(tDiffuse, uv);
+      float r = texture2D(tDiffuse, uv + off).r;
+      float b = texture2D(tDiffuse, uv - off).b;
+      vec3 col = vec3(r, base.g, b);
+      // ...scanlines show, and the brightness dips.
+      col *= 1.0 - uGlitch * 0.3 * (0.5 + 0.5 * sin(vUv.y * uResolution.y * 1.6));
+      col *= 1.0 - uGlitch * 0.35 * hash(uSeed * 3.7);
+      gl_FragColor = vec4(col, base.a);
     }
   `,
 };
 
 export interface Effects {
+  /** Hit flicker for the next frames, 0..1, and a seed that changes every flicker step. */
+  setGlitch(amount: number, seed: number): void;
   render(): void;
   resize(w: number, h: number): void;
 }
@@ -67,14 +83,20 @@ export function createEffects(
   composer.addPass(new OutputPass());
 
   return {
+    setGlitch(amount, seed) {
+      split.uniforms.uGlitch.value = settings.reduceEffects ? 0 : amount;
+      split.uniforms.uSeed.value = seed;
+    },
     render() {
+      // Reduce effects (player setting): half the glow, no color split, no hit flicker.
+      const reduce = settings.reduceEffects;
       bloom.enabled = T.enabled && T.bloomStrength > 0;
-      bloom.strength = T.bloomStrength;
+      bloom.strength = T.bloomStrength * (reduce ? 0.5 : 1);
       bloom.radius = T.bloomRadius;
       bloom.threshold = T.bloomThreshold;
-      split.enabled = T.enabled && (T.chromaticPx > 0 || T.chromaticRadialPx > 0);
-      split.uniforms.uConstPx.value = T.chromaticPx * renderer.getPixelRatio();
-      split.uniforms.uRadialPx.value = T.chromaticRadialPx * renderer.getPixelRatio();
+      split.enabled = T.enabled && (reduce ? split.uniforms.uGlitch.value > 0 : T.chromaticPx > 0 || T.chromaticRadialPx > 0 || split.uniforms.uGlitch.value > 0);
+      split.uniforms.uConstPx.value = reduce ? 0 : T.chromaticPx * renderer.getPixelRatio();
+      split.uniforms.uRadialPx.value = reduce ? 0 : T.chromaticRadialPx * renderer.getPixelRatio();
       composer.render();
     },
     resize(w, h) {
@@ -115,7 +137,7 @@ export function createDust(scene: THREE.Scene, count = 700) {
     update(cameraDistance: number) {
       points.scale.setScalar(cameraDistance);
       mat.opacity = T.dustOpacity;
-      points.visible = T.dustOpacity > 0;
+      points.visible = T.dustOpacity > 0 && !settings.reduceEffects;
     },
   };
 }

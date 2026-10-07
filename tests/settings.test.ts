@@ -1,0 +1,32 @@
+// Player settings read back from the browser: only sensible values survive, anything else
+// falls back to the defaults, and a broken entry never stops the game.
+
+import { describe, expect, it } from "vitest";
+import { defaultSettings, parseSettings } from "../src/game/settings";
+import { defaultKeys } from "../src/game/keymap";
+
+describe("player settings", () => {
+  it("nothing saved: defaults", () => {
+    expect(parseSettings(null)).toEqual(defaultSettings);
+  });
+
+  it("reads back what was saved", () => {
+    expect(parseSettings(JSON.stringify({ palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true }))).toEqual({
+      palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true, keys: defaultKeys, uiScale: 1,
+    });
+  });
+
+  it("keeps a sensible UI scale, ignores a silly one", () => {
+    expect(parseSettings(JSON.stringify({ uiScale: 1.4 })).uiScale).toBe(1.4);
+    expect(parseSettings(JSON.stringify({ uiScale: 9 })).uiScale).toBe(1);
+  });
+
+  it("keeps the player's rebound keys", () => {
+    expect(parseSettings(JSON.stringify({ keys: { burnTo: "x" } })).keys.burnTo).toBe("x");
+  });
+
+  it("ignores unknown palettes, out-of-range volume and junk", () => {
+    expect(parseSettings(JSON.stringify({ palette: "sepia", volume: 7, reduceEffects: "yes" }))).toEqual(defaultSettings);
+    expect(parseSettings("{not json")).toEqual(defaultSettings);
+  });
+});

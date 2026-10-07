@@ -12,6 +12,7 @@ import { toRender } from "./frame";
 import { palette } from "./palette";
 import { pathTuning as P } from "../data/paths";
 import { cellIndex, cellUv, createSymbolAtlas, EXTRA_CELLS, type Treatment } from "./symbolAtlas";
+import { settings } from "../game/settings";
 
 const MAX_ICONS = 512;
 
@@ -199,7 +200,8 @@ export function createIconLayer(labelRoot: HTMLElement): IconLayer {
       screen.length = 0;
       seen.clear();
       candidates.length = 0;
-      const pulse = T.pulseMin + (1 - T.pulseMin) * (0.5 + 0.5 * Math.cos(time * Math.PI * 2 * T.torpedoPulseHz));
+      // Reduce effects (player setting): enemy torpedoes hold steady instead of pulsing.
+      const pulse = settings.reduceEffects ? 1 : T.pulseMin + (1 - T.pulseMin) * (0.5 + 0.5 * Math.cos(time * Math.PI * 2 * T.torpedoPulseHz));
       const pxPerRad = height / 2 / Math.tan((cam.fov * Math.PI) / 360);
 
       // Bodies too small to see as spheres get a marker.
