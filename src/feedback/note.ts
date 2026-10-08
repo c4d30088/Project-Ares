@@ -1,6 +1,6 @@
 // Playtest feedback (M6): what a note is, and the checks every note passes before it is
-// stored. Shared by the game (which sends notes), the Cloudflare Pages function that stores
-// them (functions/api/feedback.ts) and the local stand-in used by the dev server, so all three
+// stored. Shared by the game (which sends notes), the Cloudflare Worker that stores them
+// (worker/index.ts) and the local stand-in used by the dev server, so all three
 // agree. Plain TypeScript, no DOM: it runs in the browser, on Cloudflare and in Node.
 //
 // A note carries only what the tester chose to send: their gamer tag, quick tags, their words,

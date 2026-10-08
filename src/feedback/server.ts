@@ -1,6 +1,6 @@
 // The receiving end of playtest feedback: store a note (with a spam guard), and list notes for
 // the developer (password only). Written against a tiny key-value interface that Cloudflare KV
-// satisfies as it is (functions/api/feedback.ts) and that the dev server fakes with a file
+// satisfies as it is (worker/index.ts) and that the dev server fakes with a file
 // (vite.config.ts), so the same rules run live, locally and in tests.
 
 import { NOTES_PER_HOUR, validateNote, type StoredNote } from "./note";

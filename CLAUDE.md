@@ -20,7 +20,7 @@ Reference images are in `UX reference/` and `The Expanse UI Reference/`. They ar
 - `npm run dev`: start the game locally at http://localhost:5173
 - `npm test`: run unit tests (includes `tests/simRules.test.ts`, which enforces hard rules 1 and 3 on `src/sim`)
 - `npm run build`: type-check, then production build to `dist/`
-- `npm run preview`: serve the production build from `dist/` at http://localhost:4173 (what Cloudflare Pages serves; see `docs/DEPLOY.md`)
+- `npm run preview`: serve the production build from `dist/` at http://localhost:4173 (what Cloudflare serves; see `docs/DEPLOY.md`)
 - `npm run shot`: headless screenshot of the current scene to `shots/latest.png` (options: `-- --wait 1500 --width 1600 --height 900`)
 
 Debug panel (lil-gui): press `` ` `` in the game. The search box at the top finds a control by name or by what it does; every control has a one-line explanation under it ("show explanations" hides them). "copy values" puts all tunables on the clipboard as JSON.
@@ -31,7 +31,7 @@ Orders (to the active ship, the last own ship selected; these are the default ke
 
 Settings (M6, `src/ui/SettingsScreen.tsx`, saved in the browser by `src/game/settings.ts`): SET in the Time panel's band or Settings on the setup screen; color palette, Reduce effects, volume, sound on or off, and Controls (rebind any shortcut; a key already in use swaps; Esc, ` and Enter are fixed). The game pauses while it is open.
 
-Playtest (M6, `src/ui/playtest/`, `src/feedback/`): the bare address opens a title screen, then on a first visit the playtest briefing (what the playtest is and how to send feedback, deliberately no controls; asks for a gamer tag, saved with the settings), then the skirmish setup. FEEDBACK (top right, any time; the game pauses) and "How did that fight go?" on the result banner send notes to `/api/feedback` (Cloudflare Pages function `functions/api/feedback.ts`; storage set up per `docs/DEPLOY.md`). Notes that cannot be sent wait in the browser. The developer reads them at `/feedback` (password; locally the dev server stores notes in `.feedback-dev.json` and the password is `dev`).
+Playtest (M6, `src/ui/playtest/`, `src/feedback/`): the bare address opens a title screen, then on a first visit the playtest briefing (what the playtest is and how to send feedback, deliberately no controls; asks for a gamer tag, saved with the settings), then the skirmish setup. FEEDBACK (top right, any time; the game pauses) and "How did that fight go?" on the result banner send notes to `/api/feedback` (the site's Cloudflare Worker `worker/index.ts`, configured in `wrangler.jsonc`; storage set up per `docs/DEPLOY.md`). Notes that cannot be sent wait in the browser. The developer reads them at `/feedback` (password; locally the dev server stores notes in `.feedback-dev.json` and the password is `dev`).
 
 Opening the bare address (http://localhost:5173/) shows, after the title (and briefing), the skirmish setup screen: pick a map, 1v1 or 1v2, and an AI personality (Hunter, Duelist, Skulker), then Start (or Enter). It reloads with `?skirmish=<map>&enemies=<1|2>&ai=<name>` (maps: `open-duel`, `pincer`, `moon-shadow`, `rock-garden`, `knife-fight`, defined in `src/data/skirmish.ts`), so a skirmish can be linked to. The result banner (VICTORY, DEFEAT, DRAW) has Replay, Restart and Back to setup. Replay (M6) re-runs the fight with a timeline (click or drag to jump), speed, and Our view / Their view / All; Esc or Exit replay goes back to the result.
 

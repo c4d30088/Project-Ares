@@ -6,7 +6,7 @@ import type { Connect } from "vite";
 import { listNotes, receiveNote, type KeyValue } from "./src/feedback/server";
 
 // Playtest feedback while developing: /api/feedback is answered here with the same rules as
-// the Cloudflare function (functions/api/feedback.ts), storing notes in .feedback-dev.json.
+// the Cloudflare Worker (worker/index.ts), storing notes in .feedback-dev.json.
 // The local password for the /feedback page is "dev" (or FEEDBACK_ADMIN_KEY if set).
 function devFeedback(): Connect.NextHandleFunction {
   const file = ".feedback-dev.json";
@@ -57,7 +57,7 @@ function devFeedback(): Connect.NextHandleFunction {
 }
 
 // Which build this is, shown small on the setup screen so a playtest report can name it.
-// Cloudflare Pages provides the commit and branch while building; locally, ask git.
+// Cloudflare's builds provide the commit and branch; locally, ask git.
 function buildStamp(): string {
   const git = (cmd: string) => {
     try {
@@ -66,8 +66,9 @@ function buildStamp(): string {
       return "";
     }
   };
-  const commit = (process.env.CF_PAGES_COMMIT_SHA ?? git("git rev-parse HEAD")).slice(0, 7) || "dev";
-  const branch = process.env.CF_PAGES_BRANCH ?? git("git rev-parse --abbrev-ref HEAD");
+  const commit = (process.env.WORKERS_CI_COMMIT_SHA ?? process.env.CF_PAGES_COMMIT_SHA ?? git("git rev-parse HEAD")).slice(0, 7) || "dev";
+  const rawBranch = process.env.WORKERS_CI_BRANCH ?? process.env.CF_PAGES_BRANCH ?? git("git rev-parse --abbrev-ref HEAD");
+  const branch = rawBranch === "HEAD" ? "" : rawBranch; // a detached checkout has no branch name
   const date = new Date().toISOString().slice(0, 10);
   return `${commit}${branch && branch !== "main" ? ` · ${branch}` : ""} · ${date}`;
 }

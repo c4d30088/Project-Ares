@@ -32,13 +32,13 @@ What M6 built (merged to main; 364 tests)
 - Hit flicker on the table and alert strip animations, each with a slider; both off with Reduce effects.
 - Settings with color-blind palettes (checked by a color-blindness simulation test), Reduce effects, volume, UI scale, remappable keys. Saved in the browser.
 - After-action replay that re-runs the fight exactly from saved copies and your commands.
-- Cloudflare Pages: repository ready, owner's steps in docs/DEPLOY.md.
+- Cloudflare: repository ready, owner's steps in docs/DEPLOY.md (the site turned out to be a Worker with static assets, not Pages; the feedback route is a small Worker script).
 
 Owner decisions this milestone
 - Sound: realistic and serious, not playful (three rounds: hull echo, horn klaxon, single-round PDC, no bell tones; a rumblier, flickering drive; the railgun as a transformer charge and a zip release). Voice recordings are not usable (Claude Code cannot hear audio); descriptions and sound words work.
 - Bottom HUD: option D, the console deck after the UX references, not hexes; weapons and helm the same height; bigger click targets for the time speeds.
 - Large screens: UI scale on Cmd/Ctrl + and −; the deck centered next to the Time panel.
-- Hosting: Cloudflare Pages, at https://test.project-ares.net/.
+- Hosting: Cloudflare (a Worker with static assets), at https://test.project-ares.net/.
 - Jamming static left out: jamming itself is parked.
 
 What Claude Code saw (not a real playtest)

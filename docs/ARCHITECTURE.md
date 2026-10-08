@@ -14,7 +14,7 @@
 | Visual checks | Playwright (headless Chromium) | Claude Code takes screenshots of the running game and inspects them itself. |
 | Tuning | lil-gui | A slider panel for every tunable number, so the owner can tune feel without touching code. |
 | Version control | git, with a private GitHub repo | Every working step is a commit you can return to. |
-| Playtest builds | GitHub Pages or Netlify | A link you can send to friends. |
+| Playtest builds | Cloudflare Worker with static assets (`wrangler.jsonc`) | A link you can send to friends: https://test.project-ares.net/ |
 
 ## Folder layout
 
@@ -49,7 +49,7 @@ Project Ares/
     data/                ship classes, weapons, sensors, scenarios (all tunables)
   tests/                 Vitest tests (sim rules, and the pure rules of game, render and ui)
   mockups/               design mockups served by the dev server, not part of the build
-  functions/             Cloudflare Pages functions (api/feedback: playtest notes); rules in src/feedback
+  worker/                the site's Cloudflare Worker: serves dist/, answers /api/feedback (rules in src/feedback)
   public/                copied into the build as is (feedback/: the developer's feedback page)
   scripts/               screenshot script and other tools
 ```

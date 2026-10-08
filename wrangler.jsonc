@@ -1,0 +1,17 @@
+// Cloudflare Worker for the playtest site (see docs/DEPLOY.md). Serves the built game from
+// dist/ and runs worker/index.ts for /api/feedback (playtest notes, stored in KV).
+// "name" must match the Worker's name in the Cloudflare dashboard, and the KV "id" is the
+// ares-feedback namespace's ID (Storage & Databases, KV); neither is secret.
+{
+  "name": "project-ares",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    { "binding": "FEEDBACK", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+  ],
+  "observability": { "enabled": true }
+}
