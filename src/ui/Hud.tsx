@@ -17,6 +17,9 @@ import { useDeckFit } from "./deck/fit";
 import { formatCountdown } from "./format";
 import { hudActions, useHud } from "./store";
 import { SettingsScreen } from "./SettingsScreen";
+import { FeedbackButton, FeedbackForm } from "./playtest/FeedbackForm";
+import { noteContext } from "../feedback/context";
+import { waitingCount } from "../feedback/send";
 import { useRef } from "react";
 
 /** Alerts shown at once in the top strip (most urgent first). */
@@ -56,6 +59,14 @@ export function Hud() {
       {hud.hint && <div className="order-hint mono">{hud.hint}</div>}
       {hud.outcome && !hud.replay && <ResultBanner outcome={hud.outcome} />}
       {hud.settingsOpen && <SettingsScreen inFight onClose={() => hudActions.closeSettings()} />}
+      {!hud.feedback && !hud.settingsOpen && <FeedbackButton onClick={() => hudActions.openFeedback(false)} waiting={waitingCount()} />}
+      {hud.feedback && (
+        <FeedbackForm
+          prompted={hud.feedback.prompted}
+          context={noteContext({ simTime: hud.simTime, result: hud.outcome?.title ?? null, replay: !!hud.replay })}
+          onClose={() => hudActions.closeFeedback()}
+        />
+      )}
       {/* The bottom deck: weapons, time, helm; during a replay, the replay controls. */}
       {hud.replay ? (
         <ReplayDeck />

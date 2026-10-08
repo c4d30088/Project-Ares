@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Playtest Feedback</title>
+<!-- The developer's view of playtest feedback (M6). Reads /api/feedback with the
+     FEEDBACK_ADMIN_KEY password (locally: "dev"). The password is kept for this browser tab only. -->
+<style>
+  :root {
+    --bg: #05080c; --panel: #0b1117; --line: #24323c; --text: #dce6ea; --dim: #8a9ba4;
+    --accent: #39c6ff; --warn: #ffb020; --bad: #ff5a4a; --good: #3df56b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  h1 { margin: 0 12px 0 0; font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; }
+  input, button, select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); padding: 7px 10px; border-radius: 3px; }
+  button { cursor: pointer; }
+  button.primary { border-color: var(--accent); color: var(--accent); }
+  input:focus { outline: 1px solid var(--accent); }
+  #search { flex: 1; min-width: 160px; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  .summary { color: var(--dim); margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); font-size: 12px; color: var(--text); cursor: pointer; background: none; }
+  .chip.on { border-color: var(--accent); color: var(--accent); }
+  .chip.bug, .chip.wrong { color: var(--bad); }
+  .chip.confusing { color: var(--warn); }
+  .chip.great { color: var(--good); }
+  .note { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; margin-bottom: 10px; }
+  .note-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+  .tag { font-weight: 600; color: #fff; }
+  .when { color: var(--dim); font-size: 12px; }
+  .prompted { color: var(--dim); font-size: 12px; font-style: italic; }
+  .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .ctx { color: var(--dim); font-size: 12px; margin-top: 8px; overflow-wrap: anywhere; }
+  .msg { color: var(--dim); padding: 30px 0; text-align: center; }
+  .msg.err { color: var(--warn); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Playtest feedback</h1>
+  <input id="key" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" />
+  <button id="load" class="primary">Load</button>
+  <input id="search" type="search" placeholder="Search notes, tags, maps…" aria-label="Search" />
+  <button id="csv">Download CSV</button>
+  <button id="json">Download JSON</button>
+</header>
+<main>
+  <div class="summary" id="summary"></div>
+  <div id="list"><div class="msg">Enter the password and press Load.</div></div>
+</main>
+<script>
+  const LABELS = { confusing: "Confusing", bug: "Bug", great: "Felt great", wrong: "Felt wrong", idea: "Idea" };
+  const $ = (id) => document.getElementById(id);
+  let notes = [];
+  let only = null; // a category filter
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const clock = (s) => (s == null ? "" : `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`);
+  const ctxLine = (c) => [c.where, c.fightTimeS != null ? `${clock(c.fightTimeS)} into the fight` : null, c.result, c.replay ? "watching the replay" : null, `build ${c.build}`, c.screen, c.display].filter(Boolean).join(" · ");
+
+  try { $("key").value = sessionStorage.getItem("ares.feedback.key") || ""; } catch {}
+
+  async function load() {
+    const key = $("key").value.trim();
+    if (!key) return;
+    try { sessionStorage.setItem("ares.feedback.key", key); } catch {}
+    $("list").innerHTML = '<div class="msg">Loading…</div>';
+    try {
+      const r = await fetch("/api/feedback", { headers: { authorization: `Bearer ${key}` }, cache: "no-store" });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.error || `error ${r.status}`);
+      notes = body.notes || [];
+      render();
+    } catch (e) {
+      $("list").innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
+      $("summary").innerHTML = "";
+    }
+  }
+
+  function shown() {
+    const q = $("search").value.trim().toLowerCase();
+    return notes.filter((n) => (!only || n.categories.includes(only)) && (!q || JSON.stringify(n).toLowerCase().includes(q)));
+  }
+
+  function render() {
+    const list = shown();
+    const testers = new Set(notes.map((n) => n.gamerTag)).size;
+    const counts = Object.keys(LABELS).map((k) => [k, notes.filter((n) => n.categories.includes(k)).length]);
+    $("summary").innerHTML =
+      `<span>${notes.length} notes from ${testers} tester${testers === 1 ? "" : "s"}${list.length !== notes.length ? `, ${list.length} shown` : ""}</span>` +
+      counts.map(([k, n]) => `<button class="chip ${k} ${only === k ? "on" : ""}" data-cat="${k}">${LABELS[k]} ${n}</button>`).join("");
+    $("list").innerHTML = list.length
+      ? list
+          .map(
+            (n) => `<div class="note">
+          <div class="note-head">
+            <span class="tag">${esc(n.gamerTag)}</span>
+            <span class="when">${esc(new Date(n.receivedAt).toLocaleString())}</span>
+            ${n.categories.map((c) => `<span class="chip ${c}">${LABELS[c] || esc(c)}</span>`).join("")}
+            ${n.prompted ? '<span class="prompted">after a fight</span>' : ""}
+          </div>
+          ${n.text ? `<div class="text">${esc(n.text)}</div>` : ""}
+          <div class="ctx">${esc(ctxLine(n.context || {}))}</div>
+        </div>`,
+          )
+          .join("")
+      : `<div class="msg">${notes.length ? "No notes match." : "No feedback yet."}</div>`;
+  }
+
+  function download(name, type, data) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type }));
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  $("load").onclick = load;
+  $("key").onkeydown = (e) => e.key === "Enter" && load();
+  $("search").oninput = render;
+  $("summary").onclick = (e) => {
+    const cat = e.target.dataset && e.target.dataset.cat;
+    if (!cat) return;
+    only = only === cat ? null : cat;
+    render();
+  };
+  $("json").onclick = () => download("playtest-feedback.json", "application/json", JSON.stringify(shown(), null, 2));
+  $("csv").onclick = () => {
+    const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["received", "gamer tag", "tags", "text", "after a fight", "where", "fight time", "result", "build", "screen", "display"]];
+    for (const n of shown()) {
+      const c = n.context || {};
+      rows.push([n.receivedAt, n.gamerTag, n.categories.map((k) => LABELS[k] || k).join("; "), n.text, n.prompted ? "yes" : "", c.where, clock(c.fightTimeS), c.result, c.build, c.screen, c.display]);
+    }
+    download("playtest-feedback.csv", "text/csv", rows.map((r) => r.map(cell).join(",")).join("\n"));
+  };
+  if ($("key").value) load();
+</script>
+</body>
+</html>

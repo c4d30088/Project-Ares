@@ -8,6 +8,9 @@ import { rangePhaseLabels, skirmishMaps, skirmishQuery } from "../data/skirmish"
 import { scenarios } from "../data/scenarios";
 import { Panel } from "./Panel";
 import { SettingsScreen } from "./SettingsScreen";
+import { FeedbackButton, FeedbackForm } from "./playtest/FeedbackForm";
+import { noteContext } from "../feedback/context";
+import { waitingCount } from "../feedback/send";
 
 const PERSONALITIES = Object.keys(personalityPresets) as PersonalityName[];
 
@@ -25,18 +28,20 @@ const bars: { key: keyof (typeof personalityPresets)["hunter"]; label: string }[
 
 /** The first screen: pick a map, how many enemies, and how they fly. Start reloads the page
  *  with the choice in its address, which is also how a skirmish can be linked to. */
-export function SetupScreen() {
+export function SetupScreen(props: { onBriefing?(): void } = {}) {
   const [mapId, setMapId] = useState(skirmishMaps[0].id);
   const [enemies, setEnemies] = useState<1 | 2>(1);
   const [personality, setPersonality] = useState<PersonalityName>("duelist");
   const [showSettings, setShowSettings] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const map = skirmishMaps.find((m) => m.id === mapId)!;
   const start = () => {
     location.search = skirmishQuery({ map: mapId, enemies, personality });
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && !showSettings) start();
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "Enter" && !showSettings && !showFeedback) start();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -99,6 +104,11 @@ export function SetupScreen() {
             <button className="hud-btn setup-settings" onClick={() => setShowSettings(true)}>
               Settings
             </button>
+            {props.onBriefing && (
+              <button className="hud-btn" onClick={props.onBriefing}>
+                Playtest briefing
+              </button>
+            )}
           </div>
 
           <section className="setup-other">
@@ -117,6 +127,8 @@ export function SetupScreen() {
         BUILD {__BUILD__}
       </div>
       {showSettings && <SettingsScreen inFight={false} onClose={() => setShowSettings(false)} />}
+      <FeedbackButton onClick={() => setShowFeedback(true)} waiting={waitingCount()} />
+      {showFeedback && <FeedbackForm prompted={false} context={noteContext()} onClose={() => setShowFeedback(false)} />}
     </div>
   );
 }

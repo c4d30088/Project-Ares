@@ -21,7 +21,7 @@ Next session: (the one thing to fix or try first)
 Next session: the owner plays https://test.project-ares.net/ (live, built from main), then runs the checkpoint: give that link to 3 to 5 people who have not seen the game and watch them play without explaining. Claude Code writes the M6 entry from the owner's notes, then fixes what the testers stumbled on first. Still unplayed by the owner: the M4 (Sensors Lite) and M5 (AI captain, 10 skirmishes) checkpoints; the testers' games will cover some of that ground.
 
 How to play
-- The link, https://test.project-ares.net/ (live since 2026-10-07, serving main), opens the skirmish setup screen; locally `npm run dev`, http://localhost:5173. The setup screen shows the build bottom right (BUILD commit · date): note it with the playtest notes.
+- The link, https://test.project-ares.net/ (live since 2026-10-07, serving main), opens a title screen and, on a first visit, the playtest briefing (gamer tag), then the skirmish setup screen; testers send notes with FEEDBACK (top right) and after each fight; read them at https://test.project-ares.net/feedback (password; setup in docs/DEPLOY.md); locally `npm run dev`, http://localhost:5173. The setup screen shows the build bottom right (BUILD commit · date): note it with the playtest notes.
 - Bottom deck: Weapons control on the left (Torpedoes, Railgun, Point defense), Time in the middle (click a speed on the ruler, or `[` `]`, Space to pause), Helm on the right (order tiles light their status line while the order runs; thrust tabs; Sensors tile says what gives you away).
 - SET in the Time panel opens Settings: colors (Standard, Red-green safe, Blue-yellow safe), Reduce effects, volume, UI scale, and Controls (rebind any key). Cmd/Ctrl + and − change the UI scale anywhere.
 - After a fight: Replay on the result banner. Timeline (click or drag), Our view / Their view / All. Esc leaves the replay.
@@ -32,13 +32,13 @@ What M6 built (merged to main; 364 tests)
 - Hit flicker on the table and alert strip animations, each with a slider; both off with Reduce effects.
 - Settings with color-blind palettes (checked by a color-blindness simulation test), Reduce effects, volume, UI scale, remappable keys. Saved in the browser.
 - After-action replay that re-runs the fight exactly from saved copies and your commands.
-- Cloudflare Pages: repository ready, owner's steps in docs/DEPLOY.md.
+- Cloudflare: repository ready, owner's steps in docs/DEPLOY.md (the site turned out to be a Worker with static assets, not Pages; the feedback route is a small Worker script).
 
 Owner decisions this milestone
 - Sound: realistic and serious, not playful (three rounds: hull echo, horn klaxon, single-round PDC, no bell tones; a rumblier, flickering drive; the railgun as a transformer charge and a zip release). Voice recordings are not usable (Claude Code cannot hear audio); descriptions and sound words work.
 - Bottom HUD: option D, the console deck after the UX references, not hexes; weapons and helm the same height; bigger click targets for the time speeds.
 - Large screens: UI scale on Cmd/Ctrl + and −; the deck centered next to the Time panel.
-- Hosting: Cloudflare Pages, at https://test.project-ares.net/.
+- Hosting: Cloudflare (a Worker with static assets), at https://test.project-ares.net/.
 - Jamming static left out: jamming itself is parked.
 
 What Claude Code saw (not a real playtest)

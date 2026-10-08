@@ -16,3 +16,9 @@ shots/
 # Reference images: copyrighted screenshots, kept local only
 UX reference/
 The Expanse UI Reference/
+
+# Playtest feedback stored locally by the dev server
+.feedback-dev.json
+# Local Worker secrets (wrangler dev) and its local state
+.dev.vars
+.wrangler/

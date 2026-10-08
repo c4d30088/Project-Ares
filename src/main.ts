@@ -26,7 +26,8 @@ import { createDropLines } from "./render/dropLines";
 import { palette } from "./render/palette";
 import { createHolotable } from "./render/holotable";
 import { Hud } from "./ui/Hud";
-import { SetupScreen } from "./ui/SetupScreen";
+import { FrontScreens } from "./ui/playtest/FrontScreens";
+import { flushOutbox } from "./feedback/send";
 import { hudActions, hudStore } from "./ui/store";
 import { timeTuning } from "./data/time";
 import { defaultScenario, scenarios } from "./data/scenarios";
@@ -66,7 +67,8 @@ createDebugPanel(
   },
   sound,
 );
-createRoot(document.getElementById("hud")!).render(createElement(showSetup ? SetupScreen : Hud));
+createRoot(document.getElementById("hud")!).render(createElement(showSetup ? FrontScreens : Hud));
+void flushOutbox(); // feedback written offline last time
 applyUiScale();
 
 // Palette tokens as CSS variables (--friendly, --chrome, ...) for the HUD and table labels.
@@ -130,6 +132,23 @@ hudActions.closeSettings = () => {
   settingsOpen = false;
   if (!game.outcome) game.paused = pausedBeforeSettings;
   hudStore.set({ settingsOpen: false });
+};
+// The playtest feedback form pauses the game the same way.
+let feedbackOpen: { prompted: boolean } | null = null;
+let pausedBeforeFeedback = false;
+hudActions.openFeedback = (prompted) => {
+  if (feedbackOpen || settingsOpen) return;
+  feedbackOpen = { prompted };
+  pausedBeforeFeedback = game.paused;
+  game.paused = true;
+  orders.cancel();
+  hudStore.set({ feedback: feedbackOpen, paused: true });
+};
+hudActions.closeFeedback = () => {
+  if (!feedbackOpen) return;
+  feedbackOpen = null;
+  if (!game.outcome) game.paused = pausedBeforeFeedback;
+  hudStore.set({ feedback: null });
 };
 // Sound on or off is the player's choice, remembered between visits.
 audioTuning.muted = settings.muted;
@@ -221,8 +240,9 @@ function runAction(action: ActionId) {
 
 window.addEventListener("keydown", (e) => {
   if (uiScaleKey(e)) return; // Cmd/Ctrl + − 0: the HUD's size (works everywhere, Settings too)
-  if (e.target instanceof HTMLInputElement) return;
-  if (settingsOpen) return; // the Settings screen handles its own keys (Esc closes it)
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return; // typing
+  if (showSetup) return; // title, briefing and setup screens: the game behind takes no keys
+  if (settingsOpen || feedbackOpen) return; // these screens handle their own keys (Esc closes them) // the Settings screen handles its own keys (Esc closes it)
   if (e.key === "Escape") {
     if (game.replay) game.exitReplay();
     else if (orders.mode) orders.cancel();
@@ -327,6 +347,7 @@ function frame(now: number) {
       notice: game.notice,
       muted: audioTuning.muted,
       settingsOpen,
+      feedback: feedbackOpen,
       keysVersion,
       replay: game.replay ? { view: game.replay.view, t: game.simTime, endS: game.replay.endS, marks: game.replay.marks } : null,
       outcome: game.outcome ? { result: game.outcome.result, title: game.outcome.title, detail: game.outcome.detail, timeS: game.outcome.tick * DT } : null,

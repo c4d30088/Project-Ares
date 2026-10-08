@@ -6,6 +6,7 @@
 // and write is guarded and the game plays on the defaults without it.
 
 import { defaultKeys, keyLabel, parseKeyMap, type ActionId, type KeyMap } from "./keymap";
+import { cleanGamerTag } from "../feedback/note";
 
 export type PaletteName = "standard" | "redGreen" | "blueYellow";
 
@@ -22,6 +23,10 @@ export interface PlayerSettings {
   keys: KeyMap;
   /** Size of the HUD panels (not the table), 1 = normal. Cmd/Ctrl + and −. */
   uiScale: number;
+  /** Playtest: the tester's chosen gamer tag (sent with their feedback), and whether they have
+   *  read the playtest briefing (then the title leads straight to the setup screen). */
+  gamerTag: string | null;
+  briefed: boolean;
 }
 
 export const UI_SCALE_MIN = 0.6;
@@ -30,7 +35,7 @@ export const UI_SCALE_MAX = 2;
 const KEY = "ares.settings";
 const PALETTES: PaletteName[] = ["standard", "redGreen", "blueYellow"];
 
-export const defaultSettings: PlayerSettings = { palette: "standard", reduceEffects: false, volume: 1, muted: false, keys: { ...defaultKeys }, uiScale: 1 };
+export const defaultSettings: PlayerSettings = { palette: "standard", reduceEffects: false, volume: 1, muted: false, keys: { ...defaultKeys }, uiScale: 1, gamerTag: null, briefed: false };
 
 /** Reads saved settings, keeping only values that make sense. */
 export function parseSettings(raw: string | null): PlayerSettings {
@@ -44,6 +49,8 @@ export function parseSettings(raw: string | null): PlayerSettings {
     if (typeof o.muted === "boolean") s.muted = o.muted;
     s.keys = parseKeyMap(o.keys);
     if (typeof o.uiScale === "number" && o.uiScale >= UI_SCALE_MIN && o.uiScale <= UI_SCALE_MAX) s.uiScale = o.uiScale;
+    if (typeof o.gamerTag === "string") s.gamerTag = cleanGamerTag(o.gamerTag);
+    if (typeof o.briefed === "boolean") s.briefed = o.briefed && !!s.gamerTag;
   } catch {
     // Unreadable: defaults.
   }

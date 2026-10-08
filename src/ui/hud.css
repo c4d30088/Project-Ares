@@ -370,3 +370,66 @@
 
 /* Build stamp on the setup screen (which build a playtester played). */
 .build-stamp { position: absolute; right: 16px; bottom: 12px; font-size: 10px; color: var(--textDim); letter-spacing: 0.06em; text-transform: none; }
+
+/* --- Playtest (M6): title screen, briefing, feedback --- */
+.title-scrim {
+  position: absolute; inset: 0; pointer-events: auto; cursor: pointer; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 70px;
+  /* Darkest behind the words, so the table's labels never read through them. */
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--bg) 90%, transparent) 25%, color-mix(in srgb, var(--bg) 70%, transparent) 80%);
+  backdrop-filter: blur(3px);
+  font-family: "Oxanium", sans-serif; color: var(--text); text-transform: uppercase;
+}
+.title-block { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.title-over { font-size: 12px; letter-spacing: 0.5em; color: var(--uncertain); padding-left: 0.5em; }
+.title-name {
+  margin: 0; font-size: clamp(40px, 7vw, 92px); font-weight: 600; letter-spacing: 0.32em; padding-left: 0.32em; color: #fff;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--friendly) 70%, transparent), 0 0 2px var(--friendly);
+}
+.title-rule {
+  width: min(560px, 70vw); height: 8px;
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--friendly) 80%, transparent) 0 1px, transparent 1px 28px) bottom / 100% 8px no-repeat,
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--chrome) 60%, transparent) 0 1px, transparent 1px 7px) bottom / 100% 4px no-repeat;
+}
+.title-tag { font-size: 13px; letter-spacing: 0.24em; color: var(--textDim); }
+.title-press { font-size: 12px; letter-spacing: 0.3em; color: var(--friendly); animation: title-pulse 2.2s ease-in-out infinite; }
+@keyframes title-pulse { 50% { opacity: calc(1 - 0.65 * var(--alert-anim, 1)); } }
+.reduce-effects .title-press { animation: none; }
+
+.briefing-panel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(680px, 94vw); height: min(610px, 94vh); --chamfer: 16px; }
+.briefing-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; margin-top: 14px; padding-right: 6px; }
+.briefing-lead { margin: 0; text-transform: none; letter-spacing: 0.02em; font-size: 14px; line-height: 1.5; color: var(--text); }
+.briefing-list { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; text-transform: none; letter-spacing: 0.02em; font-size: 13px; line-height: 1.45; color: var(--text); }
+.briefing-list b { color: #fff; font-weight: 600; }
+.briefing-key { font-weight: 600; letter-spacing: 0.1em; padding: 1px 6px; color: var(--friendly); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chrome) 60%, transparent); }
+.briefing-tag { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.briefing-privacy .settings-note { font-size: 11.5px; }
+
+.text-field {
+  font: inherit; font-size: 14px; color: #fff; text-transform: none; letter-spacing: 0.03em;
+  background: color-mix(in srgb, var(--bg) 70%, transparent); border: 1px solid color-mix(in srgb, var(--chrome) 60%, transparent);
+  padding: 8px 10px; outline: none;
+}
+.text-field:focus { border-color: var(--friendly); }
+.briefing-tag .text-field { width: 220px; }
+.warn-text { color: var(--uncertain) !important; }
+.good-text { color: var(--fireFriendly) !important; }
+.link-btn { all: unset; cursor: pointer; color: var(--friendly); text-decoration: underline; text-underline-offset: 2px; }
+
+.feedback-btn { position: absolute; top: 14px; right: 16px; z-index: 6; pointer-events: auto; color: var(--friendly); padding: 7px 14px; }
+.feedback-panel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(600px, 94vw); height: min(470px, 92vh); --chamfer: 16px; }
+.feedback-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.feedback-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.feedback-chip { flex-direction: row; padding: 6px 12px; font-size: 11px; }
+.feedback-text { flex: 1; min-height: 110px; resize: none; line-height: 1.45; }
+.feedback-meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.feedback-meta b { color: #fff; }
+.feedback-tag { width: 170px; padding: 4px 8px; font-size: 12px; }
+.feedback-details { font-size: 11px; overflow-wrap: anywhere; }
+.feedback-buttons { display: flex; gap: 8px; }
+
+.result-banner { height: 228px; }
+.result-ask { all: unset; cursor: pointer; margin-top: 4px; font-size: 11px; letter-spacing: 0.12em; color: var(--text); }
+.result-ask-cta { color: var(--friendly); text-decoration: underline; text-underline-offset: 3px; margin-left: 6px; }
+.result-ask:hover .result-ask-cta { color: #fff; }
