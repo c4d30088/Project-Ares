@@ -11,7 +11,7 @@
     "binding": "ASSETS"
   },
   "kv_namespaces": [
-    { "binding": "FEEDBACK", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+    { "binding": "FEEDBACK", "id": "769abdbfa6b2473b8c04adac6f6e7d06" }
   ],
   "observability": { "enabled": true }
 }
