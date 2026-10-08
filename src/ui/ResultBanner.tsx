@@ -10,6 +10,9 @@ export function ResultBanner(props: { outcome: OutcomeInfo }) {
       <div className={`result-title ${o.result}`}>{o.title}</div>
       <div className="result-detail mono">{o.detail}</div>
       <div className="result-time mono">AFTER {formatClock(o.timeS)}</div>
+      <button className="result-ask" onClick={() => hudActions.openFeedback(true)}>
+        How did that fight go? <span className="result-ask-cta">Tell us</span>
+      </button>
       <div className="result-buttons">
         <button className="hud-btn active" onClick={() => hudActions.startReplay()} title="Watch the fight again, from either side's picture">
           REPLAY

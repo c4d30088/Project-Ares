@@ -12,7 +12,7 @@ describe("player settings", () => {
 
   it("reads back what was saved", () => {
     expect(parseSettings(JSON.stringify({ palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true }))).toEqual({
-      palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true, keys: defaultKeys, uiScale: 1,
+      palette: "redGreen", reduceEffects: true, volume: 0.4, muted: true, keys: defaultKeys, uiScale: 1, gamerTag: null, briefed: false,
     });
   });
 

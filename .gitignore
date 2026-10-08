@@ -16,3 +16,6 @@ shots/
 # Reference images: copyrighted screenshots, kept local only
 UX reference/
 The Expanse UI Reference/
+
+# Playtest feedback stored locally by the dev server
+.feedback-dev.json

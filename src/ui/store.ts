@@ -120,6 +120,9 @@ export interface HudState {
   keysVersion: number;
   /** The after-action replay, or null while playing. t and endS in sim seconds. */
   replay: ReplayInfo | null;
+  /** The playtest feedback form is open (the game is paused meanwhile); prompted: asked for
+   *  after a fight. */
+  feedback: { prompted: boolean } | null;
   /** Set when the fight is over (win, loss or draw). */
   outcome: OutcomeInfo | null;
 }
@@ -147,6 +150,7 @@ let state: HudState = {
   settingsOpen: false,
   keysVersion: 0,
   replay: null,
+  feedback: null,
   outcome: null,
 };
 const listeners = new Set<() => void>();
@@ -185,6 +189,9 @@ export interface HudActions {
   closeSettings(): void;
   /** The key map changed (Settings, Controls). */
   keysChanged(): void;
+  /** Playtest feedback form. */
+  openFeedback(prompted: boolean): void;
+  closeFeedback(): void;
   /** After-action replay. */
   startReplay(): void;
   exitReplay(): void;
@@ -213,6 +220,8 @@ export const hudActions: HudActions = {
   openSettings() {},
   closeSettings() {},
   keysChanged() {},
+  openFeedback() {},
+  closeFeedback() {},
   startReplay() {},
   exitReplay() {},
   replaySeek() {},

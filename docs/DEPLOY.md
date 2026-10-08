@@ -26,6 +26,18 @@ The game is a static website: `npm run build` puts everything in `dist/`. Cloudf
 - Every other branch pushed to GitHub gets its own preview address, for example `claude-m6-feel-polish.project-ares.pages.dev`, so a milestone can be playtested before it is merged.
 - The setup screen shows which build is running, bottom right (`BUILD a1b2c3d · date`). Ask playtesters to mention it with their notes.
 
+## Playtest feedback storage (one time, about 5 minutes)
+
+Testers' notes (the in-game FEEDBACK button and "How did that fight go?") go to `/api/feedback`, a small function that Cloudflare Pages runs from the `functions/` folder. It needs a place to keep the notes and a password for reading them. Until both are set up, the game keeps testers' notes in their browser and sends them once it can.
+
+1. In the Cloudflare dashboard, open **Storage & Databases → KV** (sometimes under **Workers & Pages → KV**) and **Create** a namespace named `ares-feedback`.
+2. Open the Pages project, **Settings → Bindings** (older dashboards: Settings → Functions → KV namespace bindings). **Add → KV namespace**: variable name **`FEEDBACK`**, namespace **`ares-feedback`**. Add it for **Production** (and Preview, if you use preview links).
+3. Still in Settings, **Variables and Secrets → Add**: type **Secret**, name **`FEEDBACK_ADMIN_KEY`**, value: a long password only you know (a password manager can make one). Add it for Production (and Preview).
+4. **Deployments → (latest) → Retry deployment**, so the new settings take effect.
+5. Open **https://test.project-ares.net/feedback** and enter the password. Notes appear newest first; there is a search box, a filter per tag, and CSV or JSON downloads.
+
+What a note holds: the tester's gamer tag, the quick tags they picked, their words, and game details (map, fight time and result, build, screen size, display settings). No names, emails or addresses are collected; the spam guard (30 notes per tester per hour) keeps only a one-way fingerprint for an hour.
+
 ## Checking a build locally first
 
 `npm run build`, then `npm run preview`, then open http://localhost:4173. This is exactly what Cloudflare serves.
