@@ -209,6 +209,8 @@ Build order (one commit per step):
 
 Status (2026-10-07): all eight steps are built and merged; the playtest build is live at https://test.project-ares.net/. Next: the owner plays it, then runs the checkpoint below with 3 to 5 new players.
 
+Status (2026-10-08): the playtest kit is live and working (feedback read at https://test.project-ares.net/feedback); next is the checkpoint itself. Open decisions in docs/DEPLOY.md (preview builds, the workers.dev address).
+
 Playtest kit (owner, 2026-10-07): a title screen, then a playtest briefing (the playtest only, no controls, so the checkpoint still shows where new players get stuck; asks for a gamer tag), an in-game FEEDBACK button and "How did that fight go?" after each fight, stored on Cloudflare (KV, through the site's Worker script) and read at /feedback with a password. Owner setup in docs/DEPLOY.md.
 
 **Checkpoint:** Give the link to 3 to 5 people who have not seen the game. Watch them play without explaining anything. Write down where they hesitate, what they never use, and when they lean in. Those notes decide what Phase 2 fixes first.
