@@ -13,4 +13,6 @@ npm run dev
 
 Then open http://localhost:5173.
 
+`npm run build` makes the playtest build in `dist/`; `npm run preview` serves it locally. The shared playtest build is **https://test.project-ares.net/**, built by Cloudflare Pages from `main` on GitHub (`docs/DEPLOY.md`).
+
 See `docs/DESIGN.md` for the game design and `docs/ROADMAP.md` for milestones.

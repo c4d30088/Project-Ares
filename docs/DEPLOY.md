@@ -18,6 +18,8 @@ The game is a static website: `npm run build` puts everything in `dist/`. Cloudf
    - Leave the rest as it is. The Node version comes from `.node-version` in the repository.
 5. **Save and Deploy.** The first build takes a few minutes. When it is green, the address opens the skirmish setup screen.
 
+**Live (2026-10-07):** https://test.project-ares.net/ (the owner's domain, serving `main`).
+
 ## After that, it is automatic
 
 - Every merge to `main` rebuilds the main address (`project-ares.pages.dev`).
