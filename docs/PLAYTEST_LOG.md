@@ -17,6 +17,26 @@ Next session: (the one thing to fix or try first)
 
 ---
 
+## 2026-10-08, milestone M6: playtest kit live, ready for testers
+Next session: run the M6 checkpoint. Send https://test.project-ares.net/ to 3 to 5 people who have not seen the game and watch them play without explaining (the briefing tells them as much). Read their notes at https://test.project-ares.net/feedback (password: the owner's `FEEDBACK_ADMIN_KEY`); "Download CSV" for a spreadsheet. Paste the notes (or the CSV) and the owner's own observations into a Claude Code session: it writes the M6 checkpoint entry and fixes what testers stumbled on first.
+
+What testers get (owner request, 2026-10-07)
+- A title screen, then on a first visit a playtest briefing: what we are asking, how to send feedback, what gets sent, and a gamer tag (no real names). It deliberately does not teach the controls (owner's choice), so the checkpoint still shows where new players get stuck.
+- FEEDBACK (top right, any time; the game pauses): quick tags (Confusing, Bug, Felt great, Felt wrong, Idea), text, and game details attached (map, fight time and result, build, screen, display settings). "How did that fight go?" on the result banner after every fight. Notes that cannot be sent wait in the browser.
+- The owner reads everything at /feedback: newest first, search, tag filter, CSV and JSON.
+
+How it runs (details in docs/DEPLOY.md)
+- The site is a Cloudflare Worker with static assets, not Pages (learned when the dashboard refused a storage binding): `worker/index.ts` serves the game and answers `/api/feedback`; `wrangler.jsonc` declares the `ares-feedback` KV storage. The password is the Worker secret `FEEDBACK_ADMIN_KEY` (set 2026-10-08).
+- Deploys: automatic on merge to main (worked for PR #10); #8 and #9 did not trigger and were deployed by hand with wrangler (owner logged in on this Mac). If a merge does not appear live, deploy by hand.
+- Fixed after going live: the /feedback password field cancelled every key (a key handler returned false); now only Enter is handled.
+
+Open decisions (owner)
+- Preview builds for pull requests fail at their deploy step until `wrangler.jsonc` has a `previews` block: separate preview storage, turn previews off, or share the real storage. Harmless to the live site.
+- The site is also reachable at a workers.dev address made from the account's name; one config line (`"workers_dev": false`) would turn it off.
+- Still unplayed by the owner: the M4 (Sensors Lite) and M5 (10 skirmishes) checkpoints.
+
+---
+
 ## 2026-10-07, milestone M6: built, ready for the checkpoint
 Next session: the owner plays https://test.project-ares.net/ (live, built from main), then runs the checkpoint: give that link to 3 to 5 people who have not seen the game and watch them play without explaining. Claude Code writes the M6 entry from the owner's notes, then fixes what the testers stumbled on first. Still unplayed by the owner: the M4 (Sensors Lite) and M5 (AI captain, 10 skirmishes) checkpoints; the testers' games will cover some of that ground.
 

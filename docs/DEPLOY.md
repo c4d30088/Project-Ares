@@ -6,6 +6,13 @@
 
 The site is a **Cloudflare Worker with static assets**, connected to the GitHub repository (Workers Builds). `npm run build` puts the game in `dist/`; `wrangler.jsonc` tells Cloudflare to serve `dist/` and to run `worker/index.ts` for one route, `/api/feedback` (playtest notes). The repository stays private; the built game is public to anyone with the link (as with any web game).
 
+## Current state (2026-10-08)
+
+- Live and working: the game, the playtest title and briefing, in-game feedback, and the /feedback page.
+- Worker `project-ares` (`wrangler.jsonc`). KV namespace `ares-feedback` (id in `wrangler.jsonc`) holds the notes. The secret `FEEDBACK_ADMIN_KEY` is set on the Worker (Settings → Variables and Secrets); only its name is known here.
+- Automatic production builds work: merging PR #10 deployed by itself (`BUILD acae6a7`). Earlier merges (#8, #9) did not trigger a build and were deployed by hand with wrangler (below); the cause was never pinned down. If a merge does not show up live within a few minutes, deploy by hand.
+- Pull-request builds run, but their deploy step fails: see "Preview builds" below (open decision; harmless to the live site).
+
 ## How it is set up
 
 - Workers & Pages, the Worker (named in `wrangler.jsonc`, `"name"`), **Settings → Build**:
@@ -35,6 +42,29 @@ What a note holds: the tester's gamer tag, the quick tags they picked, their wor
 - The setup screen shows which build is running, bottom right (`BUILD a1b2c3d · date`). Ask playtesters to mention it with their notes.
 - Branch preview links: Workers Builds can upload a preview version for other branches if non-production branch builds are turned on in Settings → Build; the build shows its address. Not needed for playtests.
 
+## Deploying by hand (when an automatic build does not happen)
+
+From an up-to-date copy of `main` (Claude Code can do this; the owner is logged in to wrangler on their Mac since 2026-10-08):
+
+```
+git switch --detach origin/main    (after git fetch)
+npm test && npm run build
+npx wrangler deploy
+```
+
+The first time on a computer, `npx wrangler login` opens a Cloudflare page in the browser to allow it. `npx wrangler deployments list --name project-ares` shows what is live and where it came from; `npx wrangler secret list --name project-ares` shows the secrets' names (never their values). A hand deploy keeps the secret.
+
+## Preview builds (open decision)
+
+Builds of pull-request branches run `npx wrangler preview`, which refuses to start until `wrangler.jsonc` has a `previews` block naming the storage previews may use (Cloudflare does not let a preview touch production storage by default). Options, for the owner:
+1. A separate throwaway KV namespace for previews (`ares-feedback-preview`), added under `previews` in `wrangler.jsonc`: every PR gets a preview link and a build check; test notes stay apart from real feedback.
+2. Turn off builds for non-production branches (Settings → Build): only `main` deploys.
+3. Previews use the real `ares-feedback` namespace: notes sent from a preview land among real feedback.
+
+## The workers.dev address (open decision)
+
+Cloudflare also serves the Worker at `project-ares.<account-subdomain>.workers.dev`, and that subdomain is made from the account's name. To keep only `test.project-ares.net`, add `"workers_dev": false` (and `"preview_urls": false`) to `wrangler.jsonc` and deploy. Not done yet.
+
 ## Checking a build locally first
 
 - `npm run build`, then `npm run preview`, then http://localhost:4173: the game as Cloudflare serves it (feedback goes to the local stand-in, password `dev`).
@@ -43,3 +73,5 @@ What a note holds: the tester's gamer tag, the quick tags they picked, their wor
 ## If a build fails
 
 The build log is under the Worker's **Deployments** (or Builds). The usual causes: a type error (`npm run build` fails locally too; fix it there first), or a `"name"` / KV `"id"` in `wrangler.jsonc` that does not match the dashboard. Paste the end of the log into a Claude Code session.
+
+The build always warns that Vite's config uses imports without file extensions (`configLoader: 'native'`): only a notice about a future Vite version, not an error.
