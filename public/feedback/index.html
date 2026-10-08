@@ -119,7 +119,10 @@
   }
 
   $("load").onclick = load;
-  $("key").onkeydown = (e) => e.key === "Enter" && load();
+  // A handler that returns false cancels the key, so every other key must get undefined back.
+  $("key").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") load();
+  });
   $("search").oninput = render;
   $("summary").onclick = (e) => {
     const cat = e.target.dataset && e.target.dataset.cat;
