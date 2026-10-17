@@ -91,22 +91,29 @@ export const clips = [
   {
     name: "05-railgun",
     seconds: 6,
-    query: "skirmish=knife-fight&enemies=1&ai=duelist",
+    query: "skirmish=knife-fight&enemies=2&ai=duelist",
+    // One against two at about 150 km. TRK-22 (red-ff2) has a clear line of fire (an asteroid
+    // covers TRK-21 from us), so the slug goes at it; at 4x it crosses in about 2 s and hits.
     setup: () => {
       const { game } = window.__ares;
-      game.issue({ type: "orient", ship: "blue-ff1", target: { kind: "track", id: "red-ff1" } });
+      game.issue({ type: "orient", ship: "blue-ff1", target: { kind: "track", id: "red-ff2" } });
     },
-    warmup: [{ s: 4 }],
+    warmup: [{ s: 2 }],
     events: [
-      { at: 0.6, run: () => window.__ares.game.issue({ type: "fireRailgun", ship: "blue-ff1", target: { kind: "track", id: "red-ff1" } }) },
-      { at: 2.4, run: () => window.__ares.game.issue({ type: "launchTorpedoes", ship: "blue-ff1", target: { kind: "track", id: "red-ff1" }, count: 4, mode: "hot" }) },
+      { at: 0.3, run: () => window.__ares.game.issue({ type: "fireRailgun", ship: "blue-ff1", target: { kind: "track", id: "red-ff2" } }) },
+      { at: 3.2, run: () => window.__ares.game.issue({ type: "launchTorpedoes", ship: "blue-ff1", target: { kind: "track", id: "red-ff1" }, count: 2, mode: "hot" }) },
     ],
-    // Centered between us and the enemy, from behind and above our ship.
+    // All three ships in frame: from behind ours, looking at the middle of the two enemies.
     perFrame: ({ t }) => {
+      const { game } = window.__ares;
+      game.setCompression(1);
       const cam = window.videoCam;
-      cam.look({ from: cam.pos("blue-ff1"), to: cam.pos("red-ff1"), along: 0.5, fit: 1.3, pitch: 32, yawOffset: 55 - 3 * t });
+      const a = cam.pos("red-ff1"), b = cam.pos("red-ff2");
+      const mid = a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 } : a ?? b;
+      cam.look({ from: cam.pos("blue-ff1"), to: mid, along: 0.36, fit: 1.95, pitch: 55, yawOffset: -8 - 2.5 * t });
     },
     caption: "Railguns at knife-fight range",
+    sub: "ONE AGAINST TWO",
   },
   {
     name: "06-victory",
