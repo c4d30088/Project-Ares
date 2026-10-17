@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Project Ares end card</title>
+<style>
+  /* The launch video's last shot. Animated by card(t) from record.mjs (frame time, not CSS
+     animations, so it follows the recording's fake clock). Colors: palette.ts standard set. */
+  @font-face { font-family: Oxanium; font-weight: 600; src: url(../../node_modules/@fontsource/oxanium/files/oxanium-latin-600-normal.woff2); }
+  @font-face { font-family: Oxanium; font-weight: 800; src: url(../../node_modules/@fontsource/oxanium/files/oxanium-latin-800-normal.woff2); }
+  @font-face { font-family: "Share Tech Mono"; src: url(../../node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2); }
+  :root { --friendly: #39C6FF; --text: #e8f6ff; --dim: #7fa9c4; --bg: #04080c; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  body { display: grid; place-items: center; color: var(--text); }
+  .grid { position: fixed; inset: -10%; background-image:
+      linear-gradient(rgba(57, 198, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57, 198, 255, 0.07) 1px, transparent 1px);
+    background-size: 80px 80px; transform: perspective(900px) rotateX(58deg) translateY(18%); transform-origin: 50% 60%; }
+  .ring { position: fixed; left: 50%; top: 50%; width: 60vh; height: 60vh; border-radius: 50%;
+    border: 2px solid var(--friendly); box-shadow: 0 0 40px rgba(57, 198, 255, 0.35), inset 0 0 40px rgba(57, 198, 255, 0.15);
+    transform: translate(-50%, -50%); }
+  .ring.two { border-width: 1px; opacity: 0.4; }
+  .stack { position: relative; text-align: center; display: flex; flex-direction: column; align-items: center; }
+  .title { font-family: Oxanium, sans-serif; font-weight: 800; font-size: 13vh; letter-spacing: 0.14em; line-height: 1;
+    color: var(--text); text-shadow: 0 0 30px rgba(57, 198, 255, 0.8), 0 0 80px rgba(57, 198, 255, 0.35); margin-right: -0.14em; }
+  .rule { width: 62vh; height: 1px; background: var(--friendly); margin: 3.2vh 0; box-shadow: 0 0 12px var(--friendly); }
+  .tag { font-family: Oxanium, sans-serif; font-weight: 600; font-size: 3.6vh; letter-spacing: 0.22em; text-transform: uppercase; }
+  .inspired { font-family: "Share Tech Mono", monospace; font-size: 2.6vh; letter-spacing: 0.2em; color: var(--dim); margin-top: 1.4vh; }
+  .url { font-family: "Share Tech Mono", monospace; font-size: 5.6vh; letter-spacing: 0.06em; color: var(--friendly);
+    margin-top: 5vh; padding: 1.4vh 3.2vh; border: 1px solid rgba(57, 198, 255, 0.6); background: rgba(57, 198, 255, 0.07);
+    text-shadow: 0 0 16px rgba(57, 198, 255, 0.6); }
+  .cta { font-family: Oxanium, sans-serif; font-weight: 600; font-size: 2.8vh; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 2.6vh; color: var(--text); }
+  .fade { opacity: 0; }
+</style>
+</head>
+<body>
+  <div class="grid fade" id="grid"></div>
+  <div class="ring fade" id="ring"></div>
+  <div class="ring two fade" id="ring2"></div>
+  <div class="stack">
+    <div class="title fade" id="title">PROJECT ARES</div>
+    <div class="rule fade" id="rule"></div>
+    <div class="tag fade" id="tag">Free browser playtest · open now</div>
+    <div class="inspired fade" id="inspired">A HARD SCI-FI TACTICS GAME INSPIRED BY THE EXPANSE</div>
+    <div class="url fade" id="url">test.project-ares.net</div>
+    <div class="cta fade" id="cta">Play a fight. Tell us what you think.</div>
+  </div>
+<script>
+  const el = (id) => document.getElementById(id);
+  const ramp = (t, start, len) => Math.max(0, Math.min(1, (t - start) / len));
+  const ease = (x) => 1 - Math.pow(1 - x, 3);
+  window.card = function (t) {
+    const g = ease(ramp(t, 0, 1.2));
+    el("grid").style.opacity = String(0.9 * g);
+    const r = ease(ramp(t, 0.1, 1.6));
+    el("ring").style.opacity = String(0.85 * r);
+    el("ring").style.transform = `translate(-50%, -50%) scale(${0.6 + 0.9 * r})`;
+    const r2 = ease(ramp(t, 0.5, 2.2));
+    el("ring2").style.opacity = String(0.4 * r2 * (1 - ramp(t, 3, 3)));
+    el("ring2").style.transform = `translate(-50%, -50%) scale(${0.8 + 1.4 * r2})`;
+    const ti = ease(ramp(t, 0.3, 0.9));
+    el("title").style.opacity = String(ti);
+    el("title").style.letterSpacing = `${0.3 - 0.16 * ti}em`;
+    el("rule").style.opacity = String(ramp(t, 0.9, 0.5));
+    el("rule").style.width = `${62 * ease(ramp(t, 0.9, 0.8))}vh`;
+    el("tag").style.opacity = String(ramp(t, 1.4, 0.5));
+    el("inspired").style.opacity = String(ramp(t, 1.8, 0.5));
+    el("url").style.opacity = String(ramp(t, 2.4, 0.5));
+    el("cta").style.opacity = String(ramp(t, 3.0, 0.6));
+  };
+  window.card(0);
+</script>
+</body>
+</html>

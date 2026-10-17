@@ -22,3 +22,6 @@ The Expanse UI Reference/
 # Local Worker secrets (wrangler dev) and its local state
 .dev.vars
 .wrangler/
+
+# Launch video: recorded frames, the music track and the MP4 (scripts/video/), kept local
+/video/
