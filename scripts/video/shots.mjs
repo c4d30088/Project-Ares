@@ -31,50 +31,67 @@ export const clips = [
   {
     name: "02-burn",
     seconds: 6,
-    query: "skirmish=open-duel&enemies=1&ai=hunter&focus=blue-ff1",
+    query: "skirmish=open-duel&enemies=1&ai=hunter",
+    // Drift sideways first, then order an intercept: the route bends to kill the sideways
+    // speed on the way.
     setup: () => {
       const { game } = window.__ares;
-      game.issue({ type: "burnTo", ship: "blue-ff1", point: { x: 2600e3, y: -1800e3, z: 200e3 }, g: "max" });
-      game.setCompression(3);
+      game.issue({ type: "burnTo", ship: "blue-ff1", point: { x: 0, y: -3000e3, z: 0 }, g: "cruise" });
     },
-    warmup: [{ s: 2 }],
-    perFrame: ({ t }) => window.__ares.view.cam.setView({ yawDeg: 20 - 4 * t, pitchDeg: 38, distance: 4.5e6 }, false),
+    warmup: [
+      { s: 5, each: () => window.__ares.game.setCompression(3) },
+      { run: () => window.__ares.game.issue({ type: "intercept", ship: "blue-ff1", target: { kind: "track", id: "red-ff1" }, mode: "rendezvous", g: "combat" }) },
+      { s: 0.5, each: () => window.__ares.game.setCompression(2) },
+    ],
+    perFrame: ({ t }) => {
+      window.__ares.game.setCompression(2);
+      const cam = window.videoCam;
+      cam.look({ from: cam.pos("blue-ff1"), to: cam.pos("red-ff1"), along: 0.1, fit: 0.5, pitch: 66 - 2 * t, yawOffset: -18 + 4 * t });
+    },
     caption: "Newtonian flight",
-    sub: "PLOT THE BURN · FLIP · BRAKE",
+    sub: "PLOT THE INTERCEPT · FLIP · BRAKE",
   },
   {
     name: "03-sensors",
     seconds: 7,
-    query: "skirmish=moon-shadow&enemies=1&ai=skulker&focus=blue-ff1",
-    setup: () => {
-      window.__ares.game.setCompression(3);
+    query: "skirmish=moon-shadow&enemies=1&ai=skulker",
+    // The enemy hides behind the moon and clears its edge (as we see it) at about 590 s. Start
+    // at 545 s and hold 16x: it breaks out about 3 s in.
+    warmup: [{ until: () => window.__ares.game.simTime >= 545, each: () => window.__ares.game.setCompression(3), maxS: 60 }],
+    perFrame: ({ t }) => {
+      window.__ares.game.setCompression(2);
+      const cam = window.videoCam;
+      // From behind our ship, looking at the moon.
+      cam.look({ from: cam.pos("blue-ff1"), to: cam.pos("moon-1"), along: 0.55, distance: 3.3e6 - 0.05e6 * t, pitch: 12, yawOffset: 6 - 1.2 * t });
     },
-    warmup: [{ s: 3 }],
-    events: [
-      { at: 2.5, run: () => window.__ares.game.issue({ type: "setSensors", ship: "blue-ff1", on: true }) },
-    ],
-    perFrame: ({ t }) => window.__ares.view.cam.setView({ yawDeg: -30 + 5 * t, pitchDeg: 42, distance: 5.5e6 }, false),
     caption: "You only see what your sensors see",
-    sub: "THRUST MAKES YOU VISIBLE · GO DARK · HIDE BEHIND THE MOON",
+    sub: "THRUST MAKES YOU VISIBLE · HIDE BEHIND THE MOON",
   },
   {
     name: "04-pdc",
     seconds: 9,
-    query: "scenario=pdc-test&focus=blue-ff1",
+    query: "scenario=pdc-test",
     // Fast-forward to the first salvo (launched at 10 s, about 100 km out at 146 s), then
     // play it at 1x: the PDCs open up at about 152 s.
     warmup: [
       { until: () => window.__ares.game.simTime >= 146, each: () => window.__ares.game.setCompression(3), maxS: 60 },
       { run: () => window.__ares.game.setCompression(0) },
     ],
-    perFrame: ({ t }) => window.__ares.view.cam.setView({ yawDeg: 35 + 3 * t, pitchDeg: 26, distance: 120e3 - 8e3 * t }, false),
+    // Side on first (our ship, the salvo and the cruiser left to right), swinging round to
+    // behind our ship as the torpedoes arrive.
+    perFrame: ({ t, seconds }) => {
+      const cam = window.videoCam;
+      const k = Math.min(1, t / (seconds - 1.5));
+      const ease = k * k * (3 - 2 * k);
+      cam.look({ from: cam.pos("blue-ff1"), to: cam.pos("red-cr1"), along: 0.012, distance: 95e3 - 40e3 * ease, pitch: 16 - 6 * ease, yawOffset: 90 - 75 * ease });
+    },
     caption: "Six torpedoes inbound",
     sub: "POINT DEFENSE IS YOUR LAST LINE",
   },
   {
     name: "05-railgun",
     seconds: 6,
-    query: "skirmish=knife-fight&enemies=1&ai=duelist&focus=blue-ff1",
+    query: "skirmish=knife-fight&enemies=1&ai=duelist",
     setup: () => {
       const { game } = window.__ares;
       game.issue({ type: "orient", ship: "blue-ff1", target: { kind: "track", id: "red-ff1" } });
@@ -84,13 +101,17 @@ export const clips = [
       { at: 0.6, run: () => window.__ares.game.issue({ type: "fireRailgun", ship: "blue-ff1", target: { kind: "track", id: "red-ff1" } }) },
       { at: 2.4, run: () => window.__ares.game.issue({ type: "launchTorpedoes", ship: "blue-ff1", target: { kind: "track", id: "red-ff1" }, count: 4, mode: "hot" }) },
     ],
-    perFrame: ({ t }) => window.__ares.view.cam.setView({ yawDeg: -15 + 4 * t, pitchDeg: 26, distance: 210e3 }, false),
+    // Centered between us and the enemy, from behind and above our ship.
+    perFrame: ({ t }) => {
+      const cam = window.videoCam;
+      cam.look({ from: cam.pos("blue-ff1"), to: cam.pos("red-ff1"), along: 0.5, fit: 1.3, pitch: 32, yawOffset: 55 - 3 * t });
+    },
     caption: "Railguns at knife-fight range",
   },
   {
     name: "06-victory",
     seconds: 6,
-    query: "skirmish=knife-fight&enemies=1&ai=duelist&focus=blue-ff1",
+    query: "skirmish=knife-fight&enemies=1&ai=duelist",
     // Fight it out off camera; record the moment it ends (the blast and the banner). Takes
     // that do not end in VICTORY are thrown away and the next tactic is tried.
     variants: [
@@ -136,7 +157,11 @@ export const clips = [
     accept: () => window.__ares.game.outcome?.title === "VICTORY",
     // Record from 45 sim seconds before the end (at 16x, about 3 s of the kill), then the banner.
     lead: { simS: 45 },
-    perFrame: ({ t }) => window.__ares.view.cam.setView({ yawDeg: 10 + 3 * t, pitchDeg: 30, distance: 240e3 }, false),
+    // Centered on the enemy (its last place once destroyed), our ship in the foreground.
+    perFrame: ({ t }) => {
+      const cam = window.videoCam;
+      cam.look({ from: cam.pos("blue-ff1"), to: cam.pos("red-ff1"), along: 0.85, fit: 1.1, minDistance: 60e3, pitch: 24, yawOffset: 22 - 2 * t });
+    },
   },
   {
     name: "07-endcard",

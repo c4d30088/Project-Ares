@@ -148,6 +148,7 @@ async function openScene(clip, setup, errors, warmup) {
     await startRepeatable(page);
   }
   await page.evaluate(injectCaption);
+  if (clip.page !== "endcard") await page.evaluate(installVideoCam);
   if (setup) await page.evaluate(setup);
 
   // Warm-up: let the scene play (unrecorded) until the clip's moment.
@@ -198,6 +199,34 @@ function captionOpacity(clip, t) {
   const end = clip.seconds - (clip.captionOut ?? 0.5);
   const fade = 0.4;
   return Math.max(0, Math.min(1, (t - start) / fade, (end - t) / fade));
+}
+
+// Runs in the page: camera aiming for the shot list (window.videoCam). look() puts the camera
+// behind `from` looking toward `to`, focused at `along` (0 = from, 1 = to) of the way, and stops
+// the table following the selected ship. yawOffset swings it around the focus (90: side on).
+// fit: distance = the from-to separation times fit (at least minDistance).
+function installVideoCam() {
+  const last = new Map();
+  window.videoCam = {
+    /** Where something is in our picture (ships, tracks), else a charted body; the last known
+     *  place once it is gone (a destroyed ship). */
+    pos(id) {
+      const { game } = window.__ares;
+      const p = game.positionOf(id) ?? game.world.bodies.find((b) => b.id === id)?.position ?? null;
+      if (p) last.set(id, { x: p.x, y: p.y, z: p.z });
+      return last.get(id) ?? null;
+    },
+    look({ from, to, along = 0.5, distance, fit, minDistance = 0, pitch = 20, yawOffset = 0 }) {
+      const { view } = window.__ares;
+      if (!from || !to) return;
+      view.cam.onPan?.();
+      const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+      const yaw = (Math.atan2(-dx, dy) * 180) / Math.PI + yawOffset;
+      const d = fit ? Math.max(minDistance, Math.hypot(dx, dy, dz) * fit) : distance;
+      view.cam.setFocus({ x: from.x + dx * along, y: from.y + dy * along, z: from.z + dz * along }, false);
+      view.cam.setView({ yawDeg: yaw, pitchDeg: pitch, distance: d }, false);
+    },
+  };
 }
 
 // Runs in the page: the caption overlay, in the game's fonts and HUD colors.

@@ -26,10 +26,9 @@
   .rule { width: 62vh; height: 1px; background: var(--friendly); margin: 3.2vh 0; box-shadow: 0 0 12px var(--friendly); }
   .tag { font-family: Oxanium, sans-serif; font-weight: 600; font-size: 3.6vh; letter-spacing: 0.22em; text-transform: uppercase; }
   .inspired { font-family: "Share Tech Mono", monospace; font-size: 2.6vh; letter-spacing: 0.2em; color: var(--dim); margin-top: 1.4vh; }
-  .url { font-family: "Share Tech Mono", monospace; font-size: 5.6vh; letter-spacing: 0.06em; color: var(--friendly);
+  .cta { font-family: Oxanium, sans-serif; font-weight: 600; font-size: 3.4vh; letter-spacing: 0.16em; text-transform: uppercase; color: var(--friendly);
     margin-top: 5vh; padding: 1.4vh 3.2vh; border: 1px solid rgba(57, 198, 255, 0.6); background: rgba(57, 198, 255, 0.07);
     text-shadow: 0 0 16px rgba(57, 198, 255, 0.6); }
-  .cta { font-family: Oxanium, sans-serif; font-weight: 600; font-size: 2.8vh; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 2.6vh; color: var(--text); }
   .fade { opacity: 0; }
 </style>
 </head>
@@ -40,10 +39,9 @@
   <div class="stack">
     <div class="title fade" id="title">PROJECT ARES</div>
     <div class="rule fade" id="rule"></div>
-    <div class="tag fade" id="tag">Free browser playtest · open now</div>
+    <div class="tag fade" id="tag">Free browser playtest · testers wanted</div>
     <div class="inspired fade" id="inspired">A HARD SCI-FI TACTICS GAME INSPIRED BY THE EXPANSE</div>
-    <div class="url fade" id="url">test.project-ares.net</div>
-    <div class="cta fade" id="cta">Play a fight. Tell us what you think.</div>
+    <div class="cta fade" id="cta">Want in? Comment or DM for an invite.</div>
   </div>
 <script>
   const el = (id) => document.getElementById(id);
@@ -65,8 +63,7 @@
     el("rule").style.width = `${62 * ease(ramp(t, 0.9, 0.8))}vh`;
     el("tag").style.opacity = String(ramp(t, 1.4, 0.5));
     el("inspired").style.opacity = String(ramp(t, 1.8, 0.5));
-    el("url").style.opacity = String(ramp(t, 2.4, 0.5));
-    el("cta").style.opacity = String(ramp(t, 3.0, 0.6));
+    el("cta").style.opacity = String(ramp(t, 2.4, 0.6));
   };
   window.card(0);
 </script>
